@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+Erangel_Minimap.jpg
+Erangel_Minimap.tga
+finished.jpg
+map_path.jpg
