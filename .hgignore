@@ -1,0 +1,4 @@
+syntax: glob
+.idea/**
+__pycache__/**
+test_cases/.cache/**
