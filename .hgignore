@@ -1,8 +1,0 @@
-syntax: glob
-.idea/**
-__pycache__/**
-test_cases/.cache/**
-map_path.jpg
-finished.jpg
-Erangel_Minimap.tga
-Erangel_Minimap.jpg
