@@ -10,11 +10,11 @@ _, PLAYER_INDICATOR_MASK = cv2.threshold(PLAYER_INDICATOR_IMG, 10, 255, cv2.THRE
 
 @pytest.mark.parametrize("test_image", os.listdir('bad'))
 def test_bad_images(test_image):
-    match_found,\
-    max_val,\
-    coords,\
-    ind_color,\
-    ind_in_range,\
+    match_found, \
+    max_val, \
+    coords, \
+    ind_color, \
+    ind_in_range, \
     minimap = template_match_minimap(cv2.imread(os.path.join('bad', test_image)),
                                      GRAY_MAP,
                                      PLAYER_INDICATOR_MASK)
@@ -23,11 +23,11 @@ def test_bad_images(test_image):
 
 @pytest.mark.parametrize("test_image", os.listdir('good'))
 def test_good_images(test_image):
-    match_found,\
-    max_val,\
-    coords,\
-    ind_color,\
-    ind_in_range,\
+    match_found, \
+    max_val, \
+    coords, \
+    ind_color, \
+    ind_in_range, \
     minimap = template_match_minimap(cv2.imread(os.path.join('good', test_image)),
                                      GRAY_MAP,
                                      PLAYER_INDICATOR_MASK)
