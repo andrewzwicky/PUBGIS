@@ -1,11 +1,12 @@
 import os
 import cv2
+from multiprocessing import Pool
 
 TEMPLATE_THRESHOLD = 22000000
 # no start skip to get failing images on purpose
 START_SKIP = 0
 # less frequent for test cases
-SKIP = 300
+SKIP = 1500
 
 
 def generate_minimap_captures(video_file):
@@ -19,11 +20,9 @@ def generate_minimap_captures(video_file):
     ret, frame = cap.read()
 
     while frame is not None:
-
         minimap = frame[798:1051, 1630:1882]
-
         base = os.path.basename(video_file)
-        cv2.imwrite("{}_{}.jpg".format(os.path.splitext(base)[0], frame_num), minimap)
+        cv2.imwrite(r"unknown\{}_{}.jpg".format(os.path.splitext(base)[0], frame_num), minimap)
 
         for i in range(SKIP):
             cap.grab()
@@ -32,6 +31,14 @@ def generate_minimap_captures(video_file):
 
 REC_FOLDER = r"E:\Movies\OBS"
 
-for video in ["2017-08-03 17-58-17.mkv",
-              "2017-08-03 17-29-40.mkv"]:
-    generate_minimap_captures(os.path.join(REC_FOLDER, video))
+if __name__ == "__main__":
+    videos = ["2017-08-26_13-16-55.mkv",
+              "2017-08-24_00-26-16.mkv",
+              "2017-08-23_23-33-18.mkv",
+              "2017-08-22_20-19-58.mkv",
+              "2017-08-21_22-02-13.mkv",
+              "2017-08-21_21-28-12.mkv"]
+
+    p = Pool(3)
+
+    p.map(generate_minimap_captures, [os.path.join(REC_FOLDER, video) for video in videos])

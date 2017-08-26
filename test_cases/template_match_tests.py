@@ -1,6 +1,6 @@
 import pytest
 import os
-from recorder import template_match_minimap
+from recorder import template_match_minimap, markup_image_debug
 import cv2
 
 GRAY_MAP = cv2.imread(r"../Erangel_Minimap_scaled.jpg", 0)
@@ -31,4 +31,8 @@ def test_good_images(test_image):
     minimap = template_match_minimap(cv2.imread(os.path.join('good', test_image)),
                                      GRAY_MAP,
                                      PLAYER_INDICATOR_MASK)
+    if not match_found:
+        debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
+        cv2.imwrite(f"failed/{test_image}_failed.jpg", debug_minimap)
+
     assert match_found

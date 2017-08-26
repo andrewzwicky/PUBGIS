@@ -65,6 +65,29 @@ def video_iterator(video_file):
                 cap.grab()
 
 
+def markup_image_debug(minimap, max_val, ind_in_range, ind_color):
+    if max_val > TEMPLATE_THRESHOLD:
+        text_color = MATCH_COLOR
+    else:
+        text_color = NO_MATCH_COLOR
+
+    if ind_in_range:
+        rect_color = MATCH_COLOR
+    else:
+        rect_color = NO_MATCH_COLOR
+
+    b, g, r, _ = tuple(map(int, ind_color))
+
+    cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
+    cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
+    cv2.putText(minimap, '{:>12}'.format(int(max_val)), (50, 50), FONT, 0.5, text_color)
+    cv2.putText(minimap, f'{b}', (208, 212), FONT, 0.3, (0, 0, 0))
+    cv2.putText(minimap, f'{g}', (208, 227), FONT, 0.3, (0, 0, 0))
+    cv2.putText(minimap, f'{r}', (208, 242), FONT, 0.3, (0, 0, 0))
+
+    return minimap
+
+
 def process_match(video_file, full_map_file, player_indicator_mask_file):
     full_map = cv2.imread(full_map_file)
     player_indicator_mask = cv2.imread(player_indicator_mask_file, 0)
@@ -82,34 +105,14 @@ def process_match(video_file, full_map_file, player_indicator_mask_file):
                               itertools.repeat(gray_map),
                               itertools.repeat(player_indicator_mask))):
 
-        if max_val > TEMPLATE_THRESHOLD:
-            text_color = MATCH_COLOR
-        else:
-            text_color = NO_MATCH_COLOR
-
-        if ind_in_range:
-            rect_color = MATCH_COLOR
-        else:
-            rect_color = NO_MATCH_COLOR
-
         if match_found:
             trail_color = MATCH_COLOR
         else:
             trail_color = NO_MATCH_COLOR
 
-        b, g, r, _ = tuple(map(int, ind_color))
-
-        cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
-        cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-
+        debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
         cv2.circle(full_map, coords, TRAIL_SIZE, trail_color, -1)
-
-        cv2.putText(minimap, '{:>12}'.format(int(max_val)), (50, 50), FONT, 0.5, text_color)
-        cv2.putText(minimap, f'{b}', (208, 212), FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{g}', (208, 227), FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{r}', (208, 242), FONT, 0.3, (0, 0, 0))
-
-        cv2.imshow("mini", minimap)
+        cv2.imshow("mini", debug_minimap)
         cv2.imshow("map", cv2.resize(full_map, (0, 0), fx=0.2, fy=0.2))
         cv2.waitKey(10)
 
