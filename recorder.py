@@ -4,9 +4,11 @@ import itertools
 
 TEMPLATE_THRESHOLD = 15000000
 START_SKIP = 2000
-SKIP = 120
+SKIP = 30
 
-TRAIL_SIZE = 5
+CROP_BORDER = 30
+
+TRAIL_SIZE = 1
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -95,6 +97,9 @@ def process_match(video_file, full_map_file, player_indicator_mask_file):
 
     p = multiprocessing.Pool(3)
 
+    last_coords = None
+    min_x = max_x = min_y = max_y = None
+
     for match_found,\
         max_val,\
         coords,\
@@ -106,14 +111,33 @@ def process_match(video_file, full_map_file, player_indicator_mask_file):
                               itertools.repeat(player_indicator_mask))):
 
         if match_found:
-            trail_color = MATCH_COLOR
+            # trail_color = MATCH_COLOR
+            if last_coords is not None:
+                cv2.line(full_map, last_coords, coords, MATCH_COLOR, thickness=TRAIL_SIZE)
+            last_coords = coords
+
+            x, y = coords
+
+            if min_x is None or x < min_x:
+                min_x = x
+            if max_x is None or x > max_x:
+                max_x = x
+            if min_y is None or y < min_y:
+                min_y = y
+            if max_y is None or y > max_y:
+                max_y = y
         else:
-            trail_color = NO_MATCH_COLOR
+            # trail_color = NO_MATCH_COLOR
+            pass
 
         debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
-        cv2.circle(full_map, coords, TRAIL_SIZE, trail_color, -1)
+        # cv2.circle(full_map, coords, TRAIL_SIZE, trail_color, -1)
+
         cv2.imshow("mini", debug_minimap)
-        cv2.imshow("map", cv2.resize(full_map, (0, 0), fx=0.2, fy=0.2))
+        if max_x is not None:
+            cropped_map = full_map[min_y-CROP_BORDER:max_y+CROP_BORDER,
+                                   min_x-CROP_BORDER:max_x+CROP_BORDER]
+            cv2.imshow("map", cropped_map)
         cv2.waitKey(10)
 
     cv2.imwrite("map_path.jpg", full_map)
