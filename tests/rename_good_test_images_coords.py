@@ -1,6 +1,6 @@
 import pytest
 import os
-from recorder import template_match_minimap
+from pubgis import template_match_minimap
 import cv2
 
 MAP = cv2.imread(r"../Erangel_Minimap_scaled.jpg")

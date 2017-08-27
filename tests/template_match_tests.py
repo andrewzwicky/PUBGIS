@@ -1,6 +1,6 @@
 import pytest
 import os
-from recorder import template_match_minimap, markup_image_debug
+from pubgis import template_match_minimap, markup_image_debug
 import cv2
 
 GRAY_MAP = cv2.imread(r"../Erangel_Minimap_scaled.jpg", 0)
