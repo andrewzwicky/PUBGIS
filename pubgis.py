@@ -8,7 +8,8 @@ SKIP = 30
 
 CROP_BORDER = 30
 
-TRAIL_SIZE = 1
+TRAIL_SIZE = 8
+TRAIL_ALPHA = 0.6
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -23,7 +24,8 @@ def template_match_minimap_wrapper(args):
     return template_match_minimap(*args)
 
 
-def template_match_minimap(minimap, gray_map, player_indicator_mask):
+def template_match_minimap(frame_minimap, gray_map, player_indicator_mask):
+    frame, minimap = frame_minimap
     match_found = False
 
     ind_color = cv2.mean(minimap, player_indicator_mask)
@@ -44,12 +46,14 @@ def template_match_minimap(minimap, gray_map, player_indicator_mask):
     return match_found, max_val, (max_y + h // 2, max_x + w // 2), ind_color, ind_in_range, minimap
 
 
-def video_iterator(video_file):
+def video_iterator(video_file, start_delay, skip):
+    frame_count = 0
     cap = cv2.VideoCapture(video_file)
 
     # skip the first frames (plane, etc.)
-    for i in range(START_SKIP):
+    for i in range(start_delay):
         cap.grab()
+    frame_count += start_delay
 
     while True:
         ret, frame = cap.read()
@@ -62,9 +66,10 @@ def video_iterator(video_file):
                 minimap = frame[798:1051, 1630:1882]
             else:
                 raise ValueError
-            yield minimap
-            for i in range(SKIP):
+            yield frame_count, minimap
+            for i in range(skip):
                 cap.grab()
+            frame_count += skip
 
 
 def markup_image_debug(minimap, max_val, ind_in_range, ind_color):
@@ -82,7 +87,7 @@ def markup_image_debug(minimap, max_val, ind_in_range, ind_color):
 
     cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
     cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-    cv2.putText(minimap, '{:>12}'.format(int(max_val)), (50, 50), FONT, 0.5, text_color)
+    cv2.putText(minimap, '{:>12}'.format(int(max_val)), (50, 50), FONT, 3, text_color)
     cv2.putText(minimap, f'{b}', (208, 212), FONT, 0.3, (0, 0, 0))
     cv2.putText(minimap, f'{g}', (208, 227), FONT, 0.3, (0, 0, 0))
     cv2.putText(minimap, f'{r}', (208, 242), FONT, 0.3, (0, 0, 0))
@@ -106,7 +111,7 @@ def process_match(video_file, full_map_file, player_indicator_mask_file):
         ind_color,\
         ind_in_range,\
         minimap in p.imap(template_match_minimap_wrapper,
-                          zip(video_iterator(video_file),
+                          zip(video_iterator(video_file, START_SKIP, SKIP),
                               itertools.repeat(gray_map),
                               itertools.repeat(player_indicator_mask))):
 
