@@ -1,148 +1,171 @@
 import cv2
+from matplotlib import pyplot as plt
 import multiprocessing
-import itertools
+import argparse
+from tqdm import tqdm
 
-TEMPLATE_THRESHOLD = 15000000
-START_SKIP = 2000
-SKIP = 30
+
+DEFAULT_MAP = "Erangel_Minimap_scaled.jpg"
+DEFAULT_INDICATOR_MASK = "circle_mask.jpg"
+DEFAULT_OUTPUT_FILE = "game_path.jpg"
+
+DEFAULT_TEMP_MATCH_THRESHOLD = 15000000
+DEFAULT_START_DELAY_FRAMES = 2000
+
+# assume 30 fps?
+DEFAULT_TIME_STEP_FRAMES = 30
 
 CROP_BORDER = 30
 
-TRAIL_SIZE = 8
-TRAIL_ALPHA = 0.6
+PATH_WIDTH = 3
+PATH_ALPHA = 0.7
 
-FONT = cv2.FONT_HERSHEY_SIMPLEX
+DEFAULT_FONT = cv2.FONT_HERSHEY_SIMPLEX
+DEBUG_FONT_SIZE = 0.75
 
 NO_MATCH_COLOR = (0, 0, 255)
 MATCH_COLOR = (0, 255, 0)
 
-IND_MIN = [130, 150, 150]
-IND_MAX = [225, 225, 225]
+INDICATOR_COLOR_MIN = [130, 150, 150]
+INDICATOR_COLOR_MAX = [225, 225, 225]
 
 
-def template_match_minimap_wrapper(args):
-    return template_match_minimap(*args)
+class PUBGIS:
+    def __init__(self,
+                 video_file,
+                 full_map_file=DEFAULT_MAP,
+                 mask_file=DEFAULT_INDICATOR_MASK,
+                 delay_frames=DEFAULT_START_DELAY_FRAMES,
+                 step_frames=DEFAULT_TIME_STEP_FRAMES,
+                 output_file=DEFAULT_OUTPUT_FILE,
+                 crop=False,
+                 debug=False):
+        self.video_file = video_file
+        self.full_map = cv2.imread(full_map_file)
+        self.indicator_mask = cv2.imread(mask_file, 0)
+        self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
+        self.start_delay_frames = delay_frames
+        self.time_step_frames = step_frames
+        self.crop = crop
+        self.debug = debug
+        self.output_file = output_file
+        self.full_map_w, self.full_map_h = self.gray_full_map.shape[::-1]
 
+    @staticmethod
+    def markup_image_debug(minimap, max_val, ind_in_range, ind_color):
+        text_color = MATCH_COLOR if max_val > DEFAULT_TEMP_MATCH_THRESHOLD else NO_MATCH_COLOR
+        rect_color = MATCH_COLOR if ind_in_range else NO_MATCH_COLOR
 
-def template_match_minimap(frame_minimap, gray_map, player_indicator_mask):
-    frame, minimap = frame_minimap
-    match_found = False
+        b, g, r, _ = tuple(map(int, ind_color))
 
-    ind_color = cv2.mean(minimap, player_indicator_mask)
-    ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in zip(IND_MIN, ind_color, IND_MAX))
+        cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
+        cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
+        cv2.putText(minimap, '{:>12}'.format(int(max_val)), (20, 50), DEFAULT_FONT, DEBUG_FONT_SIZE , text_color)
+        cv2.putText(minimap, f'{b}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.putText(minimap, f'{g}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.putText(minimap, f'{r}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
 
-    gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
+        return minimap
 
-    w, h = gray_minimap.shape[::-1]
+    def template_match_minimap(self, minimap):
+        match_found = False
 
-    # apply template matching to find most likely minimap location
-    # on the entire map
-    res = cv2.matchTemplate(gray_map, gray_minimap, cv2.TM_CCOEFF)
-    _, max_val, _, (max_y, max_x) = cv2.minMaxLoc(res)
+        ind_color = cv2.mean(minimap, self.indicator_mask)
+        ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in
+                           zip(INDICATOR_COLOR_MIN, ind_color, INDICATOR_COLOR_MAX))
 
-    if max_val > TEMPLATE_THRESHOLD and ind_in_range:
-        match_found = True
+        gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
 
-    return match_found, max_val, (max_y + h // 2, max_x + w // 2), ind_color, ind_in_range, minimap
+        w, h = gray_minimap.shape[::-1]
 
+        # apply template matching to find most likely minimap location on the entire map
+        res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
+        _, max_val, _, (max_y, max_x) = cv2.minMaxLoc(res)
 
-def video_iterator(video_file, start_delay, skip):
-    frame_count = 0
-    cap = cv2.VideoCapture(video_file)
+        if max_val > DEFAULT_TEMP_MATCH_THRESHOLD and ind_in_range:
+            match_found = True
 
-    # skip the first frames (plane, etc.)
-    for i in range(start_delay):
-        cap.grab()
-    frame_count += start_delay
-
-    while True:
-        ret, frame = cap.read()
-        if frame is None:
-            break
+        if self.debug:
+            debug_minimap = self.markup_image_debug(minimap, max_val, ind_in_range, ind_color)
         else:
-            if frame.shape == (720, 1280, 3):
-                minimap = frame[532:700, 1087:1255]
-            elif frame.shape == (1080, 1920, 3):
-                minimap = frame[798:1051, 1630:1882]
+            debug_minimap = None
+
+        return match_found, (max_y + h // 2, max_x + w // 2), debug_minimap
+
+    def video_iterator(self):
+        frame_count = 0
+        cap = cv2.VideoCapture(self.video_file)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        pbar = tqdm(total=total_frames)
+
+        # skip the first frames (plane, etc.)
+        for i in range(self.start_delay_frames):
+            cap.grab()
+        frame_count += self.start_delay_frames
+        pbar.update(self.start_delay_frames)
+
+        while True:
+            ret, frame = cap.read()
+            if frame is None:
+                break
             else:
-                raise ValueError
-            yield frame_count, minimap
-            for i in range(skip):
-                cap.grab()
-            frame_count += skip
+                if frame.shape == (720, 1280, 3):
+                    minimap = frame[532:700, 1087:1255]
+                elif frame.shape == (1080, 1920, 3):
+                    minimap = frame[798:1051, 1630:1882]
+                else:
+                    raise ValueError
+                yield minimap
+                for i in range(self.time_step_frames):
+                    cap.grab()
+                frame_count += self.time_step_frames
+                pbar.update(self.time_step_frames)
 
+        pbar.close()
 
-def markup_image_debug(minimap, max_val, ind_in_range, ind_color):
-    if max_val > TEMPLATE_THRESHOLD:
-        text_color = MATCH_COLOR
-    else:
-        text_color = NO_MATCH_COLOR
+    def process_match(self):
+        p = multiprocessing.Pool(3)
+        all_coords = []
 
-    if ind_in_range:
-        rect_color = MATCH_COLOR
-    else:
-        rect_color = NO_MATCH_COLOR
+        for match_found, coords, debug_minimap in p.imap(self.template_match_minimap, self.video_iterator()):
+            if match_found:
+                all_coords.append(coords)
+                if self.debug:
+                    cv2.imshow("debug minimap", debug_minimap)
+                    cv2.waitKey(10)
 
-    b, g, r, _ = tuple(map(int, ind_color))
+        map_fig, map_ax = plt.subplots()
+        map_fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+        map_ax.axes.xaxis.set_visible(False)
+        map_ax.axes.yaxis.set_visible(False)
+        map_ax.imshow(cv2.cvtColor(self.full_map, cv2.COLOR_BGR2RGB))
+        map_ax.plot(*zip(*all_coords), color='green', linewidth=PATH_WIDTH, alpha=0.7)
 
-    cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
-    cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-    cv2.putText(minimap, '{:>12}'.format(int(max_val)), (50, 50), FONT, 3, text_color)
-    cv2.putText(minimap, f'{b}', (208, 212), FONT, 0.3, (0, 0, 0))
-    cv2.putText(minimap, f'{g}', (208, 227), FONT, 0.3, (0, 0, 0))
-    cv2.putText(minimap, f'{r}', (208, 242), FONT, 0.3, (0, 0, 0))
+        if self.crop:
+            xs, ys = zip(*all_coords)
 
-    return minimap
+            min_x = min(xs)
+            max_x = max(xs)
+            min_y = min(ys)
+            max_y = max(ys)
 
+            map_ax.axes.set_xlim(min_x - CROP_BORDER, max_x + CROP_BORDER)
+            map_ax.axes.set_ylim(min_y - CROP_BORDER, max_y + CROP_BORDER)
 
-def process_match(video_file, full_map_file, player_indicator_mask_file):
-    full_map = cv2.imread(full_map_file)
-    player_indicator_mask = cv2.imread(player_indicator_mask_file, 0)
-    gray_map = cv2.cvtColor(full_map, cv2.COLOR_RGB2GRAY)
+        plt.show()
+        map_fig.savefig(f"{self.output_file}")
 
-    p = multiprocessing.Pool(3)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--video_file', required=True)
+    parser.add_argument('--full_map_file', default=DEFAULT_MAP)
+    parser.add_argument('--mask_file', default=DEFAULT_INDICATOR_MASK)
+    parser.add_argument('--delay_frames', type=int, default=DEFAULT_START_DELAY_FRAMES)
+    parser.add_argument('--step_frames', type=int, default=DEFAULT_TIME_STEP_FRAMES)
+    parser.add_argument('--output_file', default=DEFAULT_OUTPUT_FILE)
+    parser.add_argument('--crop', action='store_true')
+    parser.add_argument('--debug', action='store_true')
+    pubgis = PUBGIS(**vars(parser.parse_args()))
 
-    last_coords = None
-    min_x = max_x = min_y = max_y = None
-
-    for match_found,\
-        max_val,\
-        coords,\
-        ind_color,\
-        ind_in_range,\
-        minimap in p.imap(template_match_minimap_wrapper,
-                          zip(video_iterator(video_file, START_SKIP, SKIP),
-                              itertools.repeat(gray_map),
-                              itertools.repeat(player_indicator_mask))):
-
-        if match_found:
-            # trail_color = MATCH_COLOR
-            if last_coords is not None:
-                cv2.line(full_map, last_coords, coords, MATCH_COLOR, thickness=TRAIL_SIZE)
-            last_coords = coords
-
-            x, y = coords
-
-            if min_x is None or x < min_x:
-                min_x = x
-            if max_x is None or x > max_x:
-                max_x = x
-            if min_y is None or y < min_y:
-                min_y = y
-            if max_y is None or y > max_y:
-                max_y = y
-        else:
-            # trail_color = NO_MATCH_COLOR
-            pass
-
-        debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
-        # cv2.circle(full_map, coords, TRAIL_SIZE, trail_color, -1)
-
-        cv2.imshow("mini", debug_minimap)
-        if max_x is not None:
-            cropped_map = full_map[min_y-CROP_BORDER:max_y+CROP_BORDER,
-                                   min_x-CROP_BORDER:max_x+CROP_BORDER]
-            cv2.imshow("map", cropped_map)
-        cv2.waitKey(10)
-
-    cv2.imwrite("map_path.jpg", full_map)
+    pubgis.process_match()

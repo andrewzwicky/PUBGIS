@@ -1,7 +1,7 @@
 import cv2
 import multiprocessing
 from pubgis import template_match_minimap, template_match_minimap_wrapper, video_iterator, markup_image_debug
-from pubgis import MATCH_COLOR, NO_MATCH_COLOR, TRAIL_SIZE, CROP_BORDER, FONT
+from pubgis import MATCH_COLOR, NO_MATCH_COLOR, PATH_WIDTH, CROP_BORDER, DEFAULT_FONT
 import itertools
 
 START_SKIP = 32000
@@ -60,7 +60,7 @@ def process_match():
 
                 if match_found:
                     if last_coords[player] is not None:
-                        cv2.line(full_map, last_coords[player], coords, colors[player], thickness=TRAIL_SIZE)
+                        cv2.line(full_map, last_coords[player], coords, colors[player], thickness=PATH_WIDTH)
                     last_coords[player] = coords
 
                     # debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
@@ -88,7 +88,7 @@ def find_delays():
             if frame is None:
                 break
             else:
-                cv2.putText(frame, str(total), (50, 50), FONT, 0.5, MATCH_COLOR)
+                cv2.putText(frame, str(total), (50, 50), DEFAULT_FONT, 0.5, MATCH_COLOR)
                 cv2.imshow("start", cv2.resize(frame, (0, 0), fx=0.5, fy=0.5))
                 key = cv2.waitKey(-1)
                 if key == GOOD:
