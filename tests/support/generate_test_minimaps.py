@@ -1,44 +1,46 @@
-import os
-import cv2
 from multiprocessing import Pool
+import cv2
+import os
+import argparse
+from pubgis import PUBGIS
 
-TEMPLATE_THRESHOLD = 22000000
+G = 103
+B = 98
+
 # no start skip to get failing images on purpose
-START_SKIP = 0
+GENERATE_START_DELAY = 0
 # less frequent for test cases
-SKIP = 1500
+GENERATE_STEP_TIME = 30  # seconds
 
 
-def generate_minimap_captures(video_file):
-    cap = cv2.VideoCapture(video_file)
+def generate_test_minimaps(video_file):
+    video_name = os.path.splitext(video_file)[0]
+    match = PUBGIS(video_file=video_file,
+                   start_delay=GENERATE_START_DELAY,
+                   step_time=GENERATE_STEP_TIME)
 
-    # skip the first frames (plane, etc.)
-    frame_num = START_SKIP
-    for i in range(START_SKIP):
-        cap.grab()
-
-    ret, frame = cap.read()
-
-    while frame is not None:
-        minimap = frame[798:1051, 1630:1882]
-        base = os.path.basename(video_file)
-        cv2.imwrite(r"unknown\{}_{}.jpg".format(os.path.splitext(base)[0], frame_num), minimap)
-
-        for i in range(SKIP):
-            cap.grab()
-        frame_num += SKIP
-        ret, frame = cap.read()
-
-REC_FOLDER = r"E:\Movies\OBS"
+    for frame_count, minimap in match.video_iterator():
+        coords_str = ""
+        cv2.imshow("test image", minimap)
+        key = cv2.waitKey(-1)
+        if key == G:
+            match_found, (x, y), debug_minimap = match.template_match_minimap((None, minimap))
+            if match_found:
+                w, h = minimap.shape[::-1]
+                cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
+                key = cv2.waitKey(-1)
+                if key == G:
+                    coords_str = f"_{x}_{y}"
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}{coords_str}.jpg"), minimap)
+        elif key == B:
+            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), minimap)
+        else:
+            pass
 
 if __name__ == "__main__":
-    videos = ["2017-08-26_13-16-55.mkv",
-              "2017-08-24_00-26-16.mkv",
-              "2017-08-23_23-33-18.mkv",
-              "2017-08-22_20-19-58.mkv",
-              "2017-08-21_22-02-13.mkv",
-              "2017-08-21_21-28-12.mkv"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('video_files', nargs='+')
+    args = parser.parse_args()
 
     p = Pool(3)
-
-    p.map(generate_minimap_captures, [os.path.join(REC_FOLDER, video) for video in videos])
+    p.map(generate_test_minimaps, args.video_files)
