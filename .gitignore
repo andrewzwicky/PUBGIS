@@ -36,6 +36,7 @@ coverage.xml
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# PUBGIS specific files
 Erangel_Minimap.jpg
 Erangel_Minimap.tga
 .idea/

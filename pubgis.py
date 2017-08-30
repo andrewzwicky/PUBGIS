@@ -17,6 +17,9 @@ DEFAULT_TIME_STEP_FRAMES = 30
 
 CROP_BORDER = 30
 
+# ??
+MAX_DISTANCE_TRAVELED = 1000
+
 PATH_WIDTH = 3
 PATH_ALPHA = 0.7
 
@@ -67,7 +70,7 @@ class PUBGIS:
 
         return minimap
 
-    def template_match_minimap(self, minimap):
+    def template_match_minimap(self, minimap, last_coords):
         match_found = False
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
@@ -79,6 +82,7 @@ class PUBGIS:
         w, h = gray_minimap.shape[::-1]
 
         # apply template matching to find most likely minimap location on the entire map
+        # todo: shrink search partition to within range of last position to save time
         res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
         _, max_val, _, (max_y, max_x) = cv2.minMaxLoc(res)
 
@@ -96,6 +100,7 @@ class PUBGIS:
         frame_count = 0
         cap = cv2.VideoCapture(self.video_file)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
 
         pbar = tqdm(total=total_frames)
 
