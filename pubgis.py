@@ -73,13 +73,13 @@ class PUBGIS:
 
     def template_match_minimap(self, minimap, last_coords=None):
         match_found = False
+        debug_minimap = None
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
         ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in
                            zip(INDICATOR_COLOR_MIN, ind_color, INDICATOR_COLOR_MAX))
 
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
-
         w, h = gray_minimap.shape[::-1]
 
         # apply template matching to find most likely minimap location on the entire map
@@ -88,6 +88,7 @@ class PUBGIS:
             res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
         else:
             res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
+
         _, max_val, _, (max_y, max_x) = cv2.minMaxLoc(res)
 
         if max_val > DEFAULT_TEMP_MATCH_THRESHOLD and ind_in_range:
@@ -95,8 +96,6 @@ class PUBGIS:
 
         if self.debug:
             debug_minimap = self.markup_image_debug(minimap, max_val, ind_in_range, ind_color)
-        else:
-            debug_minimap = None
 
         return match_found, (max_y + h // 2, max_x + w // 2), debug_minimap
 
