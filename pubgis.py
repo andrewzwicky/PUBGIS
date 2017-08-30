@@ -4,21 +4,22 @@ import multiprocessing
 import argparse
 from tqdm import tqdm
 
-
 DEFAULT_MAP = "Erangel_Minimap_scaled.jpg"
 DEFAULT_INDICATOR_MASK = "circle_mask.jpg"
 DEFAULT_OUTPUT_FILE = "game_path.jpg"
 
 DEFAULT_TEMP_MATCH_THRESHOLD = 15000000
-DEFAULT_START_DELAY_FRAMES = 2000
 
-# assume 30 fps?
-DEFAULT_TIME_STEP_FRAMES = 30
+DEFAULT_START_DELAY = 10  # seconds
+DEFAULT_TIME_STEP = 1  # seconds
 
 CROP_BORDER = 30
 
-# ??
-MAX_DISTANCE_TRAVELED = 1000
+MAX_SPEED = 130  # km/h, motorcycle
+PIXELS_PER_100M = 64
+PIXELS_PER_KM = PIXELS_PER_100M * 10
+MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
+MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
 PATH_WIDTH = 3
 PATH_ALPHA = 0.7
@@ -35,20 +36,20 @@ INDICATOR_COLOR_MAX = [225, 225, 225]
 
 class PUBGIS:
     def __init__(self,
-                 video_file,
+                 video_file=None,
                  full_map_file=DEFAULT_MAP,
                  mask_file=DEFAULT_INDICATOR_MASK,
-                 delay_frames=DEFAULT_START_DELAY_FRAMES,
-                 step_frames=DEFAULT_TIME_STEP_FRAMES,
+                 start_delay=DEFAULT_START_DELAY,
+                 step_time=DEFAULT_TIME_STEP,
                  output_file=DEFAULT_OUTPUT_FILE,
                  crop=False,
                  debug=False):
         self.video_file = video_file
         self.full_map = cv2.imread(full_map_file)
-        self.indicator_mask = cv2.imread(mask_file, 0)
+        _, self.indicator_mask = cv2.threshold(cv2.imread(mask_file, 0), 10, 255, cv2.THRESH_BINARY)
         self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
-        self.start_delay_frames = delay_frames
-        self.time_step_frames = step_frames
+        self.start_delay = start_delay
+        self.step_time = step_time
         self.crop = crop
         self.debug = debug
         self.output_file = output_file
@@ -63,14 +64,14 @@ class PUBGIS:
 
         cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
         cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-        cv2.putText(minimap, '{:>12}'.format(int(max_val)), (20, 50), DEFAULT_FONT, DEBUG_FONT_SIZE , text_color)
+        cv2.putText(minimap, '{:>12}'.format(int(max_val)), (20, 50), DEFAULT_FONT, DEBUG_FONT_SIZE, text_color)
         cv2.putText(minimap, f'{b}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
         cv2.putText(minimap, f'{g}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
         cv2.putText(minimap, f'{r}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         return minimap
 
-    def template_match_minimap(self, minimap, last_coords):
+    def template_match_minimap(self, minimap, last_coords=None):
         match_found = False
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
@@ -83,7 +84,10 @@ class PUBGIS:
 
         # apply template matching to find most likely minimap location on the entire map
         # todo: shrink search partition to within range of last position to save time
-        res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
+        if last_coords:
+            res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
+        else:
+            res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
         _, max_val, _, (max_y, max_x) = cv2.minMaxLoc(res)
 
         if max_val > DEFAULT_TEMP_MATCH_THRESHOLD and ind_in_range:
@@ -98,17 +102,21 @@ class PUBGIS:
 
     def video_iterator(self):
         frame_count = 0
+        # noinspection PyArgumentList
         cap = cv2.VideoCapture(self.video_file)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
+        start_delay_frames = int(self.start_delay * fps)
+        # need to at least increment by 1 each iteration
+        time_step_frames = max(int(self.step_time * fps), 1)
 
         pbar = tqdm(total=total_frames)
 
         # skip the first frames (plane, etc.)
-        for i in range(self.start_delay_frames):
+        for i in range(start_delay_frames):
             cap.grab()
-        frame_count += self.start_delay_frames
-        pbar.update(self.start_delay_frames)
+        frame_count += start_delay_frames
+        pbar.update(start_delay_frames)
 
         while True:
             ret, frame = cap.read()
@@ -122,10 +130,10 @@ class PUBGIS:
                 else:
                     raise ValueError
                 yield minimap
-                for i in range(self.time_step_frames):
+                for i in range(time_step_frames):
                     cap.grab()
-                frame_count += self.time_step_frames
-                pbar.update(self.time_step_frames)
+                frame_count += time_step_frames
+                pbar.update(time_step_frames)
 
         pbar.close()
 
@@ -161,13 +169,14 @@ class PUBGIS:
         plt.show()
         map_fig.savefig(f"{self.output_file}")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--video_file', required=True)
     parser.add_argument('--full_map_file', default=DEFAULT_MAP)
     parser.add_argument('--mask_file', default=DEFAULT_INDICATOR_MASK)
-    parser.add_argument('--delay_frames', type=int, default=DEFAULT_START_DELAY_FRAMES)
-    parser.add_argument('--step_frames', type=int, default=DEFAULT_TIME_STEP_FRAMES)
+    parser.add_argument('--start_delay', type=int, default=DEFAULT_START_DELAY)
+    parser.add_argument('--step_time', type=int, default=DEFAULT_TIME_STEP)
     parser.add_argument('--output_file', default=DEFAULT_OUTPUT_FILE)
     parser.add_argument('--crop', action='store_true')
     parser.add_argument('--debug', action='store_true')
