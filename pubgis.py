@@ -2,11 +2,12 @@ import cv2
 from matplotlib import pyplot as plt
 import multiprocessing
 import argparse
+import os
 from tqdm import tqdm
 
-DEFAULT_MAP = "Erangel_Minimap_scaled.jpg"
-DEFAULT_INDICATOR_MASK = "circle_mask.jpg"
-DEFAULT_OUTPUT_FILE = "game_path.jpg"
+DEFAULT_MAP = "full_map_scaled.jpg"
+DEFAULT_INDICATOR_MASK = "player_indicator_mask.jpg"
+DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
 DEFAULT_TEMP_MATCH_THRESHOLD = 15000000
 
@@ -41,7 +42,8 @@ class PUBGIS:
                  mask_file=DEFAULT_INDICATOR_MASK,
                  start_delay=DEFAULT_START_DELAY,
                  step_time=DEFAULT_TIME_STEP,
-                 output_file=DEFAULT_OUTPUT_FILE,
+                 output_file=None,
+                 color=MATCH_COLOR,
                  crop=False,
                  debug=False):
         self.video_file = video_file
@@ -52,7 +54,12 @@ class PUBGIS:
         self.step_time = step_time
         self.crop = crop
         self.debug = debug
-        self.output_file = output_file
+        if output_file is None:
+            video_name = os.path.splitext(video_file)[0]
+            self.output_file = DEFAULT_OUTPUT_FILE.format(video_name)
+        else:
+            self.output_file = output_file
+        self.color = color
         self.full_map_w, self.full_map_h = self.gray_full_map.shape[::-1]
 
     @staticmethod
@@ -60,18 +67,19 @@ class PUBGIS:
         text_color = MATCH_COLOR if max_val > DEFAULT_TEMP_MATCH_THRESHOLD else NO_MATCH_COLOR
         rect_color = MATCH_COLOR if ind_in_range else NO_MATCH_COLOR
 
-        b, g, r, _ = tuple(map(int, ind_color))
+        blue, green, red, _ = tuple(map(int, ind_color))
 
         cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
         cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
         cv2.putText(minimap, '{:>12}'.format(int(max_val)), (20, 50), DEFAULT_FONT, DEBUG_FONT_SIZE, text_color)
-        cv2.putText(minimap, f'{b}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{g}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{r}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.putText(minimap, f'{blue}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.putText(minimap, f'{green}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.putText(minimap, f'{red}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         return minimap
 
-    def template_match_minimap(self, minimap, last_coords=None):
+    def template_match_minimap(self, video_iterator_tuple, last_coords=None):
+        frame_count, minimap = video_iterator_tuple
         match_found = False
         debug_minimap = None
 
@@ -128,7 +136,7 @@ class PUBGIS:
                     minimap = frame[798:1051, 1630:1882]
                 else:
                     raise ValueError
-                yield minimap
+                yield frame_count, minimap
                 for i in range(time_step_frames):
                     cap.grab()
                 frame_count += time_step_frames
@@ -152,7 +160,7 @@ class PUBGIS:
         map_ax.axes.xaxis.set_visible(False)
         map_ax.axes.yaxis.set_visible(False)
         map_ax.imshow(cv2.cvtColor(self.full_map, cv2.COLOR_BGR2RGB))
-        map_ax.plot(*zip(*all_coords), color='green', linewidth=PATH_WIDTH, alpha=0.7)
+        map_ax.plot(*zip(*all_coords), color=self.color, linewidth=PATH_WIDTH, alpha=0.7)
 
         if self.crop:
             xs, ys = zip(*all_coords)
@@ -167,6 +175,7 @@ class PUBGIS:
 
         plt.show()
         map_fig.savefig(f"{self.output_file}")
+        return all_coords
 
 
 if __name__ == "__main__":
@@ -176,7 +185,8 @@ if __name__ == "__main__":
     parser.add_argument('--mask_file', default=DEFAULT_INDICATOR_MASK)
     parser.add_argument('--start_delay', type=int, default=DEFAULT_START_DELAY)
     parser.add_argument('--step_time', type=int, default=DEFAULT_TIME_STEP)
-    parser.add_argument('--output_file', default=DEFAULT_OUTPUT_FILE)
+    parser.add_argument('--output_file', default=None)
+    parser.add_argument('--color', default=MATCH_COLOR)
     parser.add_argument('--crop', action='store_true')
     parser.add_argument('--debug', action='store_true')
     pubgis = PUBGIS(**vars(parser.parse_args()))

@@ -1,15 +1,4 @@
-import cv2
-import multiprocessing
-from pubgis import template_match_minimap, template_match_minimap_wrapper, video_iterator, markup_image_debug
-from pubgis import MATCH_COLOR, NO_MATCH_COLOR, PATH_WIDTH, CROP_BORDER, DEFAULT_FONT
-import itertools
-
-START_SKIP = 32000
-SKIP = 60
-GOOD = 103
-
-full_map_file = r"Erangel_Minimap_scaled.jpg"
-player_indicator_mask_file = r"circle_mask.jpg"
+from pubgis import PUBGIS
 
 players = ["breaK", "aimpr", "viss", "smak"]
 
@@ -44,62 +33,18 @@ colors = {"breaK": (255, 255, 255),
           "smak": (0, 0, 255)}
 
 
-def process_match():
-    last_coords = {player: None for player in players}
+def process_matches():
+    matches_coords = []
 
-    full_map = cv2.imread(full_map_file)
-    player_indicator_mask = cv2.imread(player_indicator_mask_file, 0)
-    gray_map = cv2.cvtColor(full_map, cv2.COLOR_RGB2GRAY)
+    for player in players:
+        match = PUBGIS(video_file=videos[player],
+                       start_delay=landing_frames[player],
+                       color=colors[player])
 
-    for minimaps in itertools.zip_longest(
-            *[video_iterator(videos[player], plane_start_frames[player], SKIP) for player in players], fillvalue=(0, None)):
-        for player, (frame_count, minimap) in zip(players, minimaps):
-            if death_frames[player] >= frame_count >= landing_frames[player]:
-                match_found, max_val, coords, ind_color, ind_in_range, minimap = template_match_minimap(
-                    (frame_count, minimap), gray_map, player_indicator_mask)
+        matches_coords.append(match.process_match())
 
-                if match_found:
-                    if last_coords[player] is not None:
-                        cv2.line(full_map, last_coords[player], coords, colors[player], thickness=PATH_WIDTH)
-                    last_coords[player] = coords
-
-                    # debug_minimap = markup_image_debug(minimap, max_val, ind_in_range, ind_color)
-                    # cv2.imshow(player, debug_minimap)
-
-        cv2.imshow("map", cv2.resize(full_map, (0, 0), fx=0.2, fy=0.2))
-        cv2.waitKey(10)
-
-    cv2.imwrite("squads_map_path.jpg", full_map)
-
-
-def find_delays():
-    for player, video in videos.items():
-        total = 0
-        found = False
-        cap = cv2.VideoCapture(video)
-
-        # skip the first frames (plane, etc.)
-        for i in range(START_SKIP):
-            cap.grab()
-        total += START_SKIP
-
-        while not found:
-            ret, frame = cap.read()
-            if frame is None:
-                break
-            else:
-                cv2.putText(frame, str(total), (50, 50), DEFAULT_FONT, 0.5, MATCH_COLOR)
-                cv2.imshow("start", cv2.resize(frame, (0, 0), fx=0.5, fy=0.5))
-                key = cv2.waitKey(-1)
-                if key == GOOD:
-                    print(player, total)
-                    found = True
-                else:
-                    pass
-                for i in range(SKIP):
-                    cap.grab()
-                total += SKIP
+    return matches_coords
 
 
 if __name__ == "__main__":
-    process_match()
+    process_matches()
