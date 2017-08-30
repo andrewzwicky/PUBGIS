@@ -19,3 +19,10 @@ PUBGIS first determines whether the minimap is actually being displayed in the c
 To see available arguments type:
 
     pubgis --help
+
+
+## Limitations
+
+PUBGIS has some shortcomings right now:
+* Currently the minimap markers display on top of the player indicator, so this can lead to some false negatives
+* PUBGIS relies on viewing the minimap frequently, so if you have the full map open for extended time (i.e. passenger in a vehicle), PUBGIS may not be able to find your position during that time.
