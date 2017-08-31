@@ -90,7 +90,7 @@ class PUBGIS:
                        last_coords=None,
                        ind_min_color=DEFAULT_IND_COLOR_MIN,
                        ind_max_color=DEFAULT_IND_COLOR_MAX,
-                       method=cv2.TM_CCOEFF):
+                       method=cv2.TM_CCOEFF_NORMED):
         match_found = MatchResult.SUCCESFUL
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
@@ -126,9 +126,9 @@ class PUBGIS:
             match_found |= MatchResult.FAILED_IND_COLOR
 
         if self.debug:
-            cv2.imshow("debug minimap", self.markup_minimap_debug(minimap, ind_in_range, ind_color))
-            if match_found == MatchResult.SUCCESFUL:
-                cv2.imshow("matched area", self.full_map[y:y + h, x:x + w])
+            cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap, ind_in_range, ind_color),
+                                                self.full_map[y:y + h, x:x + w]),
+                                               axis=1))
             cv2.waitKey(10)
 
         return match_found, (x + w // 2, y + h // 2)
