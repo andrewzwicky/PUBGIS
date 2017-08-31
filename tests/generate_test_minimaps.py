@@ -24,7 +24,7 @@ def generate_test_minimaps(video_file):
         cv2.imshow("test image", minimap)
         key = cv2.waitKey(-1)
         if key == G:
-            match_found, (x, y), debug_minimap = match.template_match_minimap((None, minimap))
+            match_found, (x, y) = match.template_match(None, minimap)
             if match_found:
                 w, h = minimap.shape[::-1]
                 cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
