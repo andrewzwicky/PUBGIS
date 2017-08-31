@@ -122,7 +122,7 @@ class PUBGIS:
 
         return match_found, (x + w // 2, y + h // 2)
 
-    def video_iterator(self):
+    def video_iterator(self, return_frames=False):
         frame_count = 0
         # noinspection PyArgumentList
         cap = cv2.VideoCapture(self.video_file)
@@ -156,7 +156,10 @@ class PUBGIS:
 
                 minimap = frame[minimap_min_y:minimap_max_y, minimap_min_x:minimap_max_x]
 
-                yield minimap
+                if return_frames:
+                    yield frame_count, minimap
+                else:
+                    yield minimap
                 for i in range(time_step_frames):
                     cap.grab()
                 frame_count += time_step_frames

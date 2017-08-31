@@ -10,14 +10,14 @@ def pubgis_fixture():
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_image", os.listdir('bad'))
+@pytest.mark.parametrize("test_image", os.listdir(r'bad'))
 def test_bad_images(test_image, pubgis_fixture):
-    match_found, coords, = pubgis_fixture.template_match(cv2.imread(os.path.join('bad', test_image)))
+    match_found, coords, = pubgis_fixture.template_match(cv2.imread(os.path.join(r'bad', test_image)))
     assert not match_found
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_image", os.listdir('good'))
+@pytest.mark.parametrize("test_image", os.listdir(r'good'))
 def test_good_images(test_image, pubgis_fixture):
-    match_found, coords, = pubgis_fixture.template_match(cv2.imread(os.path.join('good', test_image)))
+    match_found, coords, = pubgis_fixture.template_match(cv2.imread(os.path.join(r'good', test_image)))
     assert match_found
