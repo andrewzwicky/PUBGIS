@@ -10,8 +10,6 @@ DEFAULT_MAP = "full_map_scaled.jpg"
 DEFAULT_INDICATOR_MASK = "player_indicator_mask.jpg"
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
-DEFAULT_TEMP_MATCH_THRESHOLD = 10000000
-
 DEFAULT_START_DELAY = 10  # seconds
 DEFAULT_TIME_STEP = 1  # seconds
 
@@ -42,7 +40,6 @@ DEFAULT_IND_COLOR_MAX = [225, 225, 225]
 class MatchResult(IntFlag):
     SUCCESFUL = 0
     FAILED_IND_COLOR = 1
-    FAILED_THRESHOLD = 2
 
 
 class PUBGIS:
@@ -75,15 +72,13 @@ class PUBGIS:
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap, max_val, ind_in_range, ind_color):
-        text_color = MATCH_COLOR if max_val > DEFAULT_TEMP_MATCH_THRESHOLD else NO_MATCH_COLOR
+    def markup_minimap_debug(minimap, ind_in_range, ind_color):
         rect_color = MATCH_COLOR if ind_in_range else NO_MATCH_COLOR
 
         blue, green, red, _ = tuple(map(int, ind_color))
 
         cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
         cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-        cv2.putText(minimap, '{:>12}'.format(int(max_val)), (20, 50), DEFAULT_FONT, DEBUG_FONT_SIZE, text_color)
         cv2.putText(minimap, f'{blue}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
         cv2.putText(minimap, f'{green}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
         cv2.putText(minimap, f'{red}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
@@ -95,8 +90,7 @@ class PUBGIS:
                        last_coords=None,
                        ind_min_color=DEFAULT_IND_COLOR_MIN,
                        ind_max_color=DEFAULT_IND_COLOR_MAX,
-                       template_threshold=DEFAULT_TEMP_MATCH_THRESHOLD,
-                       method=cv2.TM_SQDIFF):
+                       method=cv2.TM_CCOEFF):
         match_found = MatchResult.SUCCESFUL
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
@@ -106,37 +100,33 @@ class PUBGIS:
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
 
-        # apply template matching to find most likely minimap location on the entire map
         if last_coords:
             last_x, last_y = last_coords
-            min_x = last_x - w - int(MAX_PIXELS_PER_SEC * self.step_time)
-            max_x = last_x + w + int(MAX_PIXELS_PER_SEC * self.step_time)
-            min_y = last_y - h - int(MAX_PIXELS_PER_SEC * self.step_time)
-            max_y = last_y + h + int(MAX_PIXELS_PER_SEC * self.step_time)
+            min_x = last_x - (w + int(MAX_PIXELS_PER_SEC * self.step_time))
+            max_x = last_x + (w + int(MAX_PIXELS_PER_SEC * self.step_time))
+            min_y = last_y - (h + int(MAX_PIXELS_PER_SEC * self.step_time))
+            max_y = last_y + (h + int(MAX_PIXELS_PER_SEC * self.step_time))
 
-            res = cv2.matchTemplate(self.gray_full_map[min_y:max_y, min_x:max_x],
-                                    gray_minimap,
-                                    cv2.TM_CCOEFF)
-            _, match_val, _, (trim_x, trim_y) = cv2.minMaxLoc(res)
-
-            y = min_y + trim_y
-            x = min_x + trim_x
         else:
-            res = cv2.matchTemplate(self.gray_full_map, gray_minimap, method)
+            min_x = min_y = 0
+            max_x = self.full_map_w
+            max_y = self.full_map_h
 
-            if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-                match_val, _, (x, y), _ = cv2.minMaxLoc(res)
-            else:
-                _, match_val, _, (x, y) = cv2.minMaxLoc(res)
+        res = cv2.matchTemplate(self.gray_full_map[min_y:max_y, min_x:max_x], gray_minimap, method)
 
-        if match_val < template_threshold:
-            match_found |= MatchResult.FAILED_THRESHOLD
+        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+            _, _, (x, y), _ = cv2.minMaxLoc(res)
+        else:
+            _, _, _, (x, y) = cv2.minMaxLoc(res)
+
+        y += min_y
+        x += min_x
 
         if not ind_in_range:
             match_found |= MatchResult.FAILED_IND_COLOR
 
         if self.debug:
-            cv2.imshow("debug minimap", self.markup_minimap_debug(minimap, match_val, ind_in_range, ind_color))
+            cv2.imshow("debug minimap", self.markup_minimap_debug(minimap, ind_in_range, ind_color))
             if match_found == MatchResult.SUCCESFUL:
                 cv2.imshow("matched area", self.full_map[y:y + h, x:x + w])
             cv2.waitKey(10)
