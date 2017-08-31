@@ -1,11 +1,11 @@
 import cv2
 import os
 import argparse
-from pubgis import PUBGIS, MatchResult
+from pubgis import PUBGIS
 
-
-G = 103
-B = 98
+J = 106
+K = 107
+L = 108
 
 # no start skip to get failing images on purpose
 GENERATE_START_DELAY = 0
@@ -29,23 +29,18 @@ def generate_test_minimaps(video_file):
                    mask_file=r"../player_indicator_mask.jpg")
 
     for frame_count, minimap in match.video_iterator(return_frames=True):
-        coords_str = ""
         cv2.imshow("test image", minimap)
+        match_found, (x, y) = match.template_match(minimap, ind_min_color=(0, 0, 0), ind_max_color=(255, 255, 255))
+        h, w, _ = minimap.shape
+        cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
         key = cv2.waitKey(-1)
-        if key == G:
-            match_found, (x, y) = match.template_match(minimap,
-                                                       template_threshold=0,
-                                                       ind_min_color=(0, 0, 0),
-                                                       ind_max_color=(255, 255, 255))
-            if match_found == MatchResult.SUCCESFUL:
-                h, w, _ = minimap.shape
-                cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
-                key = cv2.waitKey(-1)
-                if key == G:
-                    coords_str = f"_{x}_{y}"
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}{coords_str}.jpg"), minimap)
-        elif key == B:
+
+        if key == J:
             cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), minimap)
+        elif key == K:
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), minimap)
+        elif key == L:
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), minimap)
         else:
             pass
 
