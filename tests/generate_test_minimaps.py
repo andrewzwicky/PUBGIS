@@ -1,8 +1,7 @@
-from multiprocessing import Pool
 import cv2
 import os
 import argparse
-from pubgis import PUBGIS
+from pubgis import PUBGIS, MatchResult
 
 
 G = 103
@@ -34,8 +33,11 @@ def generate_test_minimaps(video_file):
         cv2.imshow("test image", minimap)
         key = cv2.waitKey(-1)
         if key == G:
-            match_found, (x, y) = match.template_match(minimap)
-            if match_found:
+            match_found, (x, y) = match.template_match(minimap,
+                                                       template_threshold=0,
+                                                       ind_min_color=(0, 0, 0),
+                                                       ind_max_color=(255, 255, 255))
+            if match_found == MatchResult.SUCCESFUL:
                 h, w, _ = minimap.shape
                 cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
                 key = cv2.waitKey(-1)

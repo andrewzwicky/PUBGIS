@@ -4,12 +4,13 @@ from matplotlib import pyplot as plt
 import argparse
 import os
 from tqdm import tqdm
+from enum import IntFlag
 
 DEFAULT_MAP = "full_map_scaled.jpg"
 DEFAULT_INDICATOR_MASK = "player_indicator_mask.jpg"
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
-DEFAULT_TEMP_MATCH_THRESHOLD = 15000000
+DEFAULT_TEMP_MATCH_THRESHOLD = 10000000
 
 DEFAULT_START_DELAY = 10  # seconds
 DEFAULT_TIME_STEP = 1  # seconds
@@ -31,12 +32,17 @@ DEBUG_FONT_SIZE = 0.75
 NO_MATCH_COLOR = (0, 0, 255)
 MATCH_COLOR = (0, 255, 0)
 
-INDICATOR_COLOR_MIN = [130, 150, 140]
-INDICATOR_COLOR_MAX = [225, 225, 225]
+DEFAULT_IND_COLOR_MIN = [120, 145, 140]
+DEFAULT_IND_COLOR_MAX = [225, 225, 225]
 
 
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
+
+class MatchResult(IntFlag):
+    SUCCESFUL = 0
+    FAILED_IND_COLOR = 1
+    FAILED_THRESHOLD = 2
 
 
 class PUBGIS:
@@ -84,12 +90,18 @@ class PUBGIS:
 
         return minimap
 
-    def template_match(self, minimap, last_coords=None):
-        match_found = False
+    def template_match(self,
+                       minimap,
+                       last_coords=None,
+                       ind_min_color=DEFAULT_IND_COLOR_MIN,
+                       ind_max_color=DEFAULT_IND_COLOR_MAX,
+                       template_threshold=DEFAULT_TEMP_MATCH_THRESHOLD,
+                       method=cv2.TM_SQDIFF):
+        match_found = MatchResult.SUCCESFUL
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
         ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in
-                           zip(INDICATOR_COLOR_MIN, ind_color, INDICATOR_COLOR_MAX))
+                           zip(ind_min_color, ind_color, ind_max_color))
 
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
@@ -105,19 +117,28 @@ class PUBGIS:
             res = cv2.matchTemplate(self.gray_full_map[min_y:max_y, min_x:max_x],
                                     gray_minimap,
                                     cv2.TM_CCOEFF)
-            _, max_val, _, (trim_x, trim_y) = cv2.minMaxLoc(res)
+            _, match_val, _, (trim_x, trim_y) = cv2.minMaxLoc(res)
 
             y = min_y + trim_y
             x = min_x + trim_x
         else:
-            res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF)
-            _, max_val, _, (x, y) = cv2.minMaxLoc(res)
+            res = cv2.matchTemplate(self.gray_full_map, gray_minimap, method)
 
-        if max_val > DEFAULT_TEMP_MATCH_THRESHOLD and ind_in_range:
-            match_found = True
+            if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+                match_val, _, (x, y), _ = cv2.minMaxLoc(res)
+            else:
+                _, match_val, _, (x, y) = cv2.minMaxLoc(res)
+
+        if match_val < template_threshold:
+            match_found |= MatchResult.FAILED_THRESHOLD
+
+        if not ind_in_range:
+            match_found |= MatchResult.FAILED_IND_COLOR
 
         if self.debug:
-            cv2.imshow("debug minimap", self.markup_minimap_debug(minimap, max_val, ind_in_range, ind_color))
+            cv2.imshow("debug minimap", self.markup_minimap_debug(minimap, match_val, ind_in_range, ind_color))
+            if match_found == MatchResult.SUCCESFUL:
+                cv2.imshow("matched area", self.full_map[y:y + h, x:x + w])
             cv2.waitKey(10)
 
         return match_found, (x + w // 2, y + h // 2)
@@ -185,7 +206,7 @@ class PUBGIS:
 
         for frame_count, minimap in self.video_iterator():
             match_found, coords = self.template_match((frame_count, minimap), last_coords=last_coords)
-            if match_found:
+            if match_found == MatchResult.SUCCESFUL:
                 self.all_coords.append(coords)
                 if last_coords is not None:
                     cv2.line(self.output_map, last_coords, coords, MATCH_COLOR, thickness=PATH_WIDTH)
@@ -195,8 +216,8 @@ class PUBGIS:
                     min_y, max_y, min_x, max_x = self.find_path_bounds()
 
                     max_size = 900
-                    biggest = max(max_size, max_x-min_x, max_y-min_y)
-                    scale = max_size/biggest
+                    biggest = max(max_size, max_x - min_x, max_y - min_y)
+                    scale = max_size / biggest
 
                     cv2.imshow("debug map", cv2.resize(self.output_map[min_y:max_y, min_x:max_x],
                                                        (0, 0),
