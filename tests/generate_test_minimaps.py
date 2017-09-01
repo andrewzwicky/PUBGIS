@@ -2,6 +2,7 @@ import cv2
 import os
 import argparse
 from pubgis import PUBGIS
+import numpy as np
 
 J = 106
 K = 107
@@ -26,21 +27,20 @@ def generate_test_minimaps(video_file):
                    start_delay=GENERATE_START_DELAY,
                    step_time=GENERATE_STEP_TIME,
                    full_map_file=r"../full_map_scaled.jpg",
-                   mask_file=r"../player_indicator_mask.jpg")
+                   mask_file=r"../player_indicator_mask.jpg",
+                   debug=True)
 
     for frame_count, minimap in match.video_iterator(return_frames=True):
-        cv2.imshow("test image", minimap)
+        raw_minimap = np.copy(minimap)
         match_found, (x, y) = match.template_match(minimap, ind_min_color=(0, 0, 0), ind_max_color=(255, 255, 255))
-        h, w, _ = minimap.shape
-        cv2.imshow("match", match.full_map[y - (h // 2):y + (h // 2), x - (w // 2):x + (h // 2)])
         key = cv2.waitKey(-1)
 
         if key == J:
-            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), minimap)
+            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), raw_minimap )
         elif key == K:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), raw_minimap )
         elif key == L:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), raw_minimap )
         else:
             pass
 

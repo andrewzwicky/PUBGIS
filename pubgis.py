@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from multiprocessing import Pool
 import argparse
 import os
 from tqdm import tqdm
@@ -21,7 +22,7 @@ PIXELS_PER_KM = PIXELS_PER_100M * 10
 MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
-PATH_WIDTH = 8
+PATH_WIDTH = 4
 PATH_ALPHA = 0.7
 
 DEFAULT_FONT = cv2.FONT_HERSHEY_SIMPLEX
@@ -87,7 +88,6 @@ class PUBGIS:
 
     def template_match(self,
                        minimap,
-                       last_coords=None,
                        ind_min_color=DEFAULT_IND_COLOR_MIN,
                        ind_max_color=DEFAULT_IND_COLOR_MAX,
                        method=cv2.TM_CCOEFF_NORMED):
@@ -100,27 +100,12 @@ class PUBGIS:
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
 
-        if last_coords:
-            last_x, last_y = last_coords
-            min_x = last_x - (w + int(MAX_PIXELS_PER_SEC * self.step_time))
-            max_x = last_x + (w + int(MAX_PIXELS_PER_SEC * self.step_time))
-            min_y = last_y - (h + int(MAX_PIXELS_PER_SEC * self.step_time))
-            max_y = last_y + (h + int(MAX_PIXELS_PER_SEC * self.step_time))
-
-        else:
-            min_x = min_y = 0
-            max_x = self.full_map_w
-            max_y = self.full_map_h
-
-        res = cv2.matchTemplate(self.gray_full_map[min_y:max_y, min_x:max_x], gray_minimap, method)
+        res = cv2.matchTemplate(self.gray_full_map, gray_minimap, method)
 
         if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
             _, _, (x, y), _ = cv2.minMaxLoc(res)
         else:
             _, _, _, (x, y) = cv2.minMaxLoc(res)
-
-        y += min_y
-        x += min_x
 
         if not ind_in_range:
             match_found |= MatchResult.FAILED_IND_COLOR
@@ -193,13 +178,13 @@ class PUBGIS:
 
     def process_match(self):
         last_coords = None
+        p = Pool(3)
 
-        for frame_count, minimap in self.video_iterator():
-            match_found, coords = self.template_match((frame_count, minimap), last_coords=last_coords)
+        for match_found, coords in p.imap(self.template_match, self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
                 self.all_coords.append(coords)
                 if last_coords is not None:
-                    cv2.line(self.output_map, last_coords, coords, MATCH_COLOR, thickness=PATH_WIDTH)
+                    cv2.line(self.output_map, last_coords, coords, MATCH_COLOR, thickness=PATH_WIDTH, lineType=cv2.LINE_AA)
                 last_coords = coords
 
                 if self.debug:
