@@ -12,7 +12,7 @@ ALLOWED_VARIATION = 2  # pixels
 def pubgis_fixture():
     return PUBGIS(full_map_file=r"../full_map_scaled.jpg",
                   mask_file=r"../player_indicator_mask.jpg",
-                  debug=False)
+                  debug=True)
 
 
 # noinspection PyShadowingNames

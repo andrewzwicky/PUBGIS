@@ -4,11 +4,13 @@ from matplotlib import pyplot as plt
 from multiprocessing import Pool
 import argparse
 import os
+from math import sqrt
 from tqdm import tqdm
 from enum import IntFlag
 
 DEFAULT_MAP = "full_map_scaled.jpg"
 DEFAULT_INDICATOR_MASK = "player_indicator_mask.jpg"
+DEFAULT_INDICATOR_AREA_MASK = "player_indicator_area_mask.jpg"
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
 DEFAULT_START_DELAY = 10  # seconds
@@ -21,6 +23,8 @@ PIXELS_PER_100M = 64
 PIXELS_PER_KM = PIXELS_PER_100M * 10
 MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
+
+COLOR_DIFF_THRESHOLD = 95  # basically a guess until I get more test cases
 
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
@@ -40,7 +44,8 @@ DEFAULT_IND_COLOR_MAX = [225, 225, 225]
 
 class MatchResult(IntFlag):
     SUCCESFUL = 0
-    FAILED_IND_COLOR = 1
+    WRONG_IND_COLOR = 1
+    COLOR_DIFF = 2
 
 
 class PUBGIS:
@@ -48,6 +53,7 @@ class PUBGIS:
                  video_file=None,
                  full_map_file=DEFAULT_MAP,
                  mask_file=DEFAULT_INDICATOR_MASK,
+                 area_mask_file=DEFAULT_INDICATOR_AREA_MASK,
                  start_delay=DEFAULT_START_DELAY,
                  step_time=DEFAULT_TIME_STEP,
                  death_time=None,
@@ -58,6 +64,7 @@ class PUBGIS:
         self.full_map = cv2.imread(full_map_file)
         self.output_map = np.copy(self.full_map)
         _, self.indicator_mask = cv2.threshold(cv2.imread(mask_file, 0), 10, 255, cv2.THRESH_BINARY)
+        _, self.indicator_area_mask = cv2.threshold(cv2.imread(area_mask_file, 0), 10, 255, cv2.THRESH_BINARY)
         self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
         self.start_delay = start_delay
         self.step_time = step_time
@@ -73,16 +80,34 @@ class PUBGIS:
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap, ind_in_range, ind_color):
+    def markup_minimap_debug(minimap, ind_in_range, ind_color, ind_area_color, color_diff):
+        ind_rect_loc_UL = (200, 200)
+        ind_rect_area_loc_UL = (120, 200)
+        rect_size = 50
+        text_inset = (8, 15)
+        test_spacing = 15
+
+        cv2.putText(minimap, f"{color_diff}", (25, 25), DEFAULT_FONT, 0.3, MATCH_COLOR)
+
         rect_color = MATCH_COLOR if ind_in_range else NO_MATCH_COLOR
 
         blue, green, red, _ = tuple(map(int, ind_color))
 
-        cv2.rectangle(minimap, (200, 200), (250, 250), ind_color, thickness=-1)
-        cv2.rectangle(minimap, (200, 200), (250, 250), rect_color, thickness=2)
-        cv2.putText(minimap, f'{blue}', (208, 212), DEFAULT_FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{green}', (208, 227), DEFAULT_FONT, 0.3, (0, 0, 0))
-        cv2.putText(minimap, f'{red}', (208, 242), DEFAULT_FONT, 0.3, (0, 0, 0))
+        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c+rect_size for c in ind_rect_loc_UL), ind_color, thickness=-1)
+        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c+rect_size for c in ind_rect_loc_UL), rect_color, thickness=2)
+        for i, color in enumerate([blue, green, red]):
+            x = ind_rect_loc_UL[0] + text_inset[0]
+            y = ind_rect_loc_UL[1] + text_inset[1] + i*test_spacing
+            cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
+
+        blue, green, red, _ = tuple(map(int, ind_area_color))
+
+        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c+rect_size for c in ind_rect_area_loc_UL), ind_area_color, thickness=-1)
+        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c+rect_size for c in ind_rect_area_loc_UL), rect_color, thickness=2)
+        for i, color in enumerate([blue, green, red]):
+            x = ind_rect_area_loc_UL[0] + text_inset[0]
+            y = ind_rect_area_loc_UL[1] + text_inset[1] + i*test_spacing
+            cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         return minimap
 
@@ -97,6 +122,9 @@ class PUBGIS:
         ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in
                            zip(ind_min_color, ind_color, ind_max_color))
 
+        ind_area_color = cv2.mean(minimap, self.indicator_area_mask)
+        color_diff = sqrt(sum([(c1-c2)**2 for c1, c2 in zip(ind_color, ind_area_color)]))
+
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
 
@@ -108,10 +136,17 @@ class PUBGIS:
             _, _, _, (x, y) = cv2.minMaxLoc(res)
 
         if not ind_in_range:
-            match_found |= MatchResult.FAILED_IND_COLOR
+            match_found |= MatchResult.WRONG_IND_COLOR
+
+        if not color_diff > COLOR_DIFF_THRESHOLD:
+            match_found |= MatchResult.COLOR_DIFF
 
         if self.debug:
-            cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap, ind_in_range, ind_color),
+            cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap,
+                                                                          ind_in_range,
+                                                                          ind_color,
+                                                                          ind_area_color,
+                                                                          color_diff),
                                                 self.full_map[y:y + h, x:x + w]),
                                                axis=1))
             cv2.waitKey(10)
@@ -121,7 +156,11 @@ class PUBGIS:
     def video_iterator(self, return_frames=False):
         frame_count = 0
         # noinspection PyArgumentList
-        cap = cv2.VideoCapture(self.video_file)
+        if os.path.isfile(self.video_file):
+                cap = cv2.VideoCapture(self.video_file)
+        else:
+            raise FileNotFoundError("{} cannot be found".format(self.video_file))
+
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         start_delay_frames = int(self.start_delay * fps)
@@ -177,15 +216,28 @@ class PUBGIS:
                     self.full_map_w)
 
     def process_match(self):
-        last_coords = None
-        p = Pool(3)
+        p = Pool(1)
 
         for match_found, coords in p.imap(self.template_match, self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
-                self.all_coords.append(coords)
-                if last_coords is not None:
-                    cv2.line(self.output_map, last_coords, coords, MATCH_COLOR, thickness=PATH_WIDTH, lineType=cv2.LINE_AA)
-                last_coords = coords
+                try:
+                    cv2.line(self.output_map,
+                             self.all_coords[-1],
+                             coords,
+                             MATCH_COLOR,
+                             thickness=PATH_WIDTH,
+                             lineType=cv2.LINE_AA)
+
+                    l_x, l_y = self.all_coords[-1]
+                    x, y = coords
+
+                    travel_dist = sqrt((x-l_x)**2 + (l_y - y)**2)
+
+                    if travel_dist > 2*MAX_PIXELS_PER_SEC:
+                        print(coords)
+
+                except IndexError:
+                    pass
 
                 if self.debug:
                     min_y, max_y, min_x, max_x = self.find_path_bounds()
@@ -199,6 +251,8 @@ class PUBGIS:
                                                        fx=scale,
                                                        fy=scale))
                     cv2.waitKey(10)
+
+                self.all_coords.append(coords)
 
         self.create_output()
 
@@ -224,8 +278,8 @@ if __name__ == "__main__":
     parser.add_argument('--start_delay', type=int, default=DEFAULT_START_DELAY)
     parser.add_argument('--step_time', type=int, default=DEFAULT_TIME_STEP)
     parser.add_argument('--output_file', default=None)
-    parser.add_argument('--color', default=MATCH_COLOR, help="Must be either an html hex string e.x. '#eeefff' or a "
-                                                             "legal html name like ‘red’, ‘chartreuse’, etc.")
+    parser.add_argument('--color', default='Lime', help="Must be either an html hex string e.x. '#eeefff' or a "
+                                                         "legal html name like ‘red’, ‘chartreuse’, etc.")
     parser.add_argument('--debug', action='store_true')
     pubgis = PUBGIS(**vars(parser.parse_args()))
 

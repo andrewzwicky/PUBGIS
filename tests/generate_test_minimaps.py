@@ -9,9 +9,9 @@ K = 107
 L = 108
 
 # no start skip to get failing images on purpose
-GENERATE_START_DELAY = 0
+GENERATE_START_DELAY = 395
 # less frequent for test cases
-GENERATE_STEP_TIME = 30  # seconds
+GENERATE_STEP_TIME = 0.25  # seconds
 
 # generated from movies:
 # E:\Movies\OBS\shroud_2.mp4
