@@ -10,6 +10,11 @@ PUBGIS (PUBG Geographic Information System) is a python program that generates p
   <img src="example_path.jpg" width="500">
 </p>
 
+<p align="center">
+  <img src="example_path_2.jpg" width="500">
+</p>
+
+
 ## Functionality
 
 PUBGIS first determines whether the minimap is actually being displayed in the correct position by checking for the player indicator.  Currently, this is done by masking everything except the area where the indicator should be, then checking the mean color.  If this mean color is within the acceptable range (basically white/light gray), then it's assumed that the minimap is up.
