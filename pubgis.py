@@ -24,7 +24,11 @@ PIXELS_PER_KM = PIXELS_PER_100M * 10
 MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
-COLOR_DIFF_THRESHOLD = 95  # basically a guess until I get more test cases
+M = -.009
+B = 1.62
+
+COLOR_DIFF_THRESHOLD = 100  # basically a guess until I get more test cases
+TEMPLATE_MATCH_THRESHOLD = .45  # basically a guess until I get more test cases
 
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
@@ -44,8 +48,13 @@ DEFAULT_IND_COLOR_MAX = [225, 225, 225]
 
 class MatchResult(IntFlag):
     SUCCESFUL = 0
-    WRONG_IND_COLOR = 1
+    IND_COLOR = 1
     COLOR_DIFF = 2
+    TEMPLATE_THRESHOLD = 4
+    IND_COLOR_COLOR_DIFF = 3
+    COLOR_DIFF_TEMPLATE_THRESHOLD = 6
+    IND_COLOR_TEMPLATE_THRESHOLD = 5
+    IND_COLOR_COLOR_DIFF_TEMPLATE_THRESHOLD = 7
 
 
 class PUBGIS:
@@ -80,33 +89,43 @@ class PUBGIS:
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap, ind_in_range, ind_color, ind_area_color, color_diff):
+    def markup_minimap_debug(minimap,
+                             ind_color_ok,
+                             ind_color,
+                             ind_area_color,
+                             color_diff,
+                             color_diff_ok,
+                             match_val,
+                             match_val_ok):
         ind_rect_loc_UL = (200, 200)
         ind_rect_area_loc_UL = (120, 200)
         rect_size = 50
         text_inset = (8, 15)
         test_spacing = 15
 
-        cv2.putText(minimap, f"{color_diff}", (25, 25), DEFAULT_FONT, 0.3, MATCH_COLOR)
+        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, 0.6,
+                    MATCH_COLOR if color_diff_ok else NO_MATCH_COLOR)
+        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, 0.6,
+                    MATCH_COLOR if match_val_ok else NO_MATCH_COLOR)
 
-        rect_color = MATCH_COLOR if ind_in_range else NO_MATCH_COLOR
+        rect_color = MATCH_COLOR if ind_color_ok else NO_MATCH_COLOR
 
         blue, green, red, _ = tuple(map(int, ind_color))
 
-        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c+rect_size for c in ind_rect_loc_UL), ind_color, thickness=-1)
-        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c+rect_size for c in ind_rect_loc_UL), rect_color, thickness=2)
+        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c + rect_size for c in ind_rect_loc_UL), ind_color, thickness=-1)
+        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c + rect_size for c in ind_rect_loc_UL), rect_color, thickness=2)
         for i, color in enumerate([blue, green, red]):
             x = ind_rect_loc_UL[0] + text_inset[0]
-            y = ind_rect_loc_UL[1] + text_inset[1] + i*test_spacing
+            y = ind_rect_loc_UL[1] + text_inset[1] + i * test_spacing
             cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         blue, green, red, _ = tuple(map(int, ind_area_color))
 
-        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c+rect_size for c in ind_rect_area_loc_UL), ind_area_color, thickness=-1)
-        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c+rect_size for c in ind_rect_area_loc_UL), rect_color, thickness=2)
+        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c + rect_size for c in ind_rect_area_loc_UL), ind_area_color,
+                      thickness=-1)
         for i, color in enumerate([blue, green, red]):
             x = ind_rect_area_loc_UL[0] + text_inset[0]
-            y = ind_rect_area_loc_UL[1] + text_inset[1] + i*test_spacing
+            y = ind_rect_area_loc_UL[1] + text_inset[1] + i * test_spacing
             cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         return minimap
@@ -118,46 +137,57 @@ class PUBGIS:
                        method=cv2.TM_CCOEFF_NORMED):
         match_found = MatchResult.SUCCESFUL
 
-        ind_color = cv2.mean(minimap, self.indicator_mask)
-        ind_in_range = all(ind_min < color < ind_max for ind_min, color, ind_max in
-                           zip(ind_min_color, ind_color, ind_max_color))
-
-        ind_area_color = cv2.mean(minimap, self.indicator_area_mask)
-        color_diff = sqrt(sum([(c1-c2)**2 for c1, c2 in zip(ind_color, ind_area_color)]))
-
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
 
         res = cv2.matchTemplate(self.gray_full_map, gray_minimap, method)
+        _, match_val, _, (x, y) = cv2.minMaxLoc(res)
 
-        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-            _, _, (x, y), _ = cv2.minMaxLoc(res)
-        else:
-            _, _, _, (x, y) = cv2.minMaxLoc(res)
+        coords = (x + w // 2, y + h // 2)
 
-        if not ind_in_range:
-            match_found |= MatchResult.WRONG_IND_COLOR
+        ind_color = cv2.mean(minimap, self.indicator_mask)
+        ind_color_ok = all(ind_min < color < ind_max for ind_min, color, ind_max in
+                           zip(ind_min_color, ind_color, ind_max_color))
 
-        if not color_diff > COLOR_DIFF_THRESHOLD:
+        ind_area_color = cv2.mean(minimap, self.indicator_area_mask)
+        color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color, ind_area_color)]))
+        color_diff_ok = color_diff > COLOR_DIFF_THRESHOLD
+
+        match_val_ok = match_val > TEMPLATE_MATCH_THRESHOLD
+
+        if not ind_color_ok:
+            match_found |= MatchResult.IND_COLOR
+
+        if not color_diff_ok:
             match_found |= MatchResult.COLOR_DIFF
+
+        if not match_val_ok:
+            match_found |= MatchResult.TEMPLATE_THRESHOLD
 
         if self.debug:
             cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap,
-                                                                          ind_in_range,
+                                                                          ind_color_ok,
                                                                           ind_color,
                                                                           ind_area_color,
-                                                                          color_diff),
+                                                                          color_diff,
+                                                                          color_diff_ok,
+                                                                          match_val,
+                                                                          match_val_ok),
                                                 self.full_map[y:y + h, x:x + w]),
                                                axis=1))
             cv2.waitKey(10)
 
-        return match_found, (x + w // 2, y + h // 2)
+        need_y = M*color_diff + B
+        if match_val > need_y and ind_color_ok:
+            match_found = MatchResult.SUCCESFUL
+
+        return match_found, coords, ind_color_ok, ind_color, ind_area_color, color_diff, color_diff_ok, match_val, match_val_ok
 
     def video_iterator(self, return_frames=False):
         frame_count = 0
         # noinspection PyArgumentList
         if os.path.isfile(self.video_file):
-                cap = cv2.VideoCapture(self.video_file)
+            cap = cv2.VideoCapture(self.video_file)
         else:
             raise FileNotFoundError("{} cannot be found".format(self.video_file))
 
@@ -218,7 +248,7 @@ class PUBGIS:
     def process_match(self):
         p = Pool(1)
 
-        for match_found, coords in p.imap(self.template_match, self.video_iterator()):
+        for match_found, coords, _, _, _, _, _, _, _ in p.imap(self.template_match, self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
                 try:
                     cv2.line(self.output_map,
@@ -231,9 +261,9 @@ class PUBGIS:
                     l_x, l_y = self.all_coords[-1]
                     x, y = coords
 
-                    travel_dist = sqrt((x-l_x)**2 + (l_y - y)**2)
+                    travel_dist = sqrt((x - l_x) ** 2 + (l_y - y) ** 2)
 
-                    if travel_dist > 2*MAX_PIXELS_PER_SEC:
+                    if travel_dist > 2 * MAX_PIXELS_PER_SEC:
                         print(coords)
 
                 except IndexError:
@@ -279,7 +309,7 @@ if __name__ == "__main__":
     parser.add_argument('--step_time', type=int, default=DEFAULT_TIME_STEP)
     parser.add_argument('--output_file', default=None)
     parser.add_argument('--color', default='Lime', help="Must be either an html hex string e.x. '#eeefff' or a "
-                                                         "legal html name like ‘red’, ‘chartreuse’, etc.")
+                                                        "legal html name like ‘red’, ‘chartreuse’, etc.")
     parser.add_argument('--debug', action='store_true')
     pubgis = PUBGIS(**vars(parser.parse_args()))
 
