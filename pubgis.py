@@ -246,7 +246,7 @@ class PUBGIS:
                     self.full_map_w)
 
     def process_match(self):
-        p = Pool(1)
+        p = Pool(4)
 
         for match_found, coords, _, _, _, _, _, _, _ in p.imap(self.template_match, self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
