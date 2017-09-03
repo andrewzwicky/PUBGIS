@@ -42,4 +42,4 @@ Erangel_Minimap.tga
 .idea/
 test_cases/failed/
 test_cases/unknown/
-tests/single_template_match.py
+tests/plot_pics.py
