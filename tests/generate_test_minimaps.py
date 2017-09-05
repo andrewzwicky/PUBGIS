@@ -1,7 +1,7 @@
 import cv2
 import os
 import argparse
-from pubgis import PUBGIS
+from pubgis import PUBGISMatch
 import numpy as np
 
 J = 106
@@ -13,6 +13,7 @@ GENERATE_START_DELAY = 395
 # less frequent for test cases
 GENERATE_STEP_TIME = 0.25  # seconds
 
+
 # generated from movies:
 # E:\Movies\OBS\shroud_2.mp4
 # E:\Movies\OBS\shroud_1.mp4
@@ -23,12 +24,12 @@ GENERATE_STEP_TIME = 0.25  # seconds
 
 def generate_test_minimaps(video_file):
     video_name = os.path.splitext(os.path.basename(video_file))[0]
-    match = PUBGIS(video_file=video_file,
-                   start_delay=GENERATE_START_DELAY,
-                   step_time=GENERATE_STEP_TIME,
-                   full_map_file=r"../full_map_scaled.jpg",
-                   mask_file=r"../player_indicator_mask.jpg",
-                   debug=True)
+    match = PUBGISMatch(video_file=video_file,
+                        start_delay=GENERATE_START_DELAY,
+                        step_time=GENERATE_STEP_TIME,
+                        full_map_file=r"../full_map_scaled.jpg",
+                        mask_file=r"../player_indicator_mask.jpg",
+                        debug=True)
 
     for frame_count, minimap in match.video_iterator(return_frames=True):
         raw_minimap = np.copy(minimap)
@@ -36,13 +37,14 @@ def generate_test_minimaps(video_file):
         key = cv2.waitKey(-1)
 
         if key == J:
-            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), raw_minimap )
+            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), raw_minimap)
         elif key == K:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), raw_minimap )
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), raw_minimap)
         elif key == L:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), raw_minimap )
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), raw_minimap)
         else:
             pass
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

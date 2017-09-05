@@ -1,4 +1,4 @@
-from pubgis import PUBGIS
+from pubgis import PUBGISMatch
 
 players = ["breaK", "aimpr", "viss", "smak"]
 
@@ -37,9 +37,9 @@ def process_matches():
     matches_coords = []
 
     for player in players:
-        match = PUBGIS(video_file=videos[player],
-                       start_delay=landing_frames[player],
-                       color=colors[player])
+        match = PUBGISMatch(video_file=videos[player],
+                            start_delay=landing_frames[player],
+                            path_color=colors[player])
 
         matches_coords.append(match.process_match())
 

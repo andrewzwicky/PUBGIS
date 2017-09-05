@@ -4,9 +4,8 @@ from matplotlib import pyplot as plt
 from multiprocessing import Pool
 import argparse
 import os
-from math import sqrt
-from tqdm import tqdm
-from enum import IntFlag
+from math import sqrt, ceil
+from pubgis_metch_result import MatchResult
 
 DEFAULT_MAP = "full_map_scaled.jpg"
 DEFAULT_INDICATOR_MASK = "player_indicator_mask.jpg"
@@ -33,11 +32,16 @@ TEMPLATE_MATCH_THRESHOLD = .45  # basically a guess until I get more test cases
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
 
+MIN_PROGRESS_MAP_SIZE = 600
+MAX_PROGRESS_MAP_SIZE = 900
+
 DEFAULT_FONT = cv2.FONT_HERSHEY_SIMPLEX
 DEBUG_FONT_SIZE = 0.75
 
 NO_MATCH_COLOR = (0, 0, 255)
 MATCH_COLOR = (0, 255, 0)
+
+DEFAULT_PATH_COLOR = (208, 224, 64)
 
 DEFAULT_IND_COLOR_MIN = [120, 145, 140]
 DEFAULT_IND_COLOR_MAX = [225, 225, 225]
@@ -46,18 +50,9 @@ DEFAULT_IND_COLOR_MAX = [225, 225, 225]
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
 
-class MatchResult(IntFlag):
-    SUCCESFUL = 0
-    IND_COLOR = 1
-    COLOR_DIFF = 2
-    TEMPLATE_THRESHOLD = 4
-    IND_COLOR_COLOR_DIFF = 3
-    COLOR_DIFF_TEMPLATE_THRESHOLD = 6
-    IND_COLOR_TEMPLATE_THRESHOLD = 5
-    IND_COLOR_COLOR_DIFF_TEMPLATE_THRESHOLD = 7
 
 
-class PUBGIS:
+class PUBGISMatch:
     def __init__(self,
                  video_file=None,
                  full_map_file=DEFAULT_MAP,
@@ -67,7 +62,7 @@ class PUBGIS:
                  step_time=DEFAULT_TIME_STEP,
                  death_time=None,
                  output_file=None,
-                 color=MATCH_COLOR,
+                 path_color=DEFAULT_PATH_COLOR,
                  debug=False):
         self.video_file = video_file
         self.full_map = cv2.imread(full_map_file)
@@ -80,11 +75,9 @@ class PUBGIS:
         self.death_time = death_time
         self.debug = debug
         if output_file is None:
-            self.output_file = DEFAULT_OUTPUT_FILE.format("match_path.jpg")
-        else:
             video_name = os.path.splitext(video_file)[0]
             self.output_file = DEFAULT_OUTPUT_FILE.format(video_name)
-        self.color = color
+        self.path_color = path_color
         self.full_map_h, self.full_map_w = self.gray_full_map.shape
         self.all_coords = []
 
@@ -97,8 +90,8 @@ class PUBGIS:
                              color_diff_ok,
                              match_val,
                              match_val_ok):
-        ind_rect_loc_UL = (200, 200)
-        ind_rect_area_loc_UL = (120, 200)
+        ind_rect_corner = (200, 200)
+        ind_rect_area_corner = (120, 200)
         rect_size = 50
         text_inset = (8, 15)
         test_spacing = 15
@@ -112,29 +105,30 @@ class PUBGIS:
 
         blue, green, red, _ = tuple(map(int, ind_color))
 
-        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c + rect_size for c in ind_rect_loc_UL), ind_color, thickness=-1)
-        cv2.rectangle(minimap, ind_rect_loc_UL, tuple(c + rect_size for c in ind_rect_loc_UL), rect_color, thickness=2)
+        cv2.rectangle(minimap, ind_rect_corner, tuple(c + rect_size for c in ind_rect_corner), ind_color, thickness=-1)
+        cv2.rectangle(minimap, ind_rect_corner, tuple(c + rect_size for c in ind_rect_corner), rect_color, thickness=2)
         for i, color in enumerate([blue, green, red]):
-            x = ind_rect_loc_UL[0] + text_inset[0]
-            y = ind_rect_loc_UL[1] + text_inset[1] + i * test_spacing
+            x = ind_rect_corner[0] + text_inset[0]
+            y = ind_rect_corner[1] + text_inset[1] + i * test_spacing
             cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         blue, green, red, _ = tuple(map(int, ind_area_color))
 
-        cv2.rectangle(minimap, ind_rect_area_loc_UL, tuple(c + rect_size for c in ind_rect_area_loc_UL), ind_area_color,
+        cv2.rectangle(minimap, ind_rect_area_corner, tuple(c + rect_size for c in ind_rect_area_corner), ind_area_color,
                       thickness=-1)
         for i, color in enumerate([blue, green, red]):
-            x = ind_rect_area_loc_UL[0] + text_inset[0]
-            y = ind_rect_area_loc_UL[1] + text_inset[1] + i * test_spacing
+            x = ind_rect_area_corner[0] + text_inset[0]
+            y = ind_rect_area_corner[1] + text_inset[1] + i * test_spacing
             cv2.putText(minimap, f'{color}', (x, y), DEFAULT_FONT, 0.3, (0, 0, 0))
 
         return minimap
 
     def template_match(self,
-                       minimap,
+                       percent_minimap,
                        ind_min_color=DEFAULT_IND_COLOR_MIN,
                        ind_max_color=DEFAULT_IND_COLOR_MAX,
                        method=cv2.TM_CCOEFF_NORMED):
+        percent, minimap = percent_minimap
         match_found = MatchResult.SUCCESFUL
 
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
@@ -181,9 +175,9 @@ class PUBGIS:
         if match_val > need_y and ind_color_ok:
             match_found = MatchResult.SUCCESFUL
 
-        return match_found, coords, ind_color_ok, ind_color, ind_area_color, color_diff, color_diff_ok, match_val, match_val_ok
+        return match_found, coords, ind_color_ok, ind_color, ind_area_color, color_diff, color_diff_ok, match_val, match_val_ok, percent
 
-    def video_iterator(self, return_frames=False):
+    def video_iterator(self):
         frame_count = 0
         # noinspection PyArgumentList
         if os.path.isfile(self.video_file):
@@ -198,13 +192,12 @@ class PUBGIS:
         time_step_frames = max(int(self.step_time * fps), 1)
         death_frame = int(self.death_time * fps) if self.death_time is not None else total_frames
 
-        pbar = tqdm(total=death_frame)
+        frames_to_process = death_frame - start_delay_frames
 
         # skip the first frames (plane, etc.)
         for i in range(start_delay_frames):
             cap.grab()
         frame_count += start_delay_frames
-        pbar.update(start_delay_frames)
 
         while True and frame_count <= death_frame:
             ret, frame = cap.read()
@@ -221,70 +214,57 @@ class PUBGIS:
 
                 minimap = frame[minimap_min_y:minimap_max_y, minimap_min_x:minimap_max_x]
 
-                if return_frames:
-                    yield frame_count, minimap
-                else:
-                    yield minimap
+                percent_processed = int((frame_count / frames_to_process)*100)
+                yield percent_processed, minimap
+
                 for i in range(time_step_frames):
                     cap.grab()
                 frame_count += time_step_frames
-                pbar.update(time_step_frames)
-
-        pbar.close()
 
     def find_path_bounds(self):
         if self.all_coords:
             xs, ys = zip(*self.all_coords)
-            return (min(ys) - CROP_BORDER,
-                    max(ys) + CROP_BORDER,
-                    min(xs) - CROP_BORDER,
-                    max(xs) + CROP_BORDER)
+
+            min_x = min(xs) - CROP_BORDER
+            max_x = max(xs) + CROP_BORDER
+            min_y = min(ys) - CROP_BORDER
+            max_y = max(ys) + CROP_BORDER
+
+            # round up to nearest even number
+            xd = int(ceil((max_x - min_x) / 2) * 2)
+            yd = int(ceil((max_y - min_y) / 2) * 2)
+
+            output_size = max(MIN_PROGRESS_MAP_SIZE, xd, yd)
+
+            x_pad = (output_size - xd) // 2
+            y_pad = (output_size - yd) // 2
+
+            x_out = max(0, min_x - x_pad)
+            y_out = max(0, min_y - y_pad)
+
+            return x_out, y_out, output_size, output_size
         else:
-            return (0,
-                    self.full_map_h,
-                    0,
-                    self.full_map_w)
+            return 0, 0, self.full_map_w, self.full_map_h
 
     def process_match(self):
         p = Pool(4)
 
-        for match_found, coords, _, _, _, _, _, _, _ in p.imap(self.template_match, self.video_iterator()):
+        for match_found, coords, _, _, _, _, _, _, _, percent in p.imap(self.template_match, self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
                 try:
                     cv2.line(self.output_map,
                              self.all_coords[-1],
                              coords,
-                             MATCH_COLOR,
+                             color=self.path_color,
                              thickness=PATH_WIDTH,
                              lineType=cv2.LINE_AA)
-
-                    l_x, l_y = self.all_coords[-1]
-                    x, y = coords
-
-                    travel_dist = sqrt((x - l_x) ** 2 + (l_y - y) ** 2)
-
-                    if travel_dist > 2 * MAX_PIXELS_PER_SEC:
-                        print(coords)
-
                 except IndexError:
                     pass
 
-                if self.debug:
-                    min_y, max_y, min_x, max_x = self.find_path_bounds()
-
-                    max_size = 900
-                    biggest = max(max_size, max_x - min_x, max_y - min_y)
-                    scale = max_size / biggest
-
-                    cv2.imshow("debug map", cv2.resize(self.output_map[min_y:max_y, min_x:max_x],
-                                                       (0, 0),
-                                                       fx=scale,
-                                                       fy=scale))
-                    cv2.waitKey(10)
-
                 self.all_coords.append(coords)
 
-        self.create_output()
+                min_x, min_y, w, h = self.find_path_bounds()
+                yield percent, self.output_map[min_y:min_y+h, min_x:min_x+w]
 
     def create_output(self):
         fig, ax = plt.subplots(figsize=(20, 20))
@@ -292,10 +272,12 @@ class PUBGIS:
         ax.axes.xaxis.set_visible(False)
         ax.axes.yaxis.set_visible(False)
         ax.imshow(cv2.cvtColor(self.full_map, cv2.COLOR_BGR2RGB))
-        min_y, max_y, min_x, max_x = self.find_path_bounds()
-        ax.axes.set_xlim(min_x, max_x)
-        ax.axes.set_ylim(max_y, min_y)
-        ax.plot(*zip(*self.all_coords), color=self.color, linewidth=PATH_WIDTH, alpha=PATH_ALPHA)
+        min_x, min_y, w, h = self.find_path_bounds()
+        ax.axes.set_xlim(min_x, min_x + w)
+        ax.axes.set_ylim(min_y + h, min_y)
+        m_b, m_g, m_r = self.path_color
+        mpl_color = [c/255 for c in (m_r, m_g, m_b)]
+        ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH, alpha=PATH_ALPHA)
         fig.savefig(self.output_file)
 
 
@@ -308,9 +290,12 @@ if __name__ == "__main__":
     parser.add_argument('--start_delay', type=int, default=DEFAULT_START_DELAY)
     parser.add_argument('--step_time', type=int, default=DEFAULT_TIME_STEP)
     parser.add_argument('--output_file', default=None)
-    parser.add_argument('--color', default='Lime', help="Must be either an html hex string e.x. '#eeefff' or a "
-                                                        "legal html name like ‘red’, ‘chartreuse’, etc.")
+    parser.add_argument('--path_color', default=DEFAULT_PATH_COLOR)
     parser.add_argument('--debug', action='store_true')
-    pubgis = PUBGIS(**vars(parser.parse_args()))
+    match = PUBGISMatch(**vars(parser.parse_args()))
 
-    pubgis.process_match()
+    for percent, progress_map in match.process_match():
+        cv2.imshow("progress", progress_map)
+        cv2.waitKey(10)
+
+    match.create_output()
