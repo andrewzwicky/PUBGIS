@@ -27,13 +27,12 @@ def generate_test_minimaps(video_file):
     match = PUBGISMatch(video_file=video_file,
                         start_delay=GENERATE_START_DELAY,
                         step_time=GENERATE_STEP_TIME,
-                        full_map_file=r"../full_map_scaled.jpg",
-                        mask_file=r"../player_indicator_mask.jpg",
                         debug=True)
 
-    for frame_count, minimap in match.video_iterator(return_frames=True):
+    for frame_count, minimap in match.video_iterator():
         raw_minimap = np.copy(minimap)
-        match_found, (x, y) = match.template_match(minimap, ind_min_color=(0, 0, 0), ind_max_color=(255, 255, 255))
+        match_found, coords, _, _, _, _ = match.template_match(minimap)
+        x, y = coords
         key = cv2.waitKey(-1)
 
         if key == J:

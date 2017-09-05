@@ -11,9 +11,7 @@ ALLOWED_VARIATION = 2  # pixels
 
 @pytest.fixture(scope='module')
 def pubgis_fixture():
-    return PUBGISMatch(full_map_file=r"../full_map_scaled.jpg",
-                       mask_file=r"../player_indicator_mask.jpg",
-                       debug=True)
+    return PUBGISMatch(debug=True)
 
 
 @pytest.fixture(scope='module')
@@ -32,18 +30,21 @@ def summary_plot_axes():
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'bad'))
 def test_bad_images(test_image, pubgis_fixture, summary_plot_axes):
-    match_found, _, ind_color_ok, _, _, c_diff, _, match_val, _, _ = pubgis_fixture.template_match(cv2.imread(os.path.join(r'bad', test_image)))
-    summary_plot_axes.scatter(c_diff, match_val, color="g" if ind_color_ok else "r", s=10)
-    summary_plot_axes.scatter(c_diff, match_val, color="r", s=8)
+    img = cv2.imread(os.path.join(r'bad', test_image))
+    match_found, _, _, color_diff, match_val, _ = pubgis_fixture.template_match(img)
+    summary_plot_axes.scatter(color_diff, match_val, color="g" if match_found & MatchResult.IND_COLOR else "r", s=10)
+    summary_plot_axes.scatter(color_diff, match_val, color="r", s=8)
     assert match_found != MatchResult.SUCCESFUL
 
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'good'))
 def test_good_images(test_image, pubgis_fixture, summary_plot_axes):
-    match_found, (f_x, f_y), ind_color_ok, _, _, c_diff, _, match_val, _, _ = pubgis_fixture.template_match(cv2.imread(os.path.join(r'good', test_image)))
-    summary_plot_axes.scatter(c_diff, match_val, color="g" if ind_color_ok else "r", s=10)
-    summary_plot_axes.scatter(c_diff, match_val, color="g", s=8)
+    img = cv2.imread(os.path.join(r'good', test_image))
+    match_found, coords, ind_color, color_diff, match_val, _ = pubgis_fixture.template_match(img)
+    f_x, f_y = coords
+    summary_plot_axes.scatter(color_diff, match_val, color="g" if match_found & MatchResult.IND_COLOR else "r", s=10)
+    summary_plot_axes.scatter(color_diff, match_val, color="g", s=8)
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))

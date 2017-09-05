@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import sys
 import os
-import cv2
-from PyQt5 import QtCore, QtGui, uic
-from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget, QMainWindow, QAction, qApp, QFileDialog, \
-    QGraphicsScene, QColorDialog
-from PyQt5.QtGui import QIcon, QPen, QBrush, QPixmap, QColor, QImage
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot, QThread
-from pubgis import PUBGISMatch
+import sys
 import time
+
+import cv2
+from PyQt5 import QtCore, uic
+from PyQt5.QtCore import QThread
+from PyQt5.QtGui import QPixmap, QColor, QImage
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, \
+    QGraphicsScene, QColorDialog
+
+from pubgis import PUBGISMatch
 
 
 class PUBGISApplication(QApplication):
@@ -30,6 +32,7 @@ class PUBGISWorkerThread(QThread):
         int_val = ret.tm_min * 60 + ret.tm_sec
         return int_val
 
+    # noinspection PyAttributeOutsideInit
     def start_with_params(self, video_file, time_step_text, start_delay_text, death_time_text, output_file, path_color):
         self.video_file = video_file
         self.time_step = time_step_text
@@ -74,10 +77,11 @@ class PUBGISMainWindow(QMainWindow):
     update_minimap = QtCore.pyqtSignal(QImage)
 
     def __init__(self):
+        # noinspection PyArgumentList
         super().__init__()
         uic.loadUi('pubgis_gui.ui', self)
         self.color_select_button.released.connect(self.select_background_color)
-        self.path_color = QColor.fromRgb(0, 255, 0, 0)
+        self.path_color = QColor(0, 255, 0, 0)
         self.update_path_color_preview()
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
@@ -94,15 +98,18 @@ class PUBGISMainWindow(QMainWindow):
         self.show()
 
     def _select_video_file(self):
+        # noinspection PyArgumentList,PyArgumentList
         fname, _ = QFileDialog.getOpenFileName(directory=os.path.expanduser('~'), filter="Videos (*.mp4)")
         self.video_file_edit.setText(fname)
 
     def _select_output_file(self):
+        # noinspection PyArgumentList,PyArgumentList
         fname, _ = QFileDialog.getOpenFileName(directory=os.path.expanduser('~'), filter="Images (*.jpg)")
         self.output_file_edit.setText(fname)
 
     def select_background_color(self):
         color_dialog = QColorDialog()
+        # noinspection PyArgumentList
         self.path_color = color_dialog.getColor()
         self.update_path_color_preview()
 
@@ -113,6 +120,7 @@ class PUBGISMainWindow(QMainWindow):
 
     def update_map_preview(self, qimg):
         # todo: mutex?
+        # noinspection PyArgumentList,PyArgumentList
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
         self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())
         self.map_creation_view.update()

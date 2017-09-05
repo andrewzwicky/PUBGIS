@@ -4,9 +4,7 @@ from pubgis import PUBGISMatch
 
 @pytest.fixture(scope='module')
 def pubgis_fixture():
-    return PUBGISMatch(full_map_file=r"../full_map_scaled.jpg",
-                       mask_file=r"../player_indicator_mask.jpg",
-                       debug=False)
+    return PUBGISMatch()
 
 CASES = [
     (None, (0, 0, 5079, 5079)),
