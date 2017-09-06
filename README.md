@@ -5,9 +5,9 @@ PUBGIS (PUBG Geographic Information System) is a python program that generates p
 ## Examples
 
 <p align="center">
-  <img src="example_path.jpg" width="33%">
-  <img src="example_path_2.jpg" width="33%">
-  <img src="example_path_3.jpg" width="33%">
+  <img src="docs\example_path.jpg" width="33%">
+  <img src="docs\example_path_2.jpg" width="33%">
+  <img src="docs\example_path_3.jpg" width="33%">
 </p>
 
 ## Functionality

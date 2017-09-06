@@ -32,8 +32,8 @@ MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 M = -.009
 B = 1.62
 
-COLOR_DIFF_THRESHOLD = 100  # basically a guess until I get more tests cases
-TEMPLATE_MATCH_THRESHOLD = .45  # basically a guess until I get more tests cases
+COLOR_DIFF_THRESHOLD = 50  # basically a guess until I get more tests cases
+TEMPLATE_MATCH_THRESHOLD = .40  # basically a guess until I get more tests cases
 
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
@@ -127,26 +127,25 @@ class PUBGISMatch:
 
         return minimap
 
-    def template_match(self, percent_minimap: tuple):
-        """
-        
-        :param percent_minimap: a tuple consisting of the current percentage progress and the current minimap  
-        :return: 
-        """
+    def template_match(self,
+                       percent_minimap,
+                       ind_min_color=IND_COLOR_MIN,
+                       ind_max_color=IND_COLOR_MAX,
+                       method=cv2.TM_CCOEFF_NORMED):
         this_percent, minimap = percent_minimap
         match_found = MatchResult.SUCCESFUL
 
         gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
         h, w = gray_minimap.shape
 
-        res = cv2.matchTemplate(self.gray_full_map, gray_minimap, cv2.TM_CCOEFF_NORMED)
+        res = cv2.matchTemplate(self.gray_full_map, gray_minimap, method)
         _, match_val, _, (x, y) = cv2.minMaxLoc(res)
 
         coords = (x + w // 2, y + h // 2)
 
         ind_color = cv2.mean(minimap, self.indicator_mask)
         ind_color_ok = all(ind_min < color < ind_max for ind_min, color, ind_max in
-                           zip(IND_COLOR_MIN, ind_color, IND_COLOR_MAX))
+                           zip(ind_min_color, ind_color, ind_max_color))
 
         ind_area_color = cv2.mean(minimap, self.indicator_area_mask)
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color, ind_area_color)]))
@@ -176,9 +175,9 @@ class PUBGISMatch:
                                                axis=1))
             cv2.waitKey(10)
 
-        need_y = M * color_diff + B
-        if match_val > need_y and ind_color_ok:
-            match_found = MatchResult.SUCCESFUL
+        #need_y = M * color_diff + B
+        #if match_val > need_y and ind_color_ok:
+        #    match_found = MatchResult.SUCCESFUL
 
         return match_found, coords, ind_color, color_diff, match_val, this_percent
 

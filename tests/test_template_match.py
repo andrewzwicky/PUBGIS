@@ -32,8 +32,7 @@ def summary_plot_axes():
 def test_bad_images(test_image, pubgis_fixture, summary_plot_axes):
     img = cv2.imread(os.path.join(r'bad', test_image))
     match_found, coords, ind_color, color_diff, match_val, this_percent = pubgis_fixture.template_match((None, img))
-    summary_plot_axes.scatter(color_diff, match_val, color="g" if match_found & MatchResult.IND_COLOR else "r", s=10)
-    summary_plot_axes.scatter(color_diff, match_val, color="r", s=8)
+    summary_plot_axes.scatter(color_diff, match_val, color="r", s=10)
     assert match_found != MatchResult.SUCCESFUL
 
 
@@ -43,8 +42,7 @@ def test_good_images(test_image, pubgis_fixture, summary_plot_axes):
     img = cv2.imread(os.path.join(r'good', test_image))
     match_found, coords, ind_color, color_diff, match_val, _ = pubgis_fixture.template_match((None, img))
     f_x, f_y = coords
-    summary_plot_axes.scatter(color_diff, match_val, color="g" if match_found & MatchResult.IND_COLOR else "r", s=10)
-    summary_plot_axes.scatter(color_diff, match_val, color="g", s=8)
+    summary_plot_axes.scatter(color_diff, match_val, color="g", s=10)
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))
