@@ -1,10 +1,10 @@
 import pytest
-from pubgis import PUBGISMatch
+from pubgis.pubgis import PUBGISMatch
 
 
 @pytest.fixture(scope='module')
 def pubgis_fixture():
-    return PUBGISMatch()
+    return PUBGISMatch(video_file=r"C:\Users\test.mp4")
 
 CASES = [
     (None, (0, 0, 5079, 5079)),

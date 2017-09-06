@@ -10,7 +10,7 @@ L = 108
 
 # no start skip to get failing images on purpose
 GENERATE_START_DELAY = 395
-# less frequent for test cases
+# less frequent for tests cases
 GENERATE_STEP_TIME = 0.25  # seconds
 
 

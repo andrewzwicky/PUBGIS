@@ -1,19 +1,21 @@
+import argparse
+import os
+from math import sqrt, ceil
+from multiprocessing import Pool
+from typing import Sequence, Optional
+
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import to_rgb
-from multiprocessing import Pool
-import argparse
-import os
-from math import sqrt, ceil
-from pubgis_match_result import MatchResult
-from typing import Sequence, Optional
+
+from pubgis.match_result import MatchResult
 
 Color = Sequence[int]
 
-MAP_FILE = "full_map_scaled.jpg"
-INDICATOR_MASK_FILE = "player_indicator_mask.jpg"
-INDICATOR_AREA_MASK_FILE = "player_indicator_area_mask.jpg"
+MAP_FILE = os.path.join(os.path.dirname(__file__), "images", "full_map_scaled.jpg")
+INDICATOR_MASK_FILE = os.path.join(os.path.dirname(__file__), "images", "player_indicator_mask.jpg")
+INDICATOR_AREA_MASK_FILE = os.path.join(os.path.dirname(__file__), "images", "player_indicator_area_mask.jpg")
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
 DEFAULT_START_DELAY = 10  # seconds
@@ -30,8 +32,8 @@ MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 M = -.009
 B = 1.62
 
-COLOR_DIFF_THRESHOLD = 100  # basically a guess until I get more test cases
-TEMPLATE_MATCH_THRESHOLD = .45  # basically a guess until I get more test cases
+COLOR_DIFF_THRESHOLD = 100  # basically a guess until I get more tests cases
+TEMPLATE_MATCH_THRESHOLD = .45  # basically a guess until I get more tests cases
 
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
@@ -45,7 +47,7 @@ DEBUG_FONT_SIZE_SMALL = 0.3
 NO_MATCH_COLOR = (0, 0, 255)
 MATCH_COLOR = (0, 255, 0)
 
-DEFAULT_PATH_COLOR = (208, 224, 64)
+DEFAULT_PATH_COLOR = "Lime"
 
 IND_COLOR_MIN = (120, 145, 140)
 IND_COLOR_MAX = (225, 225, 225)
@@ -57,7 +59,7 @@ IND_COLOR_MAX = (225, 225, 225)
 
 class PUBGISMatch:
     def __init__(self,
-                 video_file: str = None,
+                 video_file: str,
                  start_delay: float = DEFAULT_START_DELAY,
                  step_time: float = DEFAULT_TIME_STEP,
                  death_time: Optional[int] = None,
