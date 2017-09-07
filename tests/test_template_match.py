@@ -2,15 +2,15 @@ import os
 import re
 
 import cv2
+import matplotlib.patches as patches
 import pytest
 from matplotlib import pyplot as plt
-import matplotlib.patches as patches
 
 from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
-MAX_COLOR_DIFF = 450  # approx
+MAX_COLOR_DIFF = 450  # approx sqrt(255**2 + 255**2 + 255**2), between white and black
 
 
 @pytest.fixture(scope='module')
