@@ -5,13 +5,14 @@ import sys
 import time
 
 import cv2
+import matplotlib.colors as mpl_colors
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread
-from PyQt5.QtGui import QPixmap, QColor, QImage
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, \
-    QGraphicsScene, QColorDialog
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
-from pubgis import PUBGISMatch
+from pubgis_color import Color, ColorSpace, ColorScaling
+from pubgis_match import PUBGISMatch, DEFAULT_PATH_COLOR, DEFAULT_START_DELAY
 
 
 class PUBGISApplication(QApplication):
@@ -27,39 +28,28 @@ class PUBGISWorkerThread(QThread):
         super(PUBGISWorkerThread, self).__init__(parent)
 
     @staticmethod
-    def parse_time_optional_minutes(input_string):
+    def parse_time(input_string):
         ret = time.strptime(input_string, '%M:%S')
         int_val = ret.tm_min * 60 + ret.tm_sec
         return int_val
 
     # noinspection PyAttributeOutsideInit
-    def start_with_params(self, video_file, time_step_text, start_delay_text, death_time_text, output_file, path_color):
+    def start_with_params(self, video_file, time_step, start_delay_text, death_time_text, output_file, path_color):
         self.video_file = video_file
-        self.time_step = time_step_text
-        self.start_delay = start_delay_text
-        self.death_time = death_time_text
+        self.time_step = time_step
+        self.start_delay = DEFAULT_START_DELAY if start_delay_text == "" else self.parse_time(start_delay_text)
+        self.death_time = None if death_time_text == "" else self.parse_time(death_time_text)
         self.output_file = output_file
         self.path_color = path_color
         self.start()
 
     def run(self):
-        time_args = dict()
-        if self.time_step != "":
-            time_args["step_time"] = self.parse_time_optional_minutes(self.time_step)
-
-        if self.start_delay != "":
-            time_args["start_delay"] = self.parse_time_optional_minutes(self.start_delay)
-
-        if self.death_time != "":
-            time_args["death_time"] = self.parse_time_optional_minutes(self.death_time)
-
         match = PUBGISMatch(video_file=self.video_file,
                             output_file=self.output_file,
-                            debug=False,
-                            path_color=(self.path_color.blue(),
-                                        self.path_color.green(),
-                                        self.path_color.red()),
-                            **time_args)
+                            path_color=self.path_color,
+                            start_delay=self.start_delay,
+                            death_time=self.death_time,
+                            step_time=self.time_step)
 
         for percent, progress_minimap in match.process_match():
             self.percent_update.emit(percent)
@@ -69,6 +59,7 @@ class PUBGISWorkerThread(QThread):
             qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
             self.minimap_update.emit(qimg)
 
+        self.percent_update.emit(100)
         match.create_output()
 
 
@@ -79,22 +70,28 @@ class PUBGISMainWindow(QMainWindow):
     def __init__(self):
         # noinspection PyArgumentList
         super().__init__()
-        uic.loadUi('pubgis_gui.ui', self)
+        uic.loadUi(os.path.join(os.path.dirname(__file__), "pubgis_gui.ui"), self)
         self.color_select_button.released.connect(self.select_background_color)
-        self.path_color = QColor(0, 255, 0, 0)
-        self.update_path_color_preview()
+
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
 
+        # TODO: cancel button
         self.thread = PUBGISWorkerThread(self)
 
         self.thread.percent_update.connect(self.progress_bar.setValue)
         self.thread.minimap_update.connect(self.update_map_preview)
-        self.cancel_button.released.connect(self.thread.exit)
 
+        # TODO: better duration input
         self.map_creation_view.setScene(QGraphicsScene())
         self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
+
+        self.path_color = DEFAULT_PATH_COLOR
+        self.update_path_color_preview()
+
+        self.video_file_edit.setText(r"E:\Movies\OBS\squads_dinner_mike_pat.mp4")
+
         self.show()
 
     def _select_video_file(self):
@@ -110,13 +107,13 @@ class PUBGISMainWindow(QMainWindow):
     def select_background_color(self):
         color_dialog = QColorDialog()
         # noinspection PyArgumentList
-        self.path_color = color_dialog.getColor()
+        *picker_rgb, a = color_dialog.getColor().getRgb()
+        self.path_color = Color(*picker_rgb, in_scaling=ColorScaling.UINT8)
         self.update_path_color_preview()
 
     def update_path_color_preview(self):
-        p = self.path_color_preview.palette()
-        p.setColor(self.path_color_preview.backgroundRole(), self.path_color)
-        self.path_color_preview.setPalette(p)
+        style = "background-color : rgb({},{},{})".format(*self.path_color.get(out_space=ColorSpace.RGB))
+        self.path_color_preview.setStyleSheet(style)
 
     def update_map_preview(self, qimg):
         # todo: mutex?
@@ -127,9 +124,10 @@ class PUBGISMainWindow(QMainWindow):
         self.map_creation_view.repaint()
 
     def process_match(self):
+        # TODO: progress bar while map is loading?
         if self.video_file_edit.text() != "":
             self.thread.start_with_params(self.video_file_edit.text(),
-                                          self.time_step_edit.text(),
+                                          int(self.time_step_combo.currentText()),
                                           self.landing_time_edit.text(),
                                           self.death_time_edit.text(),
                                           self.output_file_edit.text(),

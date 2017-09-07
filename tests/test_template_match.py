@@ -1,9 +1,11 @@
-import pytest
 import os
-from pubgis.pubgis import PUBGISMatch, MatchResult, M, B
-import cv2
 import re
+
+import cv2
+import pytest
 from matplotlib import pyplot as plt
+
+from pubgis.pubgis_match import PUBGISMatch, MatchResult, M, B
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
