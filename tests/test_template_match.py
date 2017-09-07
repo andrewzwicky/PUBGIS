@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD
+from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD, MAP_FILE
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
@@ -19,7 +19,7 @@ def pubgis_fixture():
 
 
 @pytest.fixture(scope='module')
-def summary_plot_axes():
+def template_match_plot_axes():
     fig, ax = plt.subplots(figsize=(12, 10))
     yield ax
     ax.set_ylim(0, 1)
@@ -30,22 +30,35 @@ def summary_plot_axes():
     fig.savefig("summary_plot.png")
 
 
+@pytest.fixture(scope='module')
+def map_coverage_axes():
+    fig, ax = plt.subplots(figsize=(10, 10))
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax.axes.xaxis.set_visible(False)
+    ax.axes.yaxis.set_visible(False)
+    ax.imshow(cv2.cvtColor(cv2.imread(MAP_FILE), cv2.COLOR_BGR2RGB))
+    yield ax
+    fig.savefig("map_coverage.png")
+
+
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'bad'))
-def test_bad_images(test_image, pubgis_fixture, summary_plot_axes):
+def test_bad_images(test_image, pubgis_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(r'bad', test_image))
     match_found, coords, ind_color, color_diff, match_val, this_percent = pubgis_fixture.template_match((None, img))
-    summary_plot_axes.scatter(color_diff, match_val, color="r", s=10)
+    template_match_plot_axes.scatter(color_diff, match_val, color="r", s=10)
     assert match_found != MatchResult.SUCCESFUL
 
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'good'))
-def test_good_images(test_image, pubgis_fixture, summary_plot_axes):
+def test_good_images(test_image, pubgis_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(r'good', test_image))
     match_found, coords, ind_color, color_diff, match_val, _ = pubgis_fixture.template_match((None, img))
     f_x, f_y = coords
-    summary_plot_axes.scatter(color_diff, match_val, color="g", s=10)
+    template_match_plot_axes.scatter(color_diff, match_val, color="g", s=10)
+    # TODO: use correct minimap dimensions in map coverage picture
+    map_coverage_axes.add_patch(patches.Rectangle((f_x-100, f_y+100), 200, 200, edgecolor="none", facecolor='g', alpha=0.15))
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))

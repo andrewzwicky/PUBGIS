@@ -8,7 +8,7 @@ import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
-from match_result import MatchResult
+from template_match_result import MatchResult
 from pubgis_color import Color, ColorSpace, ColorScaling
 
 MAP_FILE = os.path.join(os.path.dirname(__file__), "images", "full_map_scaled.jpg")

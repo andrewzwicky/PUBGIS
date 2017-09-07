@@ -14,6 +14,7 @@ L = 108
 def generate_test_minimaps(video_file):
     video_name = os.path.splitext(os.path.basename(video_file))[0]
     match = PUBGISMatch(video_file=video_file,
+                        debug=True,
                         start_delay=0)
 
     for frame_count, minimap in match.video_iterator():
