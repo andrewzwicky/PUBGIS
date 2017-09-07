@@ -108,11 +108,11 @@ class PUBGISMainWindow(QMainWindow):
         color_dialog = QColorDialog()
         # noinspection PyArgumentList
         *picker_rgb, a = color_dialog.getColor().getRgb()
-        self.path_color = Color(*picker_rgb, in_scaling=ColorScaling.UINT8)
+        self.path_color = Color(*picker_rgb, scaling=ColorScaling.UINT8)
         self.update_path_color_preview()
 
     def update_path_color_preview(self):
-        style = "background-color : rgb({},{},{})".format(*self.path_color.get(out_space=ColorSpace.RGB))
+        style = "background-color : rgb({},{},{})".format(*self.path_color.get(space=ColorSpace.RGB))
         self.path_color_preview.setStyleSheet(style)
 
     def update_map_preview(self, qimg):

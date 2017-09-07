@@ -4,32 +4,17 @@ import os
 import cv2
 import numpy as np
 
-from pubgis import PUBGISMatch
+from pubgis.pubgis_match import PUBGISMatch
 
 J = 106
 K = 107
 L = 108
 
-# no start skip to get failing images on purpose
-GENERATE_START_DELAY = 395
-# less frequent for tests cases
-GENERATE_STEP_TIME = 0.25  # seconds
-
-
-# generated from movies:
-# E:\Movies\OBS\shroud_2.mp4
-# E:\Movies\OBS\shroud_1.mp4
-# E:\Movies\OBS\duos_dinner_pat_groza.mp4
-# E:\Movies\OBS\gamescom_squads_g1_tsm_viss.mp4
-# E:\Movies\OBS\gamescom_squads_g1_tsm_smak.mp4
-
 
 def generate_test_minimaps(video_file):
     video_name = os.path.splitext(os.path.basename(video_file))[0]
     match = PUBGISMatch(video_file=video_file,
-                        start_delay=GENERATE_START_DELAY,
-                        step_time=GENERATE_STEP_TIME,
-                        debug=True)
+                        start_delay=0)
 
     for frame_count, minimap in match.video_iterator():
         raw_minimap = np.copy(minimap)

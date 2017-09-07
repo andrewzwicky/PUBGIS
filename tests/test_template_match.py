@@ -4,11 +4,13 @@ import re
 import cv2
 import pytest
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 
-from pubgis.pubgis_match import PUBGISMatch, MatchResult, M, B
+from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
+MAX_COLOR_DIFF = 450  # approx
 
 
 @pytest.fixture(scope='module')
@@ -20,12 +22,11 @@ def pubgis_fixture():
 def summary_plot_axes():
     fig, ax = plt.subplots(figsize=(12, 10))
     yield ax
-    ax.set_xlabel("")
-    xs = [0, 200]
-    ys = [M*x + B for x in xs]
-    plt.plot(xs, ys, color='k')
     ax.set_ylim(0, 1)
     ax.set_xlim(left=0)
+    ax.add_patch(patches.Rectangle((0, 0), COLOR_DIFF_THRESHOLD, 1, edgecolor="none", facecolor='r', alpha=0.1))
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, 0), MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD, edgecolor="none", facecolor='r', alpha=0.1))
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD), MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD, 1-TEMPLATE_MATCH_THRESHOLD, edgecolor="none", facecolor='g', alpha=0.1))
     fig.savefig("summary_plot.png")
 
 

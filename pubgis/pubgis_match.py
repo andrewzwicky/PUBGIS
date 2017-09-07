@@ -27,9 +27,6 @@ PIXELS_PER_KM = PIXELS_PER_100M * 10
 MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
-M = -.009
-B = 1.62
-
 COLOR_DIFF_THRESHOLD = 50  # basically a guess until I get more tests cases
 TEMPLATE_MATCH_THRESHOLD = .40  # basically a guess until I get more tests cases
 
@@ -47,8 +44,8 @@ MATCH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 
 DEFAULT_PATH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 
-IND_COLOR_MIN = Color(140, 145, 120, in_scaling=ColorScaling.UINT8)
-IND_COLOR_MAX = Color(225, 225, 225, in_scaling=ColorScaling.UINT8)
+IND_COLOR_MIN = Color(135, 145, 120, scaling=ColorScaling.UINT8)
+IND_COLOR_MAX = Color(225, 225, 225, scaling=ColorScaling.UINT8)
 
 
 # when indexing an image the format is image[y,x]
@@ -147,13 +144,13 @@ class PUBGISMatch:
 
         coords = (x + w // 2, y + h // 2)
 
-        ind_color = Color(*cv2.mean(minimap, self.indicator_mask)[:3], in_scaling=ColorScaling.UINT8,
-                          in_space=ColorSpace.BGR)
-        ind_color_ok = all(ind_min < color < ind_max for ind_min, color, ind_max in
+        ind_color = Color(*cv2.mean(minimap, self.indicator_mask)[:3], scaling=ColorScaling.UINT8,
+                          space=ColorSpace.BGR)
+        ind_color_ok = all(ind_min <= color <= ind_max for ind_min, color, ind_max in
                            zip(IND_COLOR_MIN.get(), ind_color.get(), IND_COLOR_MAX.get()))
 
-        ind_area_color = Color(*cv2.mean(minimap, self.indicator_area_mask)[:3], in_scaling=ColorScaling.UINT8,
-                               in_space=ColorSpace.BGR)
+        ind_area_color = Color(*cv2.mean(minimap, self.indicator_area_mask)[:3], scaling=ColorScaling.UINT8,
+                               space=ColorSpace.BGR)
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color.get(),
                                                                 ind_area_color.get())]))
         color_diff_ok = color_diff > COLOR_DIFF_THRESHOLD
@@ -305,7 +302,7 @@ class PUBGISMatch:
         ax.axes.set_xlim(min_x, min_x + w)
         ax.axes.set_ylim(min_y + h, min_y)
 
-        mpl_color = self.path_color.get(out_space=ColorSpace.RGB, out_scaling=ColorScaling.PERC)
+        mpl_color = self.path_color.get(space=ColorSpace.RGB, scaling=ColorScaling.PERC)
         ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH, alpha=PATH_ALPHA)
         fig.savefig(self.output_file)
 
