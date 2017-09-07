@@ -311,6 +311,7 @@ class ColorAction(argparse.Action):
     def __call__(self, parser_arg, namespace, values, option_string=None):
         setattr(namespace, self.dest, Color(*mpl_colors.to_rgb(values)))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     parser.add_argument('--video_file', required=True)

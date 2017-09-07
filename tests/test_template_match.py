@@ -24,9 +24,24 @@ def template_match_plot_axes():
     yield ax
     ax.set_ylim(0, 1)
     ax.set_xlim(left=0)
-    ax.add_patch(patches.Rectangle((0, 0), COLOR_DIFF_THRESHOLD, 1, edgecolor="none", facecolor='r', alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, 0), MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD, edgecolor="none", facecolor='r', alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD), MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD, 1-TEMPLATE_MATCH_THRESHOLD, edgecolor="none", facecolor='g', alpha=0.1))
+    ax.add_patch(patches.Rectangle((0, 0),
+                                   COLOR_DIFF_THRESHOLD,
+                                   1,
+                                   edgecolor="none",
+                                   facecolor='r',
+                                   alpha=0.1))
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, 0),
+                                   MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD,
+                                   TEMPLATE_MATCH_THRESHOLD,
+                                   edgecolor="none",
+                                   facecolor='r',
+                                   alpha=0.1))
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD),
+                                   MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD,
+                                   1-TEMPLATE_MATCH_THRESHOLD,
+                                   edgecolor="none",
+                                   facecolor='g',
+                                   alpha=0.1))
     fig.savefig("summary_plot.png")
 
 
@@ -58,7 +73,12 @@ def test_good_images(test_image, pubgis_fixture, template_match_plot_axes, map_c
     f_x, f_y = coords
     template_match_plot_axes.scatter(color_diff, match_val, color="g", s=10)
     # TODO: use correct minimap dimensions in map coverage picture
-    map_coverage_axes.add_patch(patches.Rectangle((f_x-100, f_y+100), 200, 200, edgecolor="none", facecolor='g', alpha=0.15))
+    map_coverage_axes.add_patch(patches.Rectangle((f_x-100, f_y+100),
+                                                  200,
+                                                  200,
+                                                  edgecolor="none",
+                                                  facecolor='g',
+                                                  alpha=0.15))
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))

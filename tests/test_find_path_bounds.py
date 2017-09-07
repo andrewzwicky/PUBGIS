@@ -7,6 +7,7 @@ from pubgis_match import PUBGISMatch
 def pubgis_fixture():
     return PUBGISMatch(video_file=r"C:\Users\test.mp4")
 
+
 CASES = [
     (None, (0, 0, 5079, 5079)),
     ([(500, 500)], (200, 200, 600, 600)),

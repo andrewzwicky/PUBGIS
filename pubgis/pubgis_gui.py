@@ -5,7 +5,6 @@ import sys
 import time
 
 import cv2
-import matplotlib.colors as mpl_colors
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread
 from PyQt5.QtGui import QPixmap, QImage
@@ -90,6 +89,7 @@ class PUBGISMainWindow(QMainWindow):
         self.path_color = DEFAULT_PATH_COLOR
         self.update_path_color_preview()
 
+        # TODO: remove this once done testing
         self.video_file_edit.setText(r"E:\Movies\OBS\squads_dinner_mike_pat.mp4")
 
         self.show()
