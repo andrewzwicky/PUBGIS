@@ -15,11 +15,12 @@ def generate_test_minimaps(video_file):
     video_name = os.path.splitext(os.path.basename(video_file))[0]
     match = PUBGISMatch(video_file=video_file,
                         debug=True,
-                        start_delay=0)
+                        step_interval=10,
+                        start_delay=60)
 
     for frame_count, minimap in match.video_iterator():
         raw_minimap = np.copy(minimap)
-        match_found, coords, _, _, _, _ = match.template_match(minimap)
+        match_found, coords, _, _, _, _ = match.template_match((None, minimap))
         x, y = coords
         key = cv2.waitKey(-1)
 

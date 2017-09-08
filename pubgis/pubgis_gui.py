@@ -33,9 +33,9 @@ class PUBGISWorkerThread(QThread):
         return int_val
 
     # noinspection PyAttributeOutsideInit
-    def start_with_params(self, video_file, time_step, start_delay_text, death_time_text, output_file, path_color):
+    def start_with_params(self, video_file, step_interval, start_delay_text, death_time_text, output_file, path_color):
         self.video_file = video_file
-        self.time_step = time_step
+        self.step_interval = step_interval
         self.start_delay = DEFAULT_START_DELAY if start_delay_text == "" else self.parse_time(start_delay_text)
         self.death_time = None if death_time_text == "" else self.parse_time(death_time_text)
         self.output_file = output_file
@@ -48,7 +48,7 @@ class PUBGISWorkerThread(QThread):
                             path_color=self.path_color,
                             start_delay=self.start_delay,
                             death_time=self.death_time,
-                            step_time=self.time_step)
+                            step_interval=self.step_interval)
 
         for percent, progress_minimap in match.process_match():
             self.percent_update.emit(percent)

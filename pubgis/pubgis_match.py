@@ -17,7 +17,7 @@ INDICATOR_AREA_MASK_FILE = os.path.join(os.path.dirname(__file__), "images", "pl
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
 DEFAULT_START_DELAY = 10  # seconds
-DEFAULT_TIME_STEP = 1  # seconds
+DEFAULT_TIME_INTERVAL = 1  # seconds
 
 CROP_BORDER = 30
 
@@ -56,7 +56,7 @@ class PUBGISMatch:
     def __init__(self,
                  video_file,
                  start_delay=DEFAULT_START_DELAY,
-                 step_time=DEFAULT_TIME_STEP,
+                 step_interval=DEFAULT_TIME_INTERVAL,
                  death_time=None,
                  output_file=None,
                  path_color=DEFAULT_PATH_COLOR,
@@ -68,7 +68,7 @@ class PUBGISMatch:
         _, self.indicator_area_mask = cv2.threshold(cv2.imread(INDICATOR_AREA_MASK_FILE, 0), 10, 255, cv2.THRESH_BINARY)
         self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
         self.start_delay = start_delay
-        self.step_time = step_time
+        self.step_interval = step_interval
         self.death_time = death_time
         self.debug = debug
 
@@ -182,7 +182,7 @@ class PUBGISMatch:
 
     def video_iterator(self):
         """
-        Return every time_step minimaps from the supplied video, skipping the first start_delay frames.
+        Return the minimap every time_interval seconds from the supplied video, skipping the first start_delay frames.
         
         :return: iterator that yields (percent, minimap) tuples 
         """
@@ -199,7 +199,7 @@ class PUBGISMatch:
 
         start_delay_frames = int(self.start_delay * fps)
         # need to at least increment by 1 each iteration
-        time_step_frames = max(int(self.step_time * fps), 1)
+        num_interval_frames = max(int(self.step_interval * fps), 1)
         death_frame = int(self.death_time * fps) if self.death_time is not None else total_frames
 
         frames_to_process = death_frame - start_delay_frames
@@ -227,9 +227,9 @@ class PUBGISMatch:
             percent_processed = min(int((frame_count / frames_to_process) * 100), 100)
             yield percent_processed, minimap
 
-            for i in range(time_step_frames):
+            for i in range(num_interval_frames):
                 finished |= not cap.grab()
-            frame_count += time_step_frames
+            frame_count += num_interval_frames
 
             # If no frames has been grabbed the methods return false
             ret, frame = cap.read()
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     parser.add_argument('--video_file', required=True)
     parser.add_argument('--death_time', type=int)
     parser.add_argument('--start_delay', type=int)
-    parser.add_argument('--step_time', type=int)
+    parser.add_argument('--step_interval', type=int)
     parser.add_argument('--output_file', type=str)
     parser.add_argument('--path_color', type=str, action=ColorAction)
     parser.add_argument('--debug', action='store_true')

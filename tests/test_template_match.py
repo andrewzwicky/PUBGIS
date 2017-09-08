@@ -61,7 +61,7 @@ def map_coverage_axes():
 def test_bad_images(test_image, pubgis_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(r'bad', test_image))
     match_found, coords, ind_color, color_diff, match_val, this_percent = pubgis_fixture.template_match((None, img))
-    template_match_plot_axes.scatter(color_diff, match_val, color="r", s=10)
+    template_match_plot_axes.scatter(color_diff, match_val, color="r", s=10, alpha=0.2)
     assert match_found != MatchResult.SUCCESFUL
 
 
@@ -71,14 +71,14 @@ def test_good_images(test_image, pubgis_fixture, template_match_plot_axes, map_c
     img = cv2.imread(os.path.join(r'good', test_image))
     match_found, coords, ind_color, color_diff, match_val, _ = pubgis_fixture.template_match((None, img))
     f_x, f_y = coords
-    template_match_plot_axes.scatter(color_diff, match_val, color="g", s=10)
+    template_match_plot_axes.scatter(color_diff, match_val, color="g", s=10, alpha=0.2)
     # TODO: use correct minimap dimensions in map coverage picture
-    map_coverage_axes.add_patch(patches.Rectangle((f_x-100, f_y+100),
+    map_coverage_axes.add_patch(patches.Rectangle((f_x-100, f_y-100),
                                                   200,
                                                   200,
                                                   edgecolor="none",
-                                                  facecolor='g',
-                                                  alpha=0.15))
+                                                  facecolor='white',
+                                                  alpha=0.1))
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))
