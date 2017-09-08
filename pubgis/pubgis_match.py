@@ -47,6 +47,8 @@ DEFAULT_PATH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 IND_COLOR_MIN = Color(135, 145, 120, scaling=ColorScaling.UINT8)
 IND_COLOR_MAX = Color(225, 225, 225, scaling=ColorScaling.UINT8)
 
+MINIMAP_WIDTH = 252
+MINIMAP_HEIGHT = 253
 
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
@@ -216,9 +218,9 @@ class PUBGISMatch:
         while not finished and frame_count + start_delay_frames <= death_frame:
             if frame.shape == (1080, 1920, 3):
                 minimap_min_y = 798
-                minimap_max_y = 1051
+                minimap_max_y = minimap_min_y + MINIMAP_HEIGHT
                 minimap_min_x = 1630
-                minimap_max_x = 1882
+                minimap_max_x = minimap_min_x + MINIMAP_WIDTH
             else:
                 raise ValueError
 
