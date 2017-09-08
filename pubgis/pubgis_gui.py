@@ -7,7 +7,7 @@ import time
 import cv2
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
 from pubgis_color import Color, ColorSpace, ColorScaling
@@ -105,10 +105,10 @@ class PUBGISMainWindow(QMainWindow):
         self.output_file_edit.setText(fname)
 
     def select_background_color(self):
-        color_dialog = QColorDialog()
+        color_dialog = QColorDialog(QColor(*self.path_color.get_with_alpha()))
         # noinspection PyArgumentList
-        *picker_rgb, a = color_dialog.getColor().getRgb()
-        self.path_color = Color(*picker_rgb, scaling=ColorScaling.UINT8)
+        *picker_rgb, a = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
+        self.path_color = Color(*picker_rgb, scaling=ColorScaling.UINT8, alpha=a)
         self.update_path_color_preview()
 
     def update_path_color_preview(self):

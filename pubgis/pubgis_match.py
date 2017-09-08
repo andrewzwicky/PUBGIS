@@ -34,7 +34,6 @@ COLOR_DIFF_THRESHOLD_2 = 30
 TEMPLATE_MATCH_THRESHOLD_2 = .75
 
 PATH_WIDTH = 4
-PATH_ALPHA = 0.7
 
 MIN_PROGRESS_MAP_SIZE = 600
 
@@ -45,7 +44,7 @@ DEBUG_FONT_SIZE_SMALL = 0.3
 NO_MATCH_COLOR = Color(*mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 
-DEFAULT_PATH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
+DEFAULT_PATH_COLOR = Color(*mpl_colors.to_rgb("Lime"), alpha=0.7)
 
 MINIMAP_WIDTH = 252
 MINIMAP_HEIGHT = 253
@@ -283,8 +282,8 @@ class PUBGISMatch:
         ax.axes.set_xlim(min_x, min_x + w)
         ax.axes.set_ylim(min_y + h, min_y)
 
-        mpl_color = self.path_color.get(space=ColorSpace.RGB, scaling=ColorScaling.PERC)
-        ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH, alpha=PATH_ALPHA)
+        mpl_color, alpha = self.path_color.get_with_alpha(space=ColorSpace.RGB, scaling=ColorScaling.PERC)
+        ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH, alpha=alpha)
         fig.savefig(self.output_file)
 
 

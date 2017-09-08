@@ -12,7 +12,7 @@ class ColorScaling(IntFlag):
 
 
 class Color:
-    def __init__(self, c1, c2, c3, scaling=ColorScaling.PERC, space=ColorSpace.RGB):
+    def __init__(self, c1, c2, c3, alpha=1, scaling=ColorScaling.PERC, space=ColorSpace.RGB):
         # colors stored internally as 0-1
         if scaling == ColorScaling.UINT8:
             if space == ColorSpace.RGB:
@@ -25,6 +25,8 @@ class Color:
                 self.blue = c1 / 255
             else:
                 raise ValueError
+
+            self.alpha = alpha / 255
         elif scaling == ColorScaling.PERC:
             if space == ColorSpace.RGB:
                 self.red = c1
@@ -36,8 +38,16 @@ class Color:
                 self.blue = c1
             else:
                 raise ValueError
+
+            self.alpha = alpha
         else:
             raise ValueError
+
+    def get_with_alpha(self, scaling=ColorScaling.UINT8, space=ColorSpace.BGR):
+        if scaling == ColorScaling.UINT8:
+            return self.get(scaling=scaling, space=space) + (self.alpha * 255,)
+        elif scaling == ColorScaling.PERC:
+            return self.get(scaling=scaling, space=space) + (self.alpha,)
 
     def get(self, scaling=ColorScaling.UINT8, space=ColorSpace.BGR):
         if scaling == ColorScaling.UINT8:
