@@ -8,8 +8,8 @@ import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
-from template_match_result import MatchResult
-from pubgis_color import Color, ColorSpace, ColorScaling
+from pubgis.template_match_result import MatchResult
+from pubgis.pubgis_color import Color, ColorSpace, ColorScaling
 
 MAP_FILE = os.path.join(os.path.dirname(__file__), "images", "full_map_scaled.jpg")
 INDICATOR_MASK_FILE = os.path.join(os.path.dirname(__file__), "images", "player_indicator_mask.jpg")
@@ -27,8 +27,11 @@ PIXELS_PER_KM = PIXELS_PER_100M * 10
 MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
-COLOR_DIFF_THRESHOLD = 50  # basically a guess until I get more tests cases
-TEMPLATE_MATCH_THRESHOLD = .40  # basically a guess until I get more tests cases
+# calibrated based on test cases
+COLOR_DIFF_THRESHOLD_1 = 70
+TEMPLATE_MATCH_THRESHOLD_1 = .40
+COLOR_DIFF_THRESHOLD_2 = 30
+TEMPLATE_MATCH_THRESHOLD_2 = .75
 
 PATH_WIDTH = 4
 PATH_ALPHA = 0.7
@@ -44,11 +47,9 @@ MATCH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 
 DEFAULT_PATH_COLOR = Color(*mpl_colors.to_rgb("Lime"))
 
-IND_COLOR_MIN = Color(135, 145, 120, scaling=ColorScaling.UINT8)
-IND_COLOR_MAX = Color(225, 225, 225, scaling=ColorScaling.UINT8)
-
 MINIMAP_WIDTH = 252
 MINIMAP_HEIGHT = 253
+
 
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
@@ -87,36 +88,25 @@ class PUBGISMatch:
 
     @staticmethod
     def markup_minimap_debug(minimap,
-                             ind_color_ok,
                              ind_color,
                              ind_area_color,
                              color_diff,
-                             color_diff_ok,
-                             match_val,
-                             match_val_ok):
+                             match_val):
         ind_rect_corner = (200, 200)
         ind_rect_area_corner = (120, 200)
         rect_size = 50
         text_inset = (8, 15)
         test_spacing = 15
 
-        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG,
-                    MATCH_COLOR.get() if color_diff_ok else NO_MATCH_COLOR.get())
-        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG,
-                    MATCH_COLOR.get() if match_val_ok else NO_MATCH_COLOR.get())
-
-        rect_color = MATCH_COLOR.get() if ind_color_ok else NO_MATCH_COLOR.get()
+        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, MATCH_COLOR.get())
+        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, MATCH_COLOR.get())
 
         cv2.rectangle(minimap,
                       ind_rect_corner,
                       tuple(c + rect_size for c in ind_rect_corner),
                       ind_color.get(),
                       thickness=-1)
-        cv2.rectangle(minimap,
-                      ind_rect_corner,
-                      tuple(c + rect_size for c in ind_rect_corner),
-                      rect_color,
-                      thickness=2)
+
         for i, color in enumerate(ind_color.get()):
             x = ind_rect_corner[0] + text_inset[0]
             y = ind_rect_corner[1] + text_inset[1] + i * test_spacing
@@ -148,34 +138,23 @@ class PUBGISMatch:
 
         ind_color = Color(*cv2.mean(minimap, self.indicator_mask)[:3], scaling=ColorScaling.UINT8,
                           space=ColorSpace.BGR)
-        ind_color_ok = all(ind_min <= color <= ind_max for ind_min, color, ind_max in
-                           zip(IND_COLOR_MIN.get(), ind_color.get(), IND_COLOR_MAX.get()))
-
         ind_area_color = Color(*cv2.mean(minimap, self.indicator_area_mask)[:3], scaling=ColorScaling.UINT8,
                                space=ColorSpace.BGR)
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color.get(),
                                                                 ind_area_color.get())]))
-        color_diff_ok = color_diff > COLOR_DIFF_THRESHOLD
-        match_val_ok = match_val > TEMPLATE_MATCH_THRESHOLD
 
-        if not ind_color_ok:
-            match_found |= MatchResult.IND_COLOR
+        in_range = (color_diff > COLOR_DIFF_THRESHOLD_1 and match_val > TEMPLATE_MATCH_THRESHOLD_1) or \
+                   (color_diff > COLOR_DIFF_THRESHOLD_2 and match_val > TEMPLATE_MATCH_THRESHOLD_2)
 
-        if not color_diff_ok:
-            match_found |= MatchResult.COLOR_DIFF
-
-        if not match_val_ok:
-            match_found |= MatchResult.TEMPLATE_THRESHOLD
+        if not in_range:
+            match_found |= MatchResult.OUT_OF_RANGE
 
         if self.debug:
             cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap,
-                                                                          ind_color_ok,
                                                                           ind_color,
                                                                           ind_area_color,
                                                                           color_diff,
-                                                                          color_diff_ok,
-                                                                          match_val,
-                                                                          match_val_ok),
+                                                                          match_val),
                                                 self.full_map[y:y + h, x:x + w]),
                                                axis=1))
             cv2.waitKey(10)

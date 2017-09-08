@@ -6,7 +6,8 @@ import matplotlib.patches as patches
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD, MAP_FILE, MINIMAP_HEIGHT, MINIMAP_WIDTH
+from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD_1, TEMPLATE_MATCH_THRESHOLD_1,\
+    MAP_FILE, MINIMAP_HEIGHT, MINIMAP_WIDTH, COLOR_DIFF_THRESHOLD_2, TEMPLATE_MATCH_THRESHOLD_2
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
@@ -23,25 +24,37 @@ def template_match_plot_axes():
     fig, ax = plt.subplots(figsize=(12, 10))
     points_list = []
     yield points_list
-    for color_diff,match_val,c in points_list:
-        ax.scatter(color_diff, match_val, color=c, s=10, alpha=0.2)
+    for color_diff, match_val, c in points_list:
+        ax.scatter(color_diff, match_val, facecolor=c, edgecolor="none", s=10, alpha=0.2)
     ax.set_ylim(0, 1)
     ax.set_xlim(left=0)
     ax.add_patch(patches.Rectangle((0, 0),
-                                   COLOR_DIFF_THRESHOLD,
-                                   1,
+                                   MAX_COLOR_DIFF,
+                                   TEMPLATE_MATCH_THRESHOLD_1,
                                    edgecolor="none",
                                    facecolor='r',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, 0),
-                                   MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD,
-                                   TEMPLATE_MATCH_THRESHOLD,
+    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESHOLD_1),
+                                   COLOR_DIFF_THRESHOLD_1,
+                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
                                    edgecolor="none",
                                    facecolor='r',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD, TEMPLATE_MATCH_THRESHOLD),
-                                   MAX_COLOR_DIFF-COLOR_DIFF_THRESHOLD,
-                                   1-TEMPLATE_MATCH_THRESHOLD,
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD_1, TEMPLATE_MATCH_THRESHOLD_1),
+                                   MAX_COLOR_DIFF,
+                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
+                                   edgecolor="none",
+                                   facecolor='g',
+                                   alpha=0.1))
+    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESHOLD_2),
+                                   COLOR_DIFF_THRESHOLD_2,
+                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
+                                   edgecolor="none",
+                                   facecolor='r',
+                                   alpha=0.1))
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD_2, TEMPLATE_MATCH_THRESHOLD_2),
+                                   MAX_COLOR_DIFF,
+                                   1 - TEMPLATE_MATCH_THRESHOLD_2,
                                    edgecolor="none",
                                    facecolor='g',
                                    alpha=0.1))
@@ -74,7 +87,7 @@ def test_good_images(test_image, pubgis_fixture, template_match_plot_axes, map_c
     img = cv2.imread(os.path.join(r'good', test_image))
     match_found, (f_x, f_y), ind_color, color_diff, match_val, _ = pubgis_fixture.template_match((None, img))
     template_match_plot_axes.append((color_diff, match_val, 'g'))
-    map_coverage_axes.add_patch(patches.Rectangle((f_x-(MINIMAP_WIDTH//2), f_y-(MINIMAP_HEIGHT//2)),
+    map_coverage_axes.add_patch(patches.Rectangle((f_x - (MINIMAP_WIDTH // 2), f_y - (MINIMAP_HEIGHT // 2)),
                                                   MINIMAP_WIDTH,
                                                   MINIMAP_HEIGHT,
                                                   edgecolor="none",
