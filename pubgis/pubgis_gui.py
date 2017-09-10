@@ -90,7 +90,7 @@ class PUBGISMainWindow(QMainWindow):
         self.update_path_color_preview()
 
         # TODO: remove this once done testing
-        self.video_file_edit.setText(r"E:\Movies\OBS\squads_dinner_mike_pat.mp4")
+        self.video_file_edit.setText(r"E:\Movies\OBS\2017-09-07_20-16-43.mp4")
 
         self.show()
 
@@ -101,7 +101,7 @@ class PUBGISMainWindow(QMainWindow):
 
     def _select_output_file(self):
         # noinspection PyArgumentList,PyArgumentList
-        fname, _ = QFileDialog.getOpenFileName(directory=os.path.expanduser('~'), filter="Images (*.jpg)")
+        fname, _ = QFileDialog.getSaveFileName(directory=os.path.expanduser('~'), filter="Images (*.jpg)")
         self.output_file_edit.setText(fname)
 
     def select_background_color(self):
@@ -116,7 +116,6 @@ class PUBGISMainWindow(QMainWindow):
         self.path_color_preview.setStyleSheet(style)
 
     def update_map_preview(self, qimg):
-        # todo: mutex?
         # noinspection PyArgumentList,PyArgumentList
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
         self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())

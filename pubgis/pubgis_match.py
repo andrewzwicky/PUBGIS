@@ -282,8 +282,8 @@ class PUBGISMatch:
         ax.axes.set_xlim(min_x, min_x + w)
         ax.axes.set_ylim(min_y + h, min_y)
 
-        mpl_color, alpha = self.path_color.get_with_alpha(space=ColorSpace.RGB, scaling=ColorScaling.PERC)
-        ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH, alpha=alpha)
+        mpl_color = self.path_color.get_with_alpha(space=ColorSpace.RGB, scaling=ColorScaling.PERC)
+        ax.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH)
         fig.savefig(self.output_file)
 
 
