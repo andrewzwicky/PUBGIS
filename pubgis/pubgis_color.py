@@ -12,30 +12,22 @@ class ColorScaling(IntFlag):
 
 
 class Color:
-    def __init__(self, c1, c2, c3, alpha=1, scaling=ColorScaling.PERC, space=ColorSpace.RGB):
+    def __init__(self, color_tuple, alpha=1, scaling=ColorScaling.PERC, space=ColorSpace.RGB):
         # colors stored internally as 0-1
         if scaling == ColorScaling.UINT8:
             if space == ColorSpace.RGB:
-                self.red = c1 / 255
-                self.green = c2 / 255
-                self.blue = c3 / 255
+                self.red, self.green, self.blue = [color / 255 for color in color_tuple]
             elif space == ColorSpace.BGR:
-                self.red = c3 / 255
-                self.green = c2 / 255
-                self.blue = c1 / 255
+                self.red, self.green, self.blue = [color / 255 for color in color_tuple[::-1]]
             else:
                 raise ValueError
 
             self.alpha = alpha / 255
         elif scaling == ColorScaling.PERC:
             if space == ColorSpace.RGB:
-                self.red = c1
-                self.green = c2
-                self.blue = c3
+                self.red, self.green, self.blue = color_tuple
             elif space == ColorSpace.BGR:
-                self.red = c3
-                self.green = c2
-                self.blue = c1
+                self.red, self.green, self.blue = color_tuple[::-1]
             else:
                 raise ValueError
 

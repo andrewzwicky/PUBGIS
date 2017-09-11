@@ -18,18 +18,18 @@ def generate_test_minimaps(video_file):
                         step_interval=10,
                         start_delay=60)
 
-    for frame_count, minimap in match.video_iterator():
+    for frames, minimap in match.minimap_iterator():
         raw_minimap = np.copy(minimap)
         match_found, coords, _, _, _, _ = match.template_match((None, minimap))
         x, y = coords
         key = cv2.waitKey(-1)
 
         if key == J:
-            cv2.imwrite(os.path.join('bad', f"{video_name}_{frame_count}.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('bad', f"{video_name}_{frames}.jpg"), raw_minimap)
         elif key == K:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_0_0.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frames}_0_0.jpg"), raw_minimap)
         elif key == L:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frame_count}_{x}_{y}.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{frames}_{x}_{y}.jpg"), raw_minimap)
         else:
             pass
 

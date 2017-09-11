@@ -6,8 +6,9 @@ import matplotlib.patches as patches
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHOLD_1, TEMPLATE_MATCH_THRESHOLD_1,\
-    MAP_FILE, MINIMAP_HEIGHT, MINIMAP_WIDTH, COLOR_DIFF_THRESHOLD_2, TEMPLATE_MATCH_THRESHOLD_2
+from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
+    TEMPLATE_MATCH_THRESH_1, MAP_FILE, MINIMAP_HEIGHT, MINIMAP_WIDTH, COLOR_DIFF_THRESH_2,\
+    TEMPLATE_MATCH_THRESH_2
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
@@ -15,7 +16,7 @@ MAX_COLOR_DIFF = 450  # approx sqrt(255**2 + 255**2 + 255**2), between white and
 
 
 @pytest.fixture(scope='module')
-def pubgis_fixture():
+def match_fixture():
     return PUBGISMatch(video_file=r"C:\Users\test.mp4")
 
 
@@ -30,31 +31,31 @@ def template_match_plot_axes():
     ax.set_xlim(left=0)
     ax.add_patch(patches.Rectangle((0, 0),
                                    MAX_COLOR_DIFF,
-                                   TEMPLATE_MATCH_THRESHOLD_1,
+                                   TEMPLATE_MATCH_THRESH_1,
                                    edgecolor="none",
                                    facecolor='r',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESHOLD_1),
-                                   COLOR_DIFF_THRESHOLD_1,
-                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
+    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESH_1),
+                                   COLOR_DIFF_THRESH_1,
+                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
                                    edgecolor="none",
                                    facecolor='r',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD_1, TEMPLATE_MATCH_THRESHOLD_1),
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESH_1, TEMPLATE_MATCH_THRESH_1),
                                    MAX_COLOR_DIFF,
-                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
+                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
                                    edgecolor="none",
                                    facecolor='g',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESHOLD_2),
-                                   COLOR_DIFF_THRESHOLD_2,
-                                   TEMPLATE_MATCH_THRESHOLD_2 - TEMPLATE_MATCH_THRESHOLD_1,
+    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESH_2),
+                                   COLOR_DIFF_THRESH_2,
+                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
                                    edgecolor="none",
                                    facecolor='r',
                                    alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESHOLD_2, TEMPLATE_MATCH_THRESHOLD_2),
+    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESH_2, TEMPLATE_MATCH_THRESH_2),
                                    MAX_COLOR_DIFF,
-                                   1 - TEMPLATE_MATCH_THRESHOLD_2,
+                                   1 - TEMPLATE_MATCH_THRESH_2,
                                    edgecolor="none",
                                    facecolor='g',
                                    alpha=0.1))
@@ -74,20 +75,21 @@ def map_coverage_axes():
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'bad'))
-def test_bad_images(test_image, pubgis_fixture, template_match_plot_axes):
+def test_bad_images(test_image, match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(r'bad', test_image))
-    match_found, coords, ind_color, color_diff, match_val, this_percent = pubgis_fixture.template_match((None, img))
+    match_found, _, _, color_diff, match_val, _ = match_fixture.template_match((None, img))
     template_match_plot_axes.append((color_diff, match_val, 'r'))
     assert match_found != MatchResult.SUCCESFUL
 
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(r'good'))
-def test_good_images(test_image, pubgis_fixture, template_match_plot_axes, map_coverage_axes):
+def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(r'good', test_image))
-    match_found, (f_x, f_y), ind_color, color_diff, match_val, _ = pubgis_fixture.template_match((None, img))
+    match_found, (f_x, f_y), _, color_diff, match_val, _ = match_fixture.template_match((None, img))
     template_match_plot_axes.append((color_diff, match_val, 'g'))
-    map_coverage_axes.add_patch(patches.Rectangle((f_x - (MINIMAP_WIDTH // 2), f_y - (MINIMAP_HEIGHT // 2)),
+    map_coverage_axes.add_patch(patches.Rectangle((f_x - (MINIMAP_WIDTH // 2),
+                                                   f_y - (MINIMAP_HEIGHT // 2)),
                                                   MINIMAP_WIDTH,
                                                   MINIMAP_HEIGHT,
                                                   edgecolor="none",

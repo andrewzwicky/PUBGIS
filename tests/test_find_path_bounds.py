@@ -5,7 +5,7 @@ from pubgis_match import PUBGISMatch
 
 @pytest.fixture(scope='module')
 def pubgis_fixture():
-    return PUBGISMatch(video_file=r"C:\Users\test.mp4")
+    return PUBGISMatch()
 
 
 CASES = [
@@ -15,7 +15,7 @@ CASES = [
     ([(500, 501)], (200, 201, 600, 600)),
     ([(600, 600), (700, 1200)], (320, 570, 660, 660)),
     ([(300, 300), (1300, 300)], (270, 0, 1060, 1060)),
-         ]
+]
 
 
 # noinspection PyShadowingNames
