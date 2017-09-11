@@ -21,6 +21,7 @@ class PUBGISApplication(QApplication):
 
 class PUBGISWorkerThread(QThread):
     percent_update = QtCore.pyqtSignal(int)
+    percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(QImage)
 
     def __init__(self, parent):
@@ -43,6 +44,7 @@ class PUBGISWorkerThread(QThread):
         self.start()
 
     def run(self):
+        self.percent_max_update.emit(0)
         match = PUBGISMatch(video_file=self.video_file,
                             output_file=self.output_file,
                             path_color=self.path_color,
@@ -50,7 +52,18 @@ class PUBGISWorkerThread(QThread):
                             death_time=self.death_time,
                             step_interval=self.step_interval)
 
+        img2 = cv2.cvtColor(match.full_map, cv2.COLOR_BGR2RGB)
+        height, width, channel = img2.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        self.minimap_update.emit(qimg)
+
+        percent_init = False
+
         for percent, progress_minimap in match.process_match():
+            if not percent_init:
+                self.percent_max_update.emit(100)
+                percent_init = True
             self.percent_update.emit(percent)
             img2 = cv2.cvtColor(progress_minimap, cv2.COLOR_BGR2RGB)
             height, width, channel = img2.shape
@@ -80,6 +93,7 @@ class PUBGISMainWindow(QMainWindow):
         self.thread = PUBGISWorkerThread(self)
 
         self.thread.percent_update.connect(self.progress_bar.setValue)
+        self.thread.percent_max_update.connect(self.progress_bar.setMaximum)
         self.thread.minimap_update.connect(self.update_map_preview)
 
         # TODO: better duration input
