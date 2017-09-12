@@ -4,7 +4,7 @@ import os
 import cv2
 import numpy as np
 
-from pubgis.pubgis_match import PUBGISMatch
+from pubgis.match import PUBGISMatch
 
 J = 106
 K = 107

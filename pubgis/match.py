@@ -1,4 +1,3 @@
-import argparse
 from math import sqrt, ceil
 from multiprocessing import Pool
 from os.path import join, dirname
@@ -8,8 +7,8 @@ import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_color import Color, Space, Scaling
-from pubgis.template_match_result import MatchResult
+from pubgis.color import Color, Space, Scaling
+from pubgis.match_result import MatchResult
 
 MAP_FILE = join(dirname(__file__), "images", "full_map_scaled.jpg")
 INDICATOR_MASK_FILE = join(dirname(__file__), "images", "player_indicator_mask.jpg")
@@ -324,40 +323,3 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                                         alpha=True)
             output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH)
             fig.savefig(self.output_file)
-
-
-class ColorAction(argparse.Action):
-    """
-    This class converts a supplied color string into a Color instance for use
-    within the code.
-    """
-
-    def __call__(self, parser_arg, namespace, values, option_string=None):
-        setattr(namespace, self.dest, Color(mpl_colors.to_rgb(values)))
-
-class FileExistsAction(argparse.Action):
-    """
-    This class converts a supplied color string into a Color instance for use
-    within the code.
-    """
-
-    def __call__(self, parser_arg, namespace, values, option_string=None):
-        setattr(namespace, self.dest, Color(mpl_colors.to_rgb(values)))
-
-
-if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-    PARSER.add_argument('--video_file', required=True)
-    PARSER.add_argument('--death_time', type=int)
-    PARSER.add_argument('--landing_time', type=int)
-    PARSER.add_argument('--step_interval', type=int)
-    PARSER.add_argument('--output_file', type=str)
-    PARSER.add_argument('--path_color', type=str, action=ColorAction)
-    PARSER.add_argument('--debug', action='store_true')
-    MATCH = PUBGISMatch(**vars(PARSER.parse_args()))
-
-    for _, progress_map in MATCH.process_match():
-        cv2.imshow("progress", progress_map)
-        cv2.waitKey(10)
-
-    MATCH.create_output()

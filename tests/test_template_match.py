@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
+from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
     TEMPLATE_MATCH_THRESH_1, MAP_FILE, MINIMAP_HEIGHT, MINIMAP_WIDTH, COLOR_DIFF_THRESH_2,\
     TEMPLATE_MATCH_THRESH_2
 

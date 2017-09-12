@@ -1,6 +1,6 @@
 import pytest
 
-from pubgis_match import PUBGISMatch
+from pubgis.match import PUBGISMatch
 
 
 @pytest.fixture(scope='module')

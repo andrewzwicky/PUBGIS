@@ -7,8 +7,8 @@ from PyQt5.QtCore import QThread, QTime
 from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
-from pubgis.pubgis_color import Color, Space, Scaling
-from pubgis_match import PUBGISMatch, DEFAULT_PATH_COLOR
+from pubgis.color import Color, Space, Scaling
+from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 
 
 class PUBGISWorkerThread(QThread):
