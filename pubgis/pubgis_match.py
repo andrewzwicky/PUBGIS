@@ -17,8 +17,7 @@ INDICATOR_MASK_FILE = join(dirname(__file__), "images", "player_indicator_mask.j
 INDICATOR_AREA_MASK_FILE = join(dirname(__file__), "images", "player_indicator_area_mask.jpg")
 DEFAULT_OUTPUT_FILE = "{}_path.jpg"
 
-DEFAULT_START_DELAY = 10  # seconds
-DEFAULT_TIME_INTERVAL = 1  # seconds
+DEFAULT_STEP_INTERVAL = 1  # seconds
 
 CROP_BORDER = 30
 
