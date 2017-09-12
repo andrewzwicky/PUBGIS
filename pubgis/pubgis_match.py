@@ -43,11 +43,12 @@ DEBUG_FONT_SIZE_SMALL = 0.3
 
 NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
+WHITE = Color(mpl_colors.to_rgb("White"))
 
 DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Lime"), alpha=0.7)
 
 MINIMAP_WIDTH = 252
-MINIMAP_HEIGHT = 253
+MINIMAP_HEIGHT = 252
 MINIMAP_Y = 798
 MINIMAP_X = 1630
 
@@ -93,7 +94,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap, ind_color, ind_area_color, color_diff, match_val):
+    def markup_minimap_debug(minimap, match_found, ind_color, ind_area_color, color_diff, match_val):
         """
 
         :param minimap:
@@ -109,10 +110,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         text_inset = (8, 15)
         test_spacing = 15
 
-        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG,
-                    MATCH_COLOR.get())
-        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG,
-                    MATCH_COLOR.get())
+        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, WHITE.get())
+        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, WHITE.get())
 
         cv2.rectangle(minimap,
                       ind_rect_corner,
@@ -135,6 +134,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                       tuple(c + rect_size for c in ind_rect_area_corner),
                       ind_area_color.get(),
                       thickness=-1)
+
         for i, color in enumerate(ind_area_color.get()):
             corner_x = ind_rect_area_corner[0] + text_inset[0]
             corner_y = ind_rect_area_corner[1] + text_inset[1] + i * test_spacing
@@ -144,6 +144,12 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                         DEFAULT_FONT,
                         DEBUG_FONT_SIZE_SMALL,
                         (0, 0, 0))
+
+        cv2.rectangle(minimap,
+                      (0, 0),
+                      (252, 252),
+                      MATCH_COLOR.get() if match_found == MatchResult.SUCCESFUL else NO_MATCH_COLOR.get(),
+                      thickness=4)
 
         return minimap
 
@@ -183,6 +189,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         if self.debug:
             cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap,
+                                                                          match_found,
                                                                           ind_color,
                                                                           ind_area_color,
                                                                           color_diff,
@@ -271,7 +278,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         if self.death_time is None:
             death_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         else:
-            death_frame = int(self.death_time * self.fps)
+            death_frame = int(self.death_time * fps)
         frames_processed = 0
         frames_to_process = death_frame - landing_frame
         initialized = False
