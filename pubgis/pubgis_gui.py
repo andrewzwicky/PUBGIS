@@ -9,7 +9,7 @@ from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
 from pubgis.pubgis_color import Color, ColorSpace, ColorScaling
-from pubgis_match import PUBGISMatch, DEFAULT_PATH_COLOR, DEFAULT_START_DELAY, VideoIterator
+from pubgis_match import PUBGISMatch, DEFAULT_PATH_COLOR, VideoIterator
 
 
 class PUBGISWorkerThread(QThread):
@@ -28,11 +28,10 @@ class PUBGISWorkerThread(QThread):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.video_file = video_file
         self.step_interval = step_interval
-        if landing_time_text == "":
-            self.landing_time = DEFAULT_START_DELAY
-        else:
-            self.landing_time = self.parse_time(landing_time_text)
-        self.death_time = None if death_time_text == "" else self.parse_time(death_time_text)
+        self.landing_time = self.parse_time(landing_time_text)
+        self.death_time = self.parse_time(death_time_text)
+        if self.death_time == 0:
+            self.death_time = None
         self.output_file = output_file
         self.path_color = path_color
 
