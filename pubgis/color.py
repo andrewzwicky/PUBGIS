@@ -13,6 +13,7 @@ class Scaling(IntFlag):
 
 class Color:
     def __init__(self, colors, alpha=1, scaling=Scaling.PERC, space=Space.RGB):
+        assert len(colors) == 3
         # colors stored internally as 0-1
         if space == Space.RGB:
             input_colors = colors + (alpha,)

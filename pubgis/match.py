@@ -10,10 +10,7 @@ from matplotlib import pyplot as plt
 from pubgis.color import Color, Space, Scaling
 from pubgis.match_result import MatchResult
 
-MAP_FILE = join(dirname(__file__), "images", "full_map_scaled.jpg")
-INDICATOR_MASK_FILE = join(dirname(__file__), "images", "player_indicator_mask.jpg")
-INDICATOR_AREA_MASK_FILE = join(dirname(__file__), "images", "player_indicator_area_mask.jpg")
-DEFAULT_OUTPUT_FILE = "{}_path.jpg"
+IMAGES_FOLDER = join(dirname(__file__), "images")
 
 DEFAULT_STEP_INTERVAL = 1  # seconds
 
@@ -45,19 +42,24 @@ WHITE = Color(mpl_colors.to_rgb("White"))
 
 DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Lime"), alpha=0.7)
 
-MINIMAP_WIDTH = 252
-MINIMAP_HEIGHT = 252
-MINIMAP_Y = 798
-MINIMAP_X = 1630
+MMAP_WIDTH = 252
+MMAP_HEIGHT = 252
+MMAP_Y = 798
+MMAP_X = 1630
 
 
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
 
 
-class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
-    def __init__(self,  # pylint: disable=too-many-arguments
-                 video_file,
+class PUBGISMatch:
+    map = cv2.imread(join(IMAGES_FOLDER, "full_map_scaled.jpg"))
+    gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
+    indicator_mask = cv2.imread(join(IMAGES_FOLDER, "indicator_mask.jpg"), 0)
+    indicator_area_mask = cv2.imread(join(IMAGES_FOLDER, "indicator_area_mask.jpg"), 0)
+
+    def __init__(self,
+                 video_file=None,
                  landing_time=0,
                  step_interval=DEFAULT_STEP_INTERVAL,
                  death_time=None,
@@ -65,22 +67,11 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                  path_color=DEFAULT_PATH_COLOR,
                  debug=False):
         self.video_file = video_file
-        self.full_map = cv2.imread(MAP_FILE)
-        self.preview_map = np.copy(self.full_map)
-        self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
+        self.preview_map = np.copy(PUBGISMatch.map)
 
         self.landing_time = landing_time
         self.step_interval = step_interval
         self.death_time = death_time
-
-        _, self.indicator_mask = cv2.threshold(cv2.imread(INDICATOR_MASK_FILE, 0),
-                                               10,
-                                               255,
-                                               cv2.THRESH_BINARY)
-        _, self.indicator_area_mask = cv2.threshold(cv2.imread(INDICATOR_AREA_MASK_FILE, 0),
-                                                    10,
-                                                    255,
-                                                    cv2.THRESH_BINARY)
 
         self.debug = debug
 
@@ -91,12 +82,12 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap,  # pylint: disable=too-many-arguments
-                             match_found,
-                             ind_color,
-                             ind_area_color,
-                             color_diff,
-                             match_val):
+    def debug_minimap(minimap,
+                      match_found,
+                      ind_color,
+                      ind_area_color,
+                      color_diff,
+                      match_val):
         """
 
         :param minimap:
@@ -140,13 +131,23 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         cv2.rectangle(minimap,
                       (0, 0),
-                      (MINIMAP_HEIGHT, MINIMAP_WIDTH),
+                      (MMAP_HEIGHT, MMAP_WIDTH),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESFUL else NO_MATCH_COLOR(),
                       thickness=4)
 
         return minimap
 
-    def template_match(self, percent_minimap):
+    @staticmethod
+    def template_match(minimap):
+        match = cv2.matchTemplate(PUBGISMatch.gray_map,
+                                  cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
+                                  cv2.TM_CCOEFF_NORMED)
+
+        _, result, _, (found_x, found_y) = cv2.minMaxLoc(match)
+
+        return result, (found_x + MMAP_WIDTH // 2, found_y + MMAP_HEIGHT // 2)
+
+    def find_map_section(self, percent_minimap):
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
@@ -158,16 +159,14 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         """
         this_percent, minimap = percent_minimap
 
-        match = cv2.matchTemplate(self.gray_full_map,
-                                  cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
-                                  cv2.TM_CCOEFF_NORMED)
+        result, (best_x, best_y) = self.template_match(minimap)
 
-        _, result, _, (best_x, best_y) = cv2.minMaxLoc(match)
-
-        ind_color = Color(cv2.mean(minimap, self.indicator_mask), scaling=Scaling.UINT8,
+        ind_color = Color(cv2.mean(minimap, PUBGISMatch.indicator_mask)[:3],
+                          scaling=Scaling.UINT8,
                           space=Space.BGR)
-        ind_area_color = Color(cv2.mean(minimap, self.indicator_area_mask),
-                               scaling=Scaling.UINT8, space=Space.BGR)
+        ind_area_color = Color(cv2.mean(minimap, PUBGISMatch.indicator_area_mask)[:3],
+                               scaling=Scaling.UINT8,
+                               space=Space.BGR)
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color(),
                                                                 ind_area_color())]))
 
@@ -178,22 +177,16 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
             match_found = MatchResult.OUT_OF_RANGE
 
         if self.debug:
-            debug_minimap = self.markup_minimap_debug(minimap, match_found, ind_color,
-                                                      ind_area_color, color_diff, result)
+            debug_minimap = self.debug_minimap(minimap, match_found, ind_color,
+                                               ind_area_color, color_diff, result)
 
-            concat_maps = np.concatenate((debug_minimap,
-                                          self.full_map[best_y:best_y + MINIMAP_HEIGHT,
-                                                        best_x:best_x + MINIMAP_WIDTH]),
-                                         axis=1)
+            cropped_map = PUBGISMatch.map[best_y - MMAP_HEIGHT:best_y + MMAP_HEIGHT,
+                                          best_x - MMAP_WIDTH : best_x + MMAP_WIDTH]
+            concat_maps = np.concatenate((debug_minimap, cropped_map), axis=1)
             cv2.imshow("debug", concat_maps)
             cv2.waitKey(10)
 
-        return match_found, \
-               (best_x + MINIMAP_WIDTH // 2, best_y + MINIMAP_HEIGHT // 2), \
-               ind_color, \
-               color_diff, \
-               result, \
-               this_percent
+        return match_found, (best_x, best_y), color_diff, result, this_percent
 
     def find_path_bounds(self):
         """
@@ -230,7 +223,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
             return x_corner, y_corner, output_size, output_size
 
-        return (0, 0) + tuple(self.gray_full_map.shape)
+        return (0, 0) + tuple(self.gray_map.shape)
 
     def process_match(self):
         """
@@ -239,23 +232,21 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         """
         pool = Pool(4)
 
-        for match_found, coords, _, _, _, this_percent in pool.imap(self.template_match,
-                                                                    self.video_iterator()):
+        for match_found, coords, _, _, percent in pool.imap(self.find_map_section,
+                                                            self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
-                try:
+                if self.all_coords:
                     cv2.line(self.preview_map,
                              self.all_coords[-1],
                              coords,
                              color=self.path_color(),
                              thickness=PATH_WIDTH,
                              lineType=cv2.LINE_AA)
-                except IndexError:
-                    pass
 
                 self.all_coords.append(coords)
 
                 min_x, min_y, width, height = self.find_path_bounds()
-                yield this_percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
+                yield percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
 
     def video_iterator(self):
         """
@@ -295,8 +286,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
             if grabbed:
                 if frame.shape == (1080, 1920, 3):
-                    minimap = frame[MINIMAP_Y:MINIMAP_Y + MINIMAP_HEIGHT,
-                                    MINIMAP_X:MINIMAP_X + MINIMAP_WIDTH]
+                    minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
                 else:
                     raise ValueError
 
@@ -313,7 +303,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
             fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
-            output_axis.imshow(cv2.cvtColor(self.full_map, cv2.COLOR_BGR2RGB))
+            output_axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
             min_x, min_y, width, height = self.find_path_bounds()
             output_axis.axes.set_xlim(min_x, min_x + width)
             output_axis.axes.set_ylim(min_y + height, min_y)

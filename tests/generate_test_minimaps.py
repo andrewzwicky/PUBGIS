@@ -20,7 +20,7 @@ def generate_test_minimaps(video_file):
 
     for frames, minimap in match.minimap_iterator():
         raw_minimap = np.copy(minimap)
-        match_found, coords, _, _, _, _ = match.template_match((None, minimap))
+        match_found, coords, _, _, _ = match.find_map_section((None, minimap))
         x, y = coords
         key = cv2.waitKey(-1)
 

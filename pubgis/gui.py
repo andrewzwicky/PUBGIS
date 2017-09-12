@@ -25,7 +25,7 @@ class PUBGISWorkerThread(QThread):
 
         match = PUBGISMatch(**self.args_dict)
 
-        img2 = cv2.cvtColor(match.full_map, cv2.COLOR_BGR2RGB)
+        img2 = cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB)
         height, width, _ = img2.shape
         bytes_per_line = 3 * width
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
