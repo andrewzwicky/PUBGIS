@@ -1,60 +1,53 @@
 from enum import IntFlag
 
 
-class ColorSpace(IntFlag):
+class Space(IntFlag):
     RGB = 0
     BGR = 1
 
 
-class ColorScaling(IntFlag):
+class Scaling(IntFlag):
     PERC = 0
     UINT8 = 1
 
 
 class Color:
-    def __init__(self, color_tuple, alpha=1, scaling=ColorScaling.PERC, space=ColorSpace.RGB):
+    def __init__(self, colors, alpha=1, scaling=Scaling.PERC, space=Space.RGB):
         # colors stored internally as 0-1
-        if scaling == ColorScaling.UINT8:
-            if space == ColorSpace.RGB:
-                self.red, self.green, self.blue = [color / 255 for color in color_tuple]
-            elif space == ColorSpace.BGR:
-                self.red, self.green, self.blue = [color / 255 for color in color_tuple[::-1]]
-            else:
-                raise ValueError
-
-            self.alpha = alpha / 255
-        elif scaling == ColorScaling.PERC:
-            if space == ColorSpace.RGB:
-                self.red, self.green, self.blue = color_tuple
-            elif space == ColorSpace.BGR:
-                self.red, self.green, self.blue = color_tuple[::-1]
-            else:
-                raise ValueError
-
-            self.alpha = alpha
+        if space == Space.RGB:
+            input_colors = colors + (alpha,)
+        elif space == Space.BGR:
+            input_colors = colors[::-1] + (alpha,)
         else:
             raise ValueError
 
-    def get_with_alpha(self, scaling=ColorScaling.UINT8, space=ColorSpace.BGR):
-        if scaling == ColorScaling.UINT8:
-            return self.get(scaling=scaling, space=space) + (self.alpha * 255,)
-        elif scaling == ColorScaling.PERC:
-            return self.get(scaling=scaling, space=space) + (self.alpha,)
-
-    def get(self, scaling=ColorScaling.UINT8, space=ColorSpace.BGR):
-        if scaling == ColorScaling.UINT8:
-            if space == ColorSpace.RGB:
-                return tuple(int(c * 255) for c in (self.red, self.green, self.blue))
-            elif space == ColorSpace.BGR:
-                return tuple(int(c * 255) for c in (self.blue, self.green, self.red))
-            else:
-                raise ValueError
-        elif scaling == ColorScaling.PERC:
-            if space == ColorSpace.RGB:
-                return self.red, self.green, self.blue
-            elif space == ColorSpace.BGR:
-                return self.blue, self.green, self.red
-            else:
-                raise ValueError
+        if scaling == Scaling.UINT8:
+            input_colors = tuple(c / 255 for c in input_colors)
+        elif scaling == Scaling.PERC:
+            pass
         else:
             raise ValueError
+
+        self.red, self.green, self.blue, self.alpha = input_colors
+
+    def __call__(self, scaling=Scaling.UINT8, space=Space.BGR, alpha=False):
+        colors = (self.red, self.green, self.blue)
+
+        if space == Space.RGB:
+            output = colors
+        elif space == Space.BGR:
+            output = colors[::-1]
+        else:
+            raise ValueError
+
+        if alpha:
+            output += (self.alpha,)
+
+        if scaling == Scaling.UINT8:
+            output = tuple(c*255 for c in output)
+        elif scaling == Scaling.PERC:
+            pass
+        else:
+            raise ValueError
+
+        return output

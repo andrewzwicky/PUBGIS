@@ -1,5 +1,4 @@
 import argparse
-import os
 from math import sqrt, ceil
 from multiprocessing import Pool
 from os.path import join, dirname
@@ -9,7 +8,7 @@ import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pubgis.pubgis_color import Color, ColorSpace, ColorScaling
+from pubgis.pubgis_color import Color, Space, Scaling
 from pubgis.template_match_result import MatchResult
 
 MAP_FILE = join(dirname(__file__), "images", "full_map_scaled.jpg")
@@ -37,9 +36,9 @@ PATH_WIDTH = 4
 
 MIN_PROGRESS_MAP_SIZE = 600
 
-DEFAULT_FONT = cv2.FONT_HERSHEY_SIMPLEX
-DEBUG_FONT_SIZE_BIG = 0.6
-DEBUG_FONT_SIZE_SMALL = 0.3
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+BIG_FONT = 0.6
+SMALL_FONT = 0.3
 
 NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
@@ -58,15 +57,14 @@ MINIMAP_X = 1630
 
 
 class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
-    def __init__(self,
+    def __init__(self,  # pylint: disable=too-many-arguments
                  video_file,
                  landing_time=0,
                  step_interval=DEFAULT_STEP_INTERVAL,
                  death_time=None,
                  output_file=None,
                  path_color=DEFAULT_PATH_COLOR,
-                 debug=False,
-                 **_):
+                 debug=False):
         self.video_file = video_file
         self.full_map = cv2.imread(MAP_FILE)
         self.preview_map = np.copy(self.full_map)
@@ -94,10 +92,16 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap, match_found, ind_color, ind_area_color, color_diff, match_val):
+    def markup_minimap_debug(minimap,  # pylint: disable=too-many-arguments
+                             match_found,
+                             ind_color,
+                             ind_area_color,
+                             color_diff,
+                             match_val):
         """
 
         :param minimap:
+        :param match_found:
         :param ind_color:
         :param ind_area_color:
         :param color_diff:
@@ -110,45 +114,35 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         text_inset = (8, 15)
         test_spacing = 15
 
-        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, WHITE.get())
-        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), DEFAULT_FONT, DEBUG_FONT_SIZE_BIG, WHITE.get())
+        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
+        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
 
         cv2.rectangle(minimap,
                       ind_rect_corner,
                       tuple(c + rect_size for c in ind_rect_corner),
-                      ind_color.get(),
+                      ind_color(),
                       thickness=-1)
 
-        for i, color in enumerate(ind_color.get()):
+        for i, color in enumerate(ind_color()):
             corner_x = ind_rect_corner[0] + text_inset[0]
             corner_y = ind_rect_corner[1] + text_inset[1] + i * test_spacing
-            cv2.putText(minimap,
-                        f'{color}',
-                        (corner_x, corner_y),
-                        DEFAULT_FONT,
-                        DEBUG_FONT_SIZE_SMALL,
-                        (0, 0, 0))
+            cv2.putText(minimap, f'{color}', (corner_x, corner_y), FONT, SMALL_FONT, (0, 0, 0))
 
         cv2.rectangle(minimap,
                       ind_rect_area_corner,
                       tuple(c + rect_size for c in ind_rect_area_corner),
-                      ind_area_color.get(),
+                      ind_area_color(),
                       thickness=-1)
 
-        for i, color in enumerate(ind_area_color.get()):
+        for i, color in enumerate(ind_area_color()):
             corner_x = ind_rect_area_corner[0] + text_inset[0]
             corner_y = ind_rect_area_corner[1] + text_inset[1] + i * test_spacing
-            cv2.putText(minimap,
-                        f'{color}',
-                        (corner_x, corner_y),
-                        DEFAULT_FONT,
-                        DEBUG_FONT_SIZE_SMALL,
-                        (0, 0, 0))
+            cv2.putText(minimap, f'{color}', (corner_x, corner_y), FONT, SMALL_FONT, (0, 0, 0))
 
         cv2.rectangle(minimap,
                       (0, 0),
-                      (252, 252),
-                      MATCH_COLOR.get() if match_found == MatchResult.SUCCESFUL else NO_MATCH_COLOR.get(),
+                      (MINIMAP_HEIGHT, MINIMAP_WIDTH),
+                      MATCH_COLOR() if match_found == MatchResult.SUCCESFUL else NO_MATCH_COLOR(),
                       thickness=4)
 
         return minimap
@@ -165,42 +159,42 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         """
         this_percent, minimap = percent_minimap
 
-        gray_minimap = cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY)
-        height, width = gray_minimap.shape
+        match = cv2.matchTemplate(self.gray_full_map,
+                                  cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
+                                  cv2.TM_CCOEFF_NORMED)
 
-        _, match_val, _, (min_x, min_y) = cv2.minMaxLoc(cv2.matchTemplate(self.gray_full_map,
-                                                                          gray_minimap,
-                                                                          cv2.TM_CCOEFF_NORMED))
+        _, result, _, (best_x, best_y) = cv2.minMaxLoc(match)
 
-        ind_color = Color(cv2.mean(minimap, self.indicator_mask)[:3],
-                          scaling=ColorScaling.UINT8,
-                          space=ColorSpace.BGR)
-        ind_area_color = Color(cv2.mean(minimap, self.indicator_area_mask)[:3],
-                               scaling=ColorScaling.UINT8,
-                               space=ColorSpace.BGR)
-        color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color.get(),
-                                                                ind_area_color.get())]))
+        ind_color = Color(cv2.mean(minimap, self.indicator_mask), scaling=Scaling.UINT8,
+                          space=Space.BGR)
+        ind_area_color = Color(cv2.mean(minimap, self.indicator_area_mask),
+                               scaling=Scaling.UINT8, space=Space.BGR)
+        color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color(),
+                                                                ind_area_color())]))
 
-        if (color_diff > COLOR_DIFF_THRESH_1 and match_val > TEMPLATE_MATCH_THRESH_1) or \
-                (color_diff > COLOR_DIFF_THRESH_2 and match_val > TEMPLATE_MATCH_THRESH_2):
+        if (color_diff > COLOR_DIFF_THRESH_1 and result > TEMPLATE_MATCH_THRESH_1) or \
+                (color_diff > COLOR_DIFF_THRESH_2 and result > TEMPLATE_MATCH_THRESH_2):
             match_found = MatchResult.SUCCESFUL
         else:
             match_found = MatchResult.OUT_OF_RANGE
 
         if self.debug:
-            cv2.imshow("debug", np.concatenate((self.markup_minimap_debug(minimap,
-                                                                          match_found,
-                                                                          ind_color,
-                                                                          ind_area_color,
-                                                                          color_diff,
-                                                                          match_val),
-                                                self.full_map[min_y:min_y + height,
-                                                              min_x:min_x + width]),
-                                               axis=1))
+            debug_minimap = self.markup_minimap_debug(minimap, match_found, ind_color,
+                                                      ind_area_color, color_diff, result)
+
+            concat_maps = np.concatenate((debug_minimap,
+                                          self.full_map[best_y:best_y + MINIMAP_HEIGHT,
+                                                        best_x:best_x + MINIMAP_WIDTH]),
+                                         axis=1)
+            cv2.imshow("debug", concat_maps)
             cv2.waitKey(10)
 
-        return match_found, (min_x + width // 2, min_y + height // 2), ind_color, color_diff, \
-               match_val, this_percent
+        return match_found, \
+               (best_x + MINIMAP_WIDTH // 2, best_y + MINIMAP_HEIGHT // 2), \
+               ind_color, \
+               color_diff, \
+               result, \
+               this_percent
 
     def find_path_bounds(self):
         """
@@ -253,7 +247,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                     cv2.line(self.preview_map,
                              self.all_coords[-1],
                              coords,
-                             color=self.path_color.get(),
+                             color=self.path_color(),
                              thickness=PATH_WIDTH,
                              lineType=cv2.LINE_AA)
                 except IndexError:
@@ -266,7 +260,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
     def video_iterator(self):
         """
-        Return the minimap every time_interval seconds from the supplied video, skipping the first start_delay frames.
+        Return the minimap every time_interval seconds from the supplied video, skipping the
+        amount of time supplied by landing_time
 
         :return: iterator that yields (percent, minimap) tuples
         """
@@ -324,13 +319,23 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
             output_axis.axes.set_xlim(min_x, min_x + width)
             output_axis.axes.set_ylim(min_y + height, min_y)
 
-            mpl_color = self.path_color.get_with_alpha(space=ColorSpace.RGB,
-                                                       scaling=ColorScaling.PERC)
+            mpl_color = self.path_color(space=Space.RGB,
+                                        scaling=Scaling.PERC,
+                                        alpha=True)
             output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH)
             fig.savefig(self.output_file)
 
 
 class ColorAction(argparse.Action):
+    """
+    This class converts a supplied color string into a Color instance for use
+    within the code.
+    """
+
+    def __call__(self, parser_arg, namespace, values, option_string=None):
+        setattr(namespace, self.dest, Color(mpl_colors.to_rgb(values)))
+
+class FileExistsAction(argparse.Action):
     """
     This class converts a supplied color string into a Color instance for use
     within the code.
