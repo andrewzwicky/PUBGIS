@@ -16,7 +16,7 @@ def generate_test_minimaps(video_file):
     match = PUBGISMatch(video_file=video_file,
                         debug=True,
                         step_interval=10,
-                        start_delay=60)
+                        landing_time=60)
 
     for frames, minimap in match.minimap_iterator():
         raw_minimap = np.copy(minimap)

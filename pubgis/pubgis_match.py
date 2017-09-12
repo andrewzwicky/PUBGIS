@@ -52,84 +52,28 @@ MINIMAP_Y = 798
 MINIMAP_X = 1630
 
 
-class VideoIterator:
-    def __init__(self, video_file, landing_time, death_time, step_interval, **_):
-        self.video_file = video_file
-        self.landing_time = landing_time
-        self.death_time = death_time
-        self.step_interval = step_interval
-
-    def iterate(self):
-        """
-        Return the minimap every time_interval seconds from the supplied video, skipping
-        the first landing_time frames.
-
-        :return: iterator that yields (percent, minimap) tuples
-        """
-        frame_count = 0
-
-        if os.path.isfile(self.video_file):
-            cap = cv2.VideoCapture(self.video_file)
-        else:
-            raise FileNotFoundError("{} cannot be found".format(self.video_file))
-
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
-
-        landing_time_frames = int(self.landing_time * fps)
-        # need to at least increment by 1 each iteration
-        num_interval_frames = max(int(self.step_interval * fps), 1)
-
-        if self.death_time is None:
-            death_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        else:
-            death_frame = int(self.death_time * fps)
-
-        frames_to_process = death_frame - landing_time_frames
-
-        finished = False
-
-        # skip the first frames (plane, etc.)
-        for _ in range(landing_time_frames):
-            finished |= not cap.grab()
-
-        ret, frame = cap.read()
-        finished |= not ret
-
-        while not finished and frame_count + landing_time_frames <= death_frame:
-            if frame.shape == (1080, 1920, 3):
-                minimap = frame[MINIMAP_Y:MINIMAP_Y + MINIMAP_HEIGHT,
-                                MINIMAP_X:MINIMAP_X + MINIMAP_WIDTH]
-            else:
-                raise ValueError
-
-            percent_processed = min(int((frame_count / frames_to_process) * 100), 100)
-            yield percent_processed, minimap
-
-            for _ in range(num_interval_frames):
-                finished |= not cap.grab()
-            frame_count += num_interval_frames
-
-            # If no frames has been grabbed the methods return false
-            ret, frame = cap.read()
-            finished |= not ret
-
-
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
 
 
 class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
     def __init__(self,
-                 minimap_iterator=None,
+                 video_file,
+                 landing_time=0,
+                 step_interval=DEFAULT_STEP_INTERVAL,
+                 death_time=None,
                  output_file=None,
                  path_color=DEFAULT_PATH_COLOR,
                  debug=False,
                  **_):
-        self.minimap_iterator = minimap_iterator
-
+        self.video_file = video_file
         self.full_map = cv2.imread(MAP_FILE)
         self.preview_map = np.copy(self.full_map)
         self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
+
+        self.landing_time = landing_time
+        self.step_interval = step_interval
+        self.death_time = death_time
 
         _, self.indicator_mask = cv2.threshold(cv2.imread(INDICATOR_MASK_FILE, 0),
                                                10,
@@ -149,11 +93,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         self.all_coords = []
 
     @staticmethod
-    def markup_minimap_debug(minimap,
-                             ind_color,
-                             ind_area_color,
-                             color_diff,
-                             match_val):
+    def markup_minimap_debug(minimap, ind_color, ind_area_color, color_diff, match_val):
         """
 
         :param minimap:
@@ -300,7 +240,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         pool = Pool(4)
 
         for match_found, coords, _, _, _, this_percent in pool.imap(self.template_match,
-                                                                    self.minimap_iterator):
+                                                                    self.video_iterator()):
             if match_found == MatchResult.SUCCESFUL:
                 try:
                     cv2.line(self.preview_map,
@@ -316,6 +256,51 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
                 min_x, min_y, width, height = self.find_path_bounds()
                 yield this_percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
+
+    def video_iterator(self):
+        """
+        Return the minimap every time_interval seconds from the supplied video, skipping the first start_delay frames.
+
+        :return: iterator that yields (percent, minimap) tuples
+        """
+        cap = cv2.VideoCapture(self.video_file)
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        landing_frame = int(self.landing_time * fps)
+        step_frames = max(int(self.step_interval * fps), 1)
+        # TODO: assert death time > landing_time
+        if self.death_time is None:
+            death_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        else:
+            death_frame = int(self.death_time * self.fps)
+        frames_processed = 0
+        frames_to_process = death_frame - landing_frame
+        initialized = False
+
+        grabbed = True
+
+        for _ in range(landing_frame):
+            grabbed = cap.grab()
+
+        while grabbed and frames_processed <= frames_to_process:
+            if initialized:
+                for _ in range(step_frames - 1):
+                    cap.grab()
+                frames_processed += step_frames - 1
+            else:
+                initialized = True
+
+            grabbed, frame = cap.read()
+            frames_processed += 1
+
+            if grabbed:
+                if frame.shape == (1080, 1920, 3):
+                    minimap = frame[MINIMAP_Y:MINIMAP_Y + MINIMAP_HEIGHT,
+                                    MINIMAP_X:MINIMAP_X + MINIMAP_WIDTH]
+                else:
+                    raise ValueError
+
+                percent_processed = min(int((frames_processed / frames_to_process) * 100), 100)
+                yield percent_processed, minimap
 
     def create_output(self):
         """
@@ -357,8 +342,7 @@ if __name__ == "__main__":
     PARSER.add_argument('--output_file', type=str)
     PARSER.add_argument('--path_color', type=str, action=ColorAction)
     PARSER.add_argument('--debug', action='store_true')
-    VIDEO = VideoIterator(**vars(PARSER.parse_args()))
-    MATCH = PUBGISMatch(VIDEO.iterate(), **vars(PARSER.parse_args()))
+    MATCH = PUBGISMatch(**vars(PARSER.parse_args()))
 
     for _, progress_map in MATCH.process_match():
         cv2.imshow("progress", progress_map)
