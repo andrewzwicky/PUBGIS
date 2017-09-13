@@ -49,6 +49,7 @@ class PUBGISWorkerThread(QThread):
 
         if self.isInterruptionRequested():
             self.percent_update.emit(0)
+            self.percent_max_update.emit(100)
         else:
             self.percent_update.emit(100)
             match.create_output()
@@ -72,6 +73,7 @@ class PUBGISMainWindow(QMainWindow):
         self.path_color = DEFAULT_PATH_COLOR
         self.update_path_color_preview()
 
+        self.video_file_edit.setText(r"E:\Movies\OBS\2017-09-07_20-16-43.mp4")
         self.landing_time_edit.setDisplayFormat("m:ss")
         self.death_time_edit.setDisplayFormat("m:ss")
 
@@ -98,7 +100,7 @@ class PUBGISMainWindow(QMainWindow):
         self.output_file_edit.setText(fname)
 
     def select_background_color(self):
-        color_dialog = QColorDialog(QColor(*self.path_color.get_with_alpha()))
+        color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
         self.path_color = Color(picker_rgb, scaling=Scaling.UINT8, alpha=alpha)
         self.update_path_color_preview()
@@ -126,11 +128,11 @@ class PUBGISMainWindow(QMainWindow):
             self.disable_buttons()
 
             args_dict = dict()
-            args_dict["video_file"] = self.video_file_edit.text(),
+            args_dict["video_file"] = self.video_file_edit.text()
             args_dict["landing_time"] = QTime(0, 0, 0).secsTo(self.landing_time_edit.time())
-            args_dict["death_time"] = QTime(0, 0, 0).secsTo(self.death_time_edit.time()),
-            args_dict["step_interval"] = int(self.time_step_combo.currentText()),
-            args_dict["output_file"] = self.output_file_edit.text(),
+            args_dict["death_time"] = QTime(0, 0, 0).secsTo(self.death_time_edit.time())
+            args_dict["step_interval"] = int(self.time_step_combo.currentText())
+            args_dict["output_file"] = self.output_file_edit.text()
             args_dict["path_color"] = self.path_color
 
             match_thread = PUBGISWorkerThread(self, args_dict)

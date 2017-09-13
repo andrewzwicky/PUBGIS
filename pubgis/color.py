@@ -16,9 +16,9 @@ class Color:
         assert len(colors) == 3
         # colors stored internally as 0-1
         if space == Space.RGB:
-            input_colors = colors + (alpha,)
+            input_colors = tuple(colors) + (alpha,)
         elif space == Space.BGR:
-            input_colors = colors[::-1] + (alpha,)
+            input_colors = tuple(colors[::-1]) + (alpha,)
         else:
             raise ValueError
 

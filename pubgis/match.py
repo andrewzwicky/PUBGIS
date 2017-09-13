@@ -5,6 +5,8 @@ from os.path import join, dirname
 import cv2
 import matplotlib.colors as mpl_colors
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from pubgis.color import Color, Space, Scaling
@@ -159,7 +161,7 @@ class PUBGISMatch:
         """
         this_percent, minimap = percent_minimap
 
-        result, (best_x, best_y) = self.template_match(minimap)
+        result, (found_x, found_y) = self.template_match(minimap)
 
         ind_color = Color(cv2.mean(minimap, PUBGISMatch.indicator_mask)[:3],
                           scaling=Scaling.UINT8,
@@ -180,13 +182,13 @@ class PUBGISMatch:
             debug_minimap = self.debug_minimap(minimap, match_found, ind_color,
                                                ind_area_color, color_diff, result)
 
-            cropped_map = PUBGISMatch.map[best_y - MMAP_HEIGHT:best_y + MMAP_HEIGHT,
-                                          best_x - MMAP_WIDTH : best_x + MMAP_WIDTH]
+            cropped_map = PUBGISMatch.map[found_y - MMAP_HEIGHT:found_y + MMAP_HEIGHT,
+                                          found_x - MMAP_WIDTH:found_x + MMAP_WIDTH]
             concat_maps = np.concatenate((debug_minimap, cropped_map), axis=1)
             cv2.imshow("debug", concat_maps)
             cv2.waitKey(10)
 
-        return match_found, (best_x, best_y), color_diff, result, this_percent
+        return match_found, (found_x, found_y), color_diff, result, this_percent
 
     def find_path_bounds(self):
         """
@@ -260,10 +262,10 @@ class PUBGISMatch:
         landing_frame = int(self.landing_time * fps)
         step_frames = max(int(self.step_interval * fps), 1)
         # TODO: assert death time > landing_time
-        if self.death_time is None:
-            death_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        else:
+        if self.death_time:
             death_frame = int(self.death_time * fps)
+        else:
+            death_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         frames_processed = 0
         frames_to_process = death_frame - landing_frame
         initialized = False
