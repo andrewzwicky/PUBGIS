@@ -6,4 +6,5 @@ setup(name='PUBGIS',
       author='Andrew Zwicky',
       url='https://github.com/andrewzwicky/PUBGIS',
       packages=['pubgis'],
-     )
+      include_package_data=True
+      )

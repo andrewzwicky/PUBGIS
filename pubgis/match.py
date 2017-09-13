@@ -12,9 +12,7 @@ from matplotlib import pyplot as plt
 from pubgis.color import Color, Space, Scaling
 from pubgis.match_result import MatchResult
 
-MAP_FILE = join(dirname(__file__), "images", "full_map_scaled.jpg")
-INDICATOR_MASK_FILE = join(dirname(__file__), "images", "indicator_mask.jpg")
-INDICATOR_AREA_MASK_FILE = join(dirname(__file__), "images", "indicator_area_mask.jpg")
+IMAGES_FOLDER = join(dirname(__file__), "images")
 
 DEFAULT_STEP_INTERVAL = 1  # seconds
 
@@ -57,6 +55,19 @@ MMAP_X = 1630
 
 
 class PUBGISMatch:
+    map = cv2.imread(join(IMAGES_FOLDER, "full_map_scaled.jpg"))
+    gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
+    _, indicator_mask = cv2.threshold(cv2.imread(join(IMAGES_FOLDER, "indicator_mask.jpg"),
+                                                 cv2.IMREAD_GRAYSCALE),
+                                      10,
+                                      255,
+                                      cv2.THRESH_BINARY)
+    _, indicator_area_mask = cv2.threshold(cv2.imread(join(IMAGES_FOLDER,
+                                                           "indicator_area_mask.jpg"),
+                                                      cv2.IMREAD_GRAYSCALE),
+                                           10,
+                                           255,
+                                           cv2.THRESH_BINARY)
     def __init__(self,
                  video_file=None,
                  landing_time=0,
@@ -67,18 +78,7 @@ class PUBGISMatch:
                  debug=False):
         self.video_file = video_file
 
-        self.full_map = cv2.imread(MAP_FILE)
-        self.preview_map = np.copy(self.full_map)
-        self.gray_full_map = cv2.cvtColor(self.full_map, cv2.COLOR_BGR2GRAY)
-
-        _, self.indicator_mask = cv2.threshold(cv2.imread(INDICATOR_MASK_FILE, 0),
-                                               10,
-                                               255,
-                                               cv2.THRESH_BINARY)
-        _, self.indicator_area_mask = cv2.threshold(cv2.imread(INDICATOR_AREA_MASK_FILE, 0),
-                                                    10,
-                                                    255,
-                                                    cv2.THRESH_BINARY)
+        self.preview_map = np.copy(PUBGISMatch.map)
 
         self.landing_time = landing_time
         self.step_interval = step_interval
@@ -160,17 +160,18 @@ class PUBGISMatch:
         """
         this_percent, minimap = percent_minimap
 
-        match = cv2.matchTemplate(self.gray_full_map,
+        match = cv2.matchTemplate(PUBGISMatch.gray_map,
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
 
         _, result, _, (best_x, best_y) = cv2.minMaxLoc(match)
 
-        ind_color = Color(cv2.mean(minimap, self.indicator_mask)[:3],
+        ind_color = Color(cv2.mean(minimap, PUBGISMatch.indicator_mask)[:3],
                           scaling=Scaling.UINT8,
                           space=Space.BGR)
-        ind_area_color = Color(cv2.mean(minimap, self.indicator_area_mask)[:3],
-                               scaling=Scaling.UINT8, space=Space.BGR)
+        ind_area_color = Color(cv2.mean(minimap, PUBGISMatch.indicator_area_mask)[:3],
+                               scaling=Scaling.UINT8,
+                               space=Space.BGR)
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(ind_color(),
                                                                 ind_area_color())]))
 
@@ -185,8 +186,8 @@ class PUBGISMatch:
                                                       ind_area_color, color_diff, result)
 
             concat_maps = np.concatenate((debug_minimap,
-                                          self.full_map[best_y:best_y + MMAP_HEIGHT,
-                                                        best_x:best_x + MMAP_WIDTH]),
+                                          PUBGISMatch.map[best_y:best_y + MMAP_HEIGHT,
+                                                          best_x:best_x + MMAP_WIDTH]),
                                          axis=1)
             cv2.imshow("debug", concat_maps)
             cv2.waitKey(10)
@@ -232,7 +233,7 @@ class PUBGISMatch:
 
             return x_corner, y_corner, output_size, output_size
 
-        return (0, 0) + tuple(self.gray_full_map.shape)
+        return (0, 0) + tuple(PUBGISMatch.gray_map.shape)
 
     def process_match(self):
         """
@@ -312,7 +313,7 @@ class PUBGISMatch:
             fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
-            output_axis.imshow(cv2.cvtColor(self.full_map, cv2.COLOR_BGR2RGB))
+            output_axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
             min_x, min_y, width, height = self.find_path_bounds()
             output_axis.axes.set_xlim(min_x, min_x + width)
             output_axis.axes.set_ylim(min_y + height, min_y)
