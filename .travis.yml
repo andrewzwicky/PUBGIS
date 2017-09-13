@@ -2,5 +2,5 @@
   python:
     - 3.6
   script:
-    - setup.py install
+    - python setup.py install
     - pytest
