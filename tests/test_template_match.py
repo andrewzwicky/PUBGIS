@@ -5,6 +5,8 @@ from math import sqrt
 import cv2
 import matplotlib.patches as patches
 import pytest
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
@@ -65,12 +67,12 @@ def template_match_plot_axes():
 
 
 @pytest.fixture(scope='module')
-def map_coverage_axes():
+def map_coverage_axes(match_fixture):
     fig, ax = plt.subplots(figsize=(10, 10))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
-    ax.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
+    ax.imshow(cv2.cvtColor(match_fixture.full_map, cv2.COLOR_BGR2RGB))
     yield ax
     fig.savefig("map_coverage.png")
 
