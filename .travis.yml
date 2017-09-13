@@ -4,4 +4,4 @@
   script:
     - python setup.py install
     - pylint pubgis
-    - pytest
+    - pytest -v
