@@ -5,12 +5,12 @@ from os.path import join, dirname
 import cv2
 import matplotlib.colors as mpl_colors
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from pubgis.color import Color, Space, Scaling
 from pubgis.match_result import MatchResult
+
+plt.switch_backend('Agg')
 
 IMAGES_FOLDER = join(dirname(__file__), "images")
 

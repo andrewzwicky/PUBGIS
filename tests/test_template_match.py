@@ -6,13 +6,13 @@ from os.path import join, dirname
 import cv2
 import matplotlib.patches as patches
 import pytest
-import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
     TEMPLATE_MATCH_THRESH_1, MMAP_HEIGHT, MMAP_WIDTH, COLOR_DIFF_THRESH_2,\
     TEMPLATE_MATCH_THRESH_2
+
+plt.switch_backend('Agg')
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
