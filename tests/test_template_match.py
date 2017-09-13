@@ -1,6 +1,7 @@
 import os
 import re
 from math import sqrt
+from os.path import join, dirname
 
 import cv2
 import matplotlib.patches as patches
@@ -16,6 +17,9 @@ from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1,\
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
 MAX_COLOR_DIFF = int(sqrt(255**2 + 255**2 + 255**2)) # diff between white and black
+
+BAD_IMAGES_FOLDER = join(dirname(__file__), "bad")
+GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
 
 
 @pytest.fixture(scope='module')
@@ -78,18 +82,18 @@ def map_coverage_axes():
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_image", os.listdir(r'bad'))
+@pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
 def test_bad_images(test_image, match_fixture, template_match_plot_axes):
-    img = cv2.imread(os.path.join(r'bad', test_image))
+    img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
     match_found, (found_x, found_y), color_diff, result, this_percent = match_fixture.find_map_section((None, img))
     template_match_plot_axes.append((color_diff, result, 'r'))
     assert match_found != MatchResult.SUCCESFUL
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_image", os.listdir(r'good'))
+@pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
 def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
-    img = cv2.imread(os.path.join(r'good', test_image))
+    img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
     match_found, (found_x, found_y), color_diff, result, this_percent = match_fixture.find_map_section((None, img))
     template_match_plot_axes.append((color_diff, result, 'g'))
     map_coverage_axes.add_patch(patches.Rectangle((found_x - (MMAP_WIDTH // 2),
