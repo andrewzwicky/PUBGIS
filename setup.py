@@ -5,6 +5,5 @@ setup(name='PUBGIS',
       description='PUBG Location Tracker',
       author='Andrew Zwicky',
       url='https://github.com/andrewzwicky/PUBGIS',
-      packages=['pubgis'],
-      include_package_data=True
+      packages=['pubgis']
       )
