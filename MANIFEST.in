@@ -1,3 +1,0 @@
-include pubgis/images/*.jpg
-include tests/bad/*.jpg
-include tests/good/*.jpg
