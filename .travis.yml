@@ -3,5 +3,5 @@
     - 3.6
   script:
     - python setup.py install
-    - pytlint pubgis
+    - pylint pubgis
     - pytest
