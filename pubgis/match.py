@@ -12,7 +12,7 @@ from pubgis.match_result import MatchResult
 
 plt.switch_backend('Agg')
 
-IMAGES_FOLDER = join(dirname(__file__), "images")
+IMAGES = join(dirname(__file__), "images")
 
 DEFAULT_STEP_INTERVAL = 1  # seconds
 
@@ -55,19 +55,12 @@ MMAP_X = 1630
 
 
 class PUBGISMatch:
-    map = cv2.imread(join(IMAGES_FOLDER, "full_map_scaled.jpg"))
+    map = cv2.imread(join(IMAGES, "full_map_scaled.jpg"))
     gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
-    _, indicator_mask = cv2.threshold(cv2.imread(join(IMAGES_FOLDER, "indicator_mask.jpg"),
-                                                 cv2.IMREAD_GRAYSCALE),
-                                      10,
-                                      255,
-                                      cv2.THRESH_BINARY)
-    _, indicator_area_mask = cv2.threshold(cv2.imread(join(IMAGES_FOLDER,
-                                                           "indicator_area_mask.jpg"),
-                                                      cv2.IMREAD_GRAYSCALE),
-                                           10,
-                                           255,
-                                           cv2.THRESH_BINARY)
+    indicator_file = cv2.imread(join(IMAGES, "indicator_mask.jpg"), cv2.IMREAD_GRAYSCALE)
+    indicator_area_file = cv2.imread(join(IMAGES, "indicator_area_mask.jpg"), cv2.IMREAD_GRAYSCALE)
+    _, indicator_mask = cv2.threshold(indicator_file, 10, 255, cv2.THRESH_BINARY)
+    _, indicator_area_mask = cv2.threshold(indicator_area_file, 10, 255, cv2.THRESH_BINARY)
 
     def __init__(self,
                  video_file=None,
