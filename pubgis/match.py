@@ -68,6 +68,7 @@ class PUBGISMatch:
                                            10,
                                            255,
                                            cv2.THRESH_BINARY)
+
     def __init__(self,
                  video_file=None,
                  landing_time=0,
@@ -185,10 +186,10 @@ class PUBGISMatch:
             debug_minimap = self.markup_minimap_debug(minimap, match_found, ind_color,
                                                       ind_area_color, color_diff, result)
 
-            concat_maps = np.concatenate((debug_minimap,
-                                          PUBGISMatch.map[best_y:best_y + MMAP_HEIGHT,
-                                                          best_x:best_x + MMAP_WIDTH]),
-                                         axis=1)
+            cropped_map = PUBGISMatch.map[best_y:best_y + MMAP_HEIGHT, best_x:best_x + MMAP_WIDTH]
+
+            concat_maps = np.concatenate((debug_minimap, cropped_map), axis=1)
+
             cv2.imshow("debug", concat_maps)
             cv2.waitKey(10)
 
