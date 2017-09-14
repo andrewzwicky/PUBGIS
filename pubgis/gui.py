@@ -1,11 +1,10 @@
 import os
-import sys
 
 import cv2
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread, QTime
 from PyQt5.QtGui import QPixmap, QImage, QColor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
 from pubgis.color import Color, Space, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
@@ -147,10 +146,3 @@ class PUBGISMainWindow(QMainWindow):
             match_thread.finished.connect(self.enable_buttons)
             self.cancel_button.released.connect(match_thread.requestInterruption)
             match_thread.start()
-
-
-if __name__ == "__main__":
-    APP = QApplication(sys.argv)
-    WIN = PUBGISMainWindow()
-
-    sys.exit(APP.exec_())
