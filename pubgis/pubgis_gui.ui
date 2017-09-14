@@ -149,10 +149,10 @@
         </widget>
        </item>
        <item row="1" column="3">
-        <widget class="QTimeEdit" name="death_time_edit"/>
+        <widget class="QTimeEdit" name="death_time"/>
        </item>
        <item row="1" column="1">
-        <widget class="QTimeEdit" name="landing_time_edit"/>
+        <widget class="QTimeEdit" name="landing_time"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="image_label_2">

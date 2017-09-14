@@ -24,7 +24,7 @@ GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
 
 @pytest.fixture(scope='module')
 def match_fixture():
-    return PUBGISMatch(video_file=r"C:\Users\test.mp4")
+    return PUBGISMatch()
 
 
 @pytest.fixture(scope='module')
@@ -85,9 +85,7 @@ def map_coverage_axes():
 @pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
 def test_bad_images(test_image, match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
-    match_found, (
-    found_x, found_y), color_diff, result, this_percent = match_fixture.find_map_section(
-        (None, img))
+    match_found, (_, _), color_diff, result, _ = match_fixture.find_map_section((None, img))
     template_match_plot_axes.append((color_diff, result, 'r'))
     assert match_found != MatchResult.SUCCESFUL
 
@@ -96,12 +94,10 @@ def test_bad_images(test_image, match_fixture, template_match_plot_axes):
 @pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
 def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
-    match_found, (
-    found_x, found_y), color_diff, result, this_percent = match_fixture.find_map_section(
-        (None, img))
+    match_found, (f_x, f_y), color_diff, result, _ = match_fixture.find_map_section((None, img))
     template_match_plot_axes.append((color_diff, result, 'g'))
-    map_coverage_axes.add_patch(patches.Rectangle((found_x - (MMAP_WIDTH // 2),
-                                                   found_y - (MMAP_HEIGHT // 2)),
+    map_coverage_axes.add_patch(patches.Rectangle((f_x - (MMAP_WIDTH // 2),
+                                                   f_y - (MMAP_HEIGHT // 2)),
                                                   MMAP_WIDTH,
                                                   MMAP_HEIGHT,
                                                   edgecolor="none",
@@ -113,6 +109,6 @@ def test_good_images(test_image, match_fixture, template_match_plot_axes, map_co
     else:
         (e_x, e_y) = (None, None)
 
-    assert (match_found, found_x, found_y) == (MatchResult.SUCCESFUL,
-                                               pytest.approx(e_x, abs=ALLOWED_VARIATION),
-                                               pytest.approx(e_y, abs=ALLOWED_VARIATION))
+    assert (match_found, f_x, f_y) == (MatchResult.SUCCESFUL,
+                                       pytest.approx(e_x, abs=ALLOWED_VARIATION),
+                                       pytest.approx(e_y, abs=ALLOWED_VARIATION))

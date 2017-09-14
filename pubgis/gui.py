@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsSce
 
 from pubgis.color import Color, Space, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
+from pubgis.video_iterator import VideoIterator
 
 
 class PUBGISWorkerThread(QThread):
@@ -16,14 +17,18 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(QImage)
 
-    def __init__(self, parent, args_dict):
+    def __init__(self, parent, minimap_iterator, output_file, path_color):
         super(PUBGISWorkerThread, self).__init__(parent)
-        self.args_dict = args_dict
+        self.minimap_iterator = minimap_iterator
+        self.output_file = output_file
+        self.path_color = path_color
 
     def run(self):
         self.percent_max_update.emit(0)
 
-        match = PUBGISMatch(**self.args_dict)
+        match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
+                            output_file=self.output_file,
+                            path_color=self.path_color)
 
         img2 = cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB)
         height, width, _ = img2.shape
@@ -74,8 +79,8 @@ class PUBGISMainWindow(QMainWindow):
         self.update_path_color_preview()
 
         self.video_file_edit.setText(r"E:\Movies\OBS\2017-09-07_20-16-43.mp4")
-        self.landing_time_edit.setDisplayFormat("m:ss")
-        self.death_time_edit.setDisplayFormat("m:ss")
+        self.landing_time.setDisplayFormat("m:ss")
+        self.death_time.setDisplayFormat("m:ss")
 
         self.show()
 
@@ -84,8 +89,8 @@ class PUBGISMainWindow(QMainWindow):
                         self.color_select_button,
                         self.process_button,
                         self.time_step_combo,
-                        self.landing_time_edit,
-                        self.death_time_edit,
+                        self.landing_time,
+                        self.death_time,
                         self.output_file_edit,
                         self.video_file_edit]
 
@@ -127,15 +132,15 @@ class PUBGISMainWindow(QMainWindow):
         if self.video_file_edit.text() != "":
             self.disable_buttons()
 
-            args_dict = dict()
-            args_dict["video_file"] = self.video_file_edit.text()
-            args_dict["landing_time"] = QTime(0, 0, 0).secsTo(self.landing_time_edit.time())
-            args_dict["death_time"] = QTime(0, 0, 0).secsTo(self.death_time_edit.time())
-            args_dict["step_interval"] = int(self.time_step_combo.currentText())
-            args_dict["output_file"] = self.output_file_edit.text()
-            args_dict["path_color"] = self.path_color
+            video_iter = VideoIterator(video_file=self.video_file_edit.text(),
+                                       landing_time=QTime(0, 0, 0).secsTo(self.landing_time.time()),
+                                       death_time=QTime(0, 0, 0).secsTo(self.death_time.time()),
+                                       step_interval=int(self.time_step_combo.currentText()))
 
-            match_thread = PUBGISWorkerThread(self, args_dict)
+            match_thread = PUBGISWorkerThread(self,
+                                              minimap_iterator=video_iter,
+                                              output_file=self.output_file_edit.text(),
+                                              path_color=self.path_color)
             match_thread.percent_update.connect(self.progress_bar.setValue)
             match_thread.percent_max_update.connect(self.progress_bar.setMaximum)
             match_thread.minimap_update.connect(self.update_map_preview)
