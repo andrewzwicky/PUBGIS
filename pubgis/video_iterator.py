@@ -36,7 +36,7 @@ class VideoIterator:
             if frame.shape == (1080, 1920, 3):
                 minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
             else:
-                minimap = frame[532:532+167, 1086:1086+167]
+                raise ValueError("Only 1920x1800 video is supported at this time.")
 
             percent = min(int((self.frames_processed / self.frames_to_process) * 100), 100)
 
