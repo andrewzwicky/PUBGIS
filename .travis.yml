@@ -2,7 +2,6 @@
   python:
     - 3.6
   script:
-    - pip3 install pytest
     - python setup.py install
     - pylint pubgis
     - pytest -v
