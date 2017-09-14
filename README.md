@@ -23,13 +23,14 @@ PUBGIS first determines whether the minimap is actually being displayed in the c
 
 ## Usage
 
-To see available arguments type:
+From within the PUBGIS folder, run:
 
-    pubgis --help
+    pubgis -m pubgis
 
+to bring up the GUI.
 
 ## Limitations
 
 PUBGIS has some shortcomings right now:
-* Currently the minimap markers display on top of the player indicator, so this can lead to some false negatives
 * PUBGIS relies on viewing the minimap frequently, so if you have the full map open for extended time (i.e. passenger in a vehicle), PUBGIS may not be able to find your position during that time.
+* Currently, the minimap location is only set up for 1920x1080 video.
