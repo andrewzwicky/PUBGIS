@@ -67,12 +67,8 @@ class PUBGISMatch:
                  debug=False):
         self.minimap_iterator = minimap_iterator
         self.preview_map = np.copy(PUBGISMatch.map)
-
         self.debug = debug
-
-        # TODO: double check output file handling.
         self.output_file = output_file
-
         self.path_color = path_color
         self.all_coords = []
 
@@ -82,6 +78,13 @@ class PUBGISMatch:
                       color_diff,
                       match_val):
         """
+        Create a modified minimap with match information for display during debugging.
+
+        The map displays the result of the template match, and the color difference between
+        the player indicator and the area around it.
+
+        If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
+        otherwise the surrounding rectangle will be NO_MATCH_COLOR
 
         :param minimap:
         :param match_found:
@@ -89,6 +92,7 @@ class PUBGISMatch:
         :param match_val:
         :return:
         """
+
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
