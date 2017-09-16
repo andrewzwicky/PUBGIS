@@ -25,7 +25,7 @@ PUBGIS first determines whether the minimap is actually being displayed in the c
 
 From within the PUBGIS folder, run:
 
-    pubgis -m pubgis
+    python -m pubgis
 
 to bring up the GUI.
 
