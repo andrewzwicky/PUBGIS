@@ -93,7 +93,6 @@ class PUBGISMatch:
         :return:
         """
 
-
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
 
@@ -188,7 +187,7 @@ class PUBGISMatch:
 
         :return:
         """
-        pool = Pool(3)
+        pool = Pool(4)
 
         for match_found, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                             self.minimap_iterator):

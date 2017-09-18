@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDial
 from pubgis.color import Color, Space, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.video_iterator import VideoIterator
+from pubgis.live_feed import LiveFeed
 
 
 class PUBGISWorkerThread(QThread):
@@ -78,8 +79,6 @@ class PUBGISMainWindow(QMainWindow):
         self.update_path_color_preview()
 
         self.video_file_edit.setText(r"E:\Movies\OBS\2017-09-07_20-16-43.mp4")
-        self.landing_time.setDisplayFormat("m:ss")
-        self.death_time.setDisplayFormat("m:ss")
 
         self.show()
 
@@ -128,16 +127,24 @@ class PUBGISMainWindow(QMainWindow):
             control.setEnabled(True)
 
     def process_match(self):
-        if self.video_file_edit.text() != "":
+        minimap_iter = None
+
+        if self.tabWidget.currentIndex() == 0:
+            if self.video_file_edit.text() != "":
+                zero = QTime(0, 0, 0)
+                minimap_iter = VideoIterator(video_file=self.video_file_edit.text(),
+                                             landing_time=zero.secsTo(self.landing_time.time()),
+                                             death_time=zero.secsTo(self.death_time.time()),
+                                             step_interval=int(self.time_step_combo.currentText()))
+
+        if self.tabWidget.currentIndex() == 1:
+            minimap_iter = LiveFeed()
+
+        if minimap_iter:
             self.disable_buttons()
 
-            video_iter = VideoIterator(video_file=self.video_file_edit.text(),
-                                       landing_time=QTime(0, 0, 0).secsTo(self.landing_time.time()),
-                                       death_time=QTime(0, 0, 0).secsTo(self.death_time.time()),
-                                       step_interval=int(self.time_step_combo.currentText()))
-
             match_thread = PUBGISWorkerThread(self,
-                                              minimap_iterator=video_iter,
+                                              minimap_iterator=minimap_iter,
                                               output_file=self.output_file_edit.text(),
                                               path_color=self.path_color)
             match_thread.percent_update.connect(self.progress_bar.setValue)
