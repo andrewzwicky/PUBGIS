@@ -91,7 +91,8 @@ class PUBGISMainWindow(QMainWindow):
                         self.landing_time,
                         self.death_time,
                         self.output_file_edit,
-                        self.video_file_edit]
+                        self.video_file_edit,
+                        self.tabWidget]
 
     def _select_video_file(self):
         fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
