@@ -114,7 +114,8 @@ class PUBGISMainWindow(QMainWindow):
         self.video_file_edit.setText(fname)
 
         if fname != "":
-            self.output_file_edit.setText(os.path.join(os.path.dirname(fname), os.path.splitext(fname)[0] + '.jpg'))
+            self.output_file_edit.setText(os.path.join(os.path.dirname(fname),
+                                                       os.path.splitext(fname)[0] + '.jpg'))
 
     def _select_video_file(self):
         fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
