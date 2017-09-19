@@ -78,8 +78,6 @@ class PUBGISMainWindow(QMainWindow):
         self.path_color = DEFAULT_PATH_COLOR
         self.update_path_color_preview()
 
-        self.video_file_edit.setText(r"E:\Movies\OBS\2017-09-07_20-16-43.mp4")
-
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
 
