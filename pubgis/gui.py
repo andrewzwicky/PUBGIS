@@ -100,6 +100,8 @@ class PUBGISMainWindow(QMainWindow):
         self.last_video_file_directory = os.path.dirname(fname)
         self.video_file_edit.setText(fname)
 
+        self.output_file_edit.setText(os.path.join(os.path.dirname(fname), os.path.splitext(fname)[0] + '.jpg'))
+
     def _select_output_file(self):
         fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_directory,
                                                filter="Images (*.jpg)")
