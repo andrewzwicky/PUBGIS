@@ -1,5 +1,5 @@
 from math import ceil
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from os.path import join, dirname
 
 import cv2
@@ -92,7 +92,6 @@ class PUBGISMatch:
         :param match_val:
         :return:
         """
-
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
@@ -188,7 +187,7 @@ class PUBGISMatch:
 
         :return:
         """
-        pool = Pool(3)
+        pool = Pool(cpu_count())
 
         for match_found, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                             self.minimap_iterator):
