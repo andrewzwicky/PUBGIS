@@ -1,6 +1,8 @@
-from pubgis.match import MMAP_HEIGHT, MMAP_WIDTH, MMAP_X, MMAP_Y
-import cv2
 from threading import RLock
+
+import cv2
+
+from pubgis.match import MMAP_HEIGHT, MMAP_WIDTH, MMAP_X, MMAP_Y
 
 DEFAULT_STEP_INTERVAL = 1
 
@@ -22,7 +24,6 @@ class VideoIterator:
             self.death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
         self.frames_to_process = self.death_frame - self.landing_frame
-        self.initialized = False
         self._lock = RLock()
 
     def __iter__(self):
