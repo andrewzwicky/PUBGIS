@@ -81,6 +81,9 @@ class PUBGISMainWindow(QMainWindow):
         self.landing_time.setDisplayFormat("m:ss")
         self.death_time.setDisplayFormat("m:ss")
 
+        self.last_video_file_directory = os.path.expanduser('~')
+        self.last_output_file_directory = os.path.expanduser('~')
+
         self.show()
 
         self.buttons = [self.video_file_browse_button,
@@ -94,16 +97,18 @@ class PUBGISMainWindow(QMainWindow):
                         self.video_file_edit]
 
     def _select_video_file(self):
-        fname, _ = QFileDialog.getOpenFileName(directory=os.path.expanduser('~'),
+        fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
                                                filter="Videos (*.mp4)")
+        self.last_video_file_directory = os.path.dirname(fname)
         self.video_file_edit.setText(fname)
 
         if fname != "":
             self.output_file_edit.setText(os.path.join(os.path.dirname(fname), os.path.splitext(fname)[0] + '.jpg'))
 
     def _select_output_file(self):
-        fname, _ = QFileDialog.getSaveFileName(directory=os.path.expanduser('~'),
+        fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_directory,
                                                filter="Images (*.jpg)")
+        self.last_output_file_directory = os.path.dirname(fname)
         self.output_file_edit.setText(fname)
 
     def select_background_color(self):
