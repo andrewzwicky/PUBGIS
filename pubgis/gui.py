@@ -81,6 +81,8 @@ class PUBGISMainWindow(QMainWindow):
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
 
+        self.setAcceptDrops(True)
+
         self.show()
 
         self.buttons = [self.video_file_browse_button,
@@ -93,6 +95,17 @@ class PUBGISMainWindow(QMainWindow):
                         self.output_file_edit,
                         self.video_file_edit,
                         self.tabWidget]
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls:
+            fname = event.mimeData().urls()[0].toLocalFile()
+            self.video_file_edit.setText(fname)
 
     def _select_video_file(self):
         fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
