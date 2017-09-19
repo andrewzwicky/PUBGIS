@@ -113,7 +113,7 @@ class PUBGISMainWindow(QMainWindow):
         self.last_video_file_directory = os.path.dirname(fname)
         self.video_file_edit.setText(fname)
 
-        if fname != "":
+        if os.path.exists(fname):
             self.output_file_edit.setText(os.path.join(os.path.dirname(fname),
                                                        os.path.splitext(fname)[0] + '.jpg'))
 
