@@ -187,7 +187,7 @@ class PUBGISMatch:
 
         :return:
         """
-        pool = Pool(4)
+        pool = Pool(multiprocessing.cpu_count())
 
         for match_found, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                             self.minimap_iterator):
