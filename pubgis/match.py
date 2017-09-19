@@ -1,5 +1,5 @@
 from math import ceil
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from os.path import join, dirname
 
 import cv2
@@ -187,7 +187,7 @@ class PUBGISMatch:
 
         :return:
         """
-        pool = Pool(multiprocessing.cpu_count())
+        pool = Pool(cpu_count())
 
         for match_found, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                             self.minimap_iterator):
