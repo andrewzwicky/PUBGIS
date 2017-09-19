@@ -20,14 +20,18 @@ PUBGIS first determines whether the minimap is actually being displayed in the c
 
 ## Installation
 
+    pip3 install pubgis
 
 ## Usage
 
-From within the PUBGIS folder, run:
-
     python -m pubgis
 
-to bring up the GUI.
+will bring up the GUI to begin
+
+<p align="center">
+  <img src="docs\example_setup.jpg" width="45%">
+  <img src="docs\example_processing.jpg" width="45%">
+</p>
 
 ## Limitations
 
