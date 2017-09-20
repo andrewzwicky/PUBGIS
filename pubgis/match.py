@@ -182,34 +182,40 @@ class PUBGISMatch:
             x_list, y_list = zip(*self.all_coords)
 
             # First, the area of interest should be defined.  This is the area that absolutely
-            # needs to be displayed because it has all the coordinates in it.
-            # bounds should be limited here to remain within the limits of the full map.
-            min_x = max(min(x_list) - CROP_BORDER, 0)
-            max_x = min(max(x_list) + CROP_BORDER, width)
-            min_y = max(min(y_list) - CROP_BORDER, 0)
-            max_y = min(max(y_list) + CROP_BORDER, height)
+            # needs to be displayed because it has all the coordinates in it.  It's OK for out of bounds here,
+            # this will be resolved later.
+            min_x = min(x_list) - CROP_BORDER
+            max_x = max(x_list) + CROP_BORDER
+            min_y = min(y_list) - CROP_BORDER
+            max_y = max(y_list) + CROP_BORDER
 
             # Determine the width that the coordinates occupy in the x and y directions.  These
-            # are used to determine the final size of the bounds. To make padding easier, round
-            # up the path widths to an even number to avoid having to pad the sides unevenly.
-            x_path_width = int(ceil((max_x - min_x) / 2) * 2)
-            y_path_width = int(ceil((max_y - min_y) / 2) * 2)
+            # are used to determine the final size of the bounds.
+            x_path_width = max_x - min_x
+            y_path_width = max_y - min_y
 
             # The size of the final output will be a square, so we need to find out the largest
             # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
-            # for how small the output map can be.
-            output_size = max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width)
+            # for how small the output map can be.  The final output bounds also can't be larger than
+            # the entire map
+            output_size = min(max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width), height, width)
 
             # Each side is now padded to take up additional room in the smaller direction.
             # If a particular direction was chosen to the be the output size, the padding in that
             # direction will be 0.
-            x_pad = (output_size - x_path_width) // 2
-            y_pad = (output_size - y_path_width) // 2
+            x_pad = output_size - x_path_width
+            y_pad = output_size - y_path_width
 
-            # Because the padding is added on both sides, bounds must be limited again to be within
-            # the bounds of the full map
-            x_corner = max(0, min_x - x_pad)
-            y_corner = max(0, min_y - y_pad)
+            # Add padding to corner
+            x_corner = min_x - x_pad // 2
+            y_corner = min_y - y_pad // 2
+
+            # Bounds checks for the corners to make sure it's always in bounds.
+            x_corner = 0 if x_corner < 0 else x_corner
+            y_corner = 0 if y_corner < 0 else y_corner
+
+            x_corner = width - output_size if x_corner + output_size > width else x_corner
+            y_corner = height - output_size if y_corner + output_size > height else y_corner
 
             return x_corner, y_corner, output_size, output_size
 
