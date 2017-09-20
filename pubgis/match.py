@@ -1,4 +1,3 @@
-from math import ceil
 from multiprocessing import Pool, cpu_count
 from os.path import join, dirname
 
@@ -182,8 +181,8 @@ class PUBGISMatch:
             x_list, y_list = zip(*self.all_coords)
 
             # First, the area of interest should be defined.  This is the area that absolutely
-            # needs to be displayed because it has all the coordinates in it.  It's OK for out of bounds here,
-            # this will be resolved later.
+            # needs to be displayed because it has all the coordinates in it.  It's OK for out of
+            # bounds here, this will be resolved later.
             min_x = min(x_list) - CROP_BORDER
             max_x = max(x_list) + CROP_BORDER
             min_y = min(y_list) - CROP_BORDER
@@ -196,19 +195,15 @@ class PUBGISMatch:
 
             # The size of the final output will be a square, so we need to find out the largest
             # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
-            # for how small the output map can be.  The final output bounds also can't be larger than
-            # the entire map
+            # for how small the output map can be.  The final output bounds also can't be larger
+            # than the entire map
             output_size = min(max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width), height, width)
 
             # Each side is now padded to take up additional room in the smaller direction.
             # If a particular direction was chosen to the be the output size, the padding in that
             # direction will be 0.
-            x_pad = output_size - x_path_width
-            y_pad = output_size - y_path_width
-
-            # Add padding to corner
-            x_corner = min_x - x_pad // 2
-            y_corner = min_y - y_pad // 2
+            x_corner = min_x - (output_size - x_path_width) // 2
+            y_corner = min_y - (output_size - y_path_width) // 2
 
             # Bounds checks for the corners to make sure it's always in bounds.
             x_corner = 0 if x_corner < 0 else x_corner
