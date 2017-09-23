@@ -2,17 +2,16 @@ import os
 from threading import RLock
 
 import cv2
+import numpy as np
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread, QTime
 from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
 from pubgis.color import Color, Space, Scaling
+from pubgis.live_feed import LiveFeed
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.video_iterator import VideoIterator
-from pubgis.live_feed import LiveFeed
-
-import numpy as np
 
 
 class PUBGISWorkerThread(QThread):
@@ -115,7 +114,6 @@ class PUBGISMainWindow(QMainWindow):
 
     def update_map_preview(self, minimap):
         self.preview_lock.acquire()
-        logging.debug("update lock acquired")
         img2 = cv2.cvtColor(minimap, cv2.COLOR_BGR2RGB)
         height, width, _ = img2.shape
         bytes_per_line = 3 * width
@@ -125,7 +123,6 @@ class PUBGISMainWindow(QMainWindow):
         self.map_creation_view.update()
         self.map_creation_view.repaint()
         self.preview_lock.release()
-        logging.debug("update lock released")
 
     def update_pbar_max(self, maximum):
         self.progress_bar_lock.acquire()

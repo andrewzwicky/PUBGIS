@@ -243,7 +243,6 @@ class PUBGISMatch:
         pool.close()
         pool.join()
 
-
     def create_output(self):
         """
 
