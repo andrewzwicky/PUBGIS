@@ -45,3 +45,4 @@ test_cases/unknown/
 tests/prof/
 .pyirc
 pubgis/debug*
+*.spec
