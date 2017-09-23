@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='PUBGIS',
-      version='0.0.2',
+      version='0.0.3',
       description='PUBG Location Tracker',
       author='Andrew Zwicky',
       author_email='andrew.zwicky@gmail.com',
