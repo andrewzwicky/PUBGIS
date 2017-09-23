@@ -1,4 +1,5 @@
 import os
+from threading import RLock
 
 import cv2
 from PyQt5 import QtCore, uic
@@ -11,11 +12,13 @@ from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.video_iterator import VideoIterator
 from pubgis.live_feed import LiveFeed
 
+import numpy as np
+
 
 class PUBGISWorkerThread(QThread):
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
-    minimap_update = QtCore.pyqtSignal(QImage)
+    minimap_update = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, parent, minimap_iterator, output_file, path_color):
         super(PUBGISWorkerThread, self).__init__(parent)
@@ -29,12 +32,7 @@ class PUBGISWorkerThread(QThread):
         match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
                             output_file=self.output_file,
                             path_color=self.path_color)
-
-        img2 = cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB)
-        height, width, _ = img2.shape
-        bytes_per_line = 3 * width
-        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        self.minimap_update.emit(qimg)
+        self.minimap_update.emit(PUBGISMatch.map)
 
         percent_init = False
 
@@ -43,11 +41,7 @@ class PUBGISWorkerThread(QThread):
                 self.percent_max_update.emit(100)
                 percent_init = True
             self.percent_update.emit(percent)
-            img2 = cv2.cvtColor(progress_minimap, cv2.COLOR_BGR2RGB)
-            height, width, _ = img2.shape
-            bytes_per_line = 3 * width
-            qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
-            self.minimap_update.emit(qimg)
+            self.minimap_update.emit(progress_minimap)
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -80,6 +74,9 @@ class PUBGISMainWindow(QMainWindow):
 
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
+
+        self.preview_lock = RLock()
+        self.progress_bar_lock = RLock()
 
         self.show()
 
@@ -116,11 +113,29 @@ class PUBGISMainWindow(QMainWindow):
         style = "background-color:rgb({},{},{})".format(*self.path_color(space=Space.RGB))
         self.path_color_preview.setStyleSheet(style)
 
-    def update_map_preview(self, qimg):
+    def update_map_preview(self, minimap):
+        self.preview_lock.acquire()
+        logging.debug("update lock acquired")
+        img2 = cv2.cvtColor(minimap, cv2.COLOR_BGR2RGB)
+        height, width, _ = img2.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
         self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())
         self.map_creation_view.update()
         self.map_creation_view.repaint()
+        self.preview_lock.release()
+        logging.debug("update lock released")
+
+    def update_pbar_max(self, maximum):
+        self.progress_bar_lock.acquire()
+        self.progress_bar.setMaximum(maximum)
+        self.progress_bar_lock.release()
+
+    def update_pbar_value(self, progress):
+        self.progress_bar_lock.acquire()
+        self.progress_bar.setValue(progress)
+        self.progress_bar_lock.release()
 
     def disable_buttons(self):
         for control in self.buttons:
@@ -151,8 +166,8 @@ class PUBGISMainWindow(QMainWindow):
                                               minimap_iterator=minimap_iter,
                                               output_file=self.output_file_edit.text(),
                                               path_color=self.path_color)
-            match_thread.percent_update.connect(self.progress_bar.setValue)
-            match_thread.percent_max_update.connect(self.progress_bar.setMaximum)
+            match_thread.percent_update.connect(self.update_pbar_value)
+            match_thread.percent_max_update.connect(self.update_pbar_max)
             match_thread.minimap_update.connect(self.update_map_preview)
             match_thread.finished.connect(self.enable_buttons)
             self.cancel_button.released.connect(match_thread.requestInterruption)
