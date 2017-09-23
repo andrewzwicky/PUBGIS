@@ -13,7 +13,7 @@ setup(name='PUBGIS',
       python_requires='>=3.6',
       classifiers=[
           'Development Status :: 3 - Alpha',
-          'Environment :: X11 Applications :: Qt'
+          'Environment :: X11 Applications :: Qt',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Topic :: Games/Entertainment :: First Person Shooters',
