@@ -196,7 +196,7 @@ class PUBGISMatch:
             # The size of the final output will be a square, so we need to find out the largest
             # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
             # for how small the output map can be.  The final output bounds also can't be larger
-            # than the entire map
+            # than the entire map.
             output_size = min(max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width), height, width)
 
             # Each side is now padded to take up additional room in the smaller direction.
@@ -205,10 +205,9 @@ class PUBGISMatch:
             x_corner = min_x - (output_size - x_path_width) // 2
             y_corner = min_y - (output_size - y_path_width) // 2
 
-            # Bounds checks for the corners to make sure it's always in bounds.
+            # Bounds checks for the corners to make sure all of the bounds is within the map limits.
             x_corner = 0 if x_corner < 0 else x_corner
             y_corner = 0 if y_corner < 0 else y_corner
-
             x_corner = width - output_size if x_corner + output_size > width else x_corner
             y_corner = height - output_size if y_corner + output_size > height else y_corner
 
@@ -225,9 +224,9 @@ class PUBGISMatch:
         """
         pool = Pool(cpu_count())
 
-        for match_found, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
-                                                            self.minimap_iterator):
-            if match_found == MatchResult.SUCCESFUL:
+        for match, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
+                                                      self.minimap_iterator):
+            if match == MatchResult.SUCCESFUL:
                 if self.all_coords:
                     cv2.line(self.preview_map,
                              self.all_coords[-1],
@@ -238,7 +237,7 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-                min_x, min_y, width, height = self.find_path_bounds()
+                min_x, min_y, height, width = self.find_path_bounds()
                 yield percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
 
         pool.close()
