@@ -39,9 +39,6 @@ class PUBGISWorkerThread(QThread):
         percent_init = False
 
         for percent, progress_minimap in match.process_match():
-            if self.isInterruptionRequested():
-                break
-
             if not percent_init:
                 self.percent_max_update.emit(100)
                 percent_init = True
@@ -51,6 +48,9 @@ class PUBGISWorkerThread(QThread):
             bytes_per_line = 3 * width
             qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
             self.minimap_update.emit(qimg)
+
+            if self.isInterruptionRequested():
+                self.minimap_iterator.stop()
 
         if self.isInterruptionRequested():
             self.percent_update.emit(0)

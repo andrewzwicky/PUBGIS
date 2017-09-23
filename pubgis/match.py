@@ -241,6 +241,10 @@ class PUBGISMatch:
                 min_x, min_y, width, height = self.find_path_bounds()
                 yield percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
 
+        pool.close()
+        pool.join()
+
+
     def create_output(self):
         """
 

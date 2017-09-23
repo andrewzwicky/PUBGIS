@@ -24,6 +24,7 @@ class VideoIterator:
             self.death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
         self.frames_to_process = self.death_frame - self.landing_frame
+        self.stop_requested = False
         self._lock = RLock()
 
     def __iter__(self):
@@ -36,7 +37,7 @@ class VideoIterator:
         grabbed, frame = self.cap.read()
         self.frames_processed += 1
 
-        if grabbed:
+        if grabbed and not self.stop_requested:
             if frame.shape == (1080, 1920, 3):
                 minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
             else:
@@ -53,3 +54,8 @@ class VideoIterator:
         else:
             self._lock.release()
             raise StopIteration
+
+    def stop(self):
+        self._lock.acquire()
+        self.stop_requested = True
+        self._lock.release()
