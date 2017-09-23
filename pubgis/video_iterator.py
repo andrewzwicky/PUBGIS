@@ -19,11 +19,11 @@ class VideoIterator:
         self.step_frames = max(int(step_interval * fps), 1) - 1
         # TODO: assert death time > landing_time
         if death_time:
-            self.death_frame = int(death_time * fps)
+            death_frame = int(death_time * fps)
         else:
-            self.death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
-        self.frames_to_process = self.death_frame - self.landing_frame
+        self.frames_to_process = death_frame - self.landing_frame
         self.stop_requested = False
         self._lock = RLock()
 
