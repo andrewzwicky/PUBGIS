@@ -15,6 +15,7 @@ install:
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
   - "%PIP% install twine pytest pyinstaller"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
 build_script:
   - "%PYTHON%\\python setup.py install"
