@@ -23,12 +23,12 @@ install:
 
 build_script:
   - "%PYTHON%\\python setup.py install"
-  - "%PYTHON%\\python setup.py sdist"
   - "pyinstaller pubgis.spec --onefile --clean -y"
+  - "%PYTHON%\\python setup.py sdist"
 
 test_script:
   - "pylint pubgis"
-  - "pytest -v"
+  #- "pytest -v"
 
 artifacts:
   - path: dist/PUBGIS.exe
