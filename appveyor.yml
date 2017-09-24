@@ -16,6 +16,7 @@ install:
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
   - "%PIP% install twine pytest pyinstaller"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "%PIP% install -r requirements.txt"
 
 build_script:
   - "%PYTHON%\\python setup.py install"
@@ -24,7 +25,6 @@ build_script:
 test_script:
   - "pylint pubgis"
   - "pytest -v"
-
 
 artifacts:
   - path: dist/*
