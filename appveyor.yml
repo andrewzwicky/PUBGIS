@@ -30,7 +30,6 @@ artifacts:
   - path: dist/*
 
 deploy:
-  release: PUBGIS-$(tag)
   description: PUBGIS-$(tag)
   provider: GitHub
   auth_token:
