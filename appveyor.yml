@@ -35,7 +35,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: jjeC9sJwrut5ynFmVuhHyBIVTd2yKhWx8+9J919+lvIbKZ0e5g88oHyoaXZ6yE3a
-  artifact: dist/*
+  artifact: dist/PUBGIS.exe
   draft: false
   prerelease: false
   on:
