@@ -53,6 +53,4 @@ deploy_script:
   - "echo [pypi] > %USERPROFILE%\\.pypirc"
   - "echo username: %env:PYPI_USER% >> %USERPROFILE%\\.pypirc"
   - "echo password: %env:PYPI_PW% >> %USERPROFILE%\\.pypirc"
-  - twine upload dist/*.tar.gz
-  on:
-    appveyor_repo_tag: true
+  - ps: "if($env:APPVEYOR_REPO_TAG) { twine upload dist/*.tar.gz }
