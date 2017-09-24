@@ -7,7 +7,7 @@ python:
 script:
 - python setup.py install
 - pip3 install pyinstaller
-- pyinstaller pubgis.spec --onefile --clean --paths .
+- pyinstaller pubgis.spec --onefile --clean
 - pylint pubgis
 - pytest -v
 deploy:
