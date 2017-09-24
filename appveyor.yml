@@ -50,8 +50,4 @@ deploy:
     appveyor_repo_tag: true
 
 deploy_script:
-  - "echo [pypi] > %USERPROFILE%\\.pypirc"
-  - "echo username: %env:PYPI_USER% >> %USERPROFILE%\\.pypirc"
-  - "echo password: %env:PYPI_PW% >> %USERPROFILE%\\.pypirc"
-  - "type %USERPROFILE%\\.pypirc"
-  - ps: If ("$env:APPVEYOR_REPO_TAG" -ne "false") { twine upload dist/*.tar.gz }
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { twine upload -u $env:PYPI_USER -p $env:PYPI_PW -r pypi dist/*.tar.gz }
