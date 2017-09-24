@@ -1,6 +1,7 @@
 environment:
   PYPI_USER: "andrewzwicky"
-  PYPI_PW: "UYwQCnByKXfEv0Z72TOSKw=="
+  PYPI_PW:
+    secure: "UYwQCnByKXfEv0Z72TOSKw=="
   global:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\windows_sdk.cmd"
   matrix:
@@ -16,12 +17,13 @@ install:
   - "%PYTHON%\\python --version"
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
-  - "%PIP% install twine pytest pyinstaller"
+  - "%PIP% install twine pytest pyinstaller wheel"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PIP% install -r requirements.txt"
 
 build_script:
-  - "%PYTHON%\\python setup.py install"
+  - "%PYTHON%\\python setup.py build"
+  - "%PYTHON%\\python setup.py sdist"
   - "pyinstaller pubgis.spec --onefile --clean -y"
 
 test_script:
@@ -29,7 +31,11 @@ test_script:
   - "pytest -v"
 
 artifacts:
-  - path: dist/*
+  - path: dist/PUBGIS.exe
+    name: "github_artifacts"
+
+  - path: dist/PUBGIS*.tar.gz
+    name: "pypi_artifacts"
 
 deploy:
   description: PUBGIS-$(tag)
@@ -41,4 +47,12 @@ deploy:
   prerelease: false
   on:
     branch: master
+    appveyor_repo_tag: true
+
+deploy_script:
+  - "echo [pypi] > %USERPROFILE%\\.pypirc"
+  - "echo username: %env:PYPI_USER% >> %USERPROFILE%\\.pypirc"
+  - "echo password: %env:PYPI_PW% >> %USERPROFILE%\\.pypirc"
+  - twine upload dist/*.tar.gz
+  on:
     appveyor_repo_tag: true
