@@ -1,4 +1,3 @@
-from math import ceil
 from multiprocessing import Pool, cpu_count
 from os.path import join, dirname
 
@@ -116,13 +115,19 @@ class PUBGISMatch:
         :param args:
         :return:
         """
+
+        # The args are grouped like this because this method is being called via imap.
+        # To avoid more complicated argument handling, all the arguments are passed as one group.
         this_percent, minimap = args
+
+        # TODO: figure out how to pass debug information from gui
         debug = False
 
         match = cv2.matchTemplate(PUBGISMatch.gray_map,
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
 
+        # When using TM_CCOEFF_NORMED, the minimum of the output is the best match
         _, result, _, (best_x, best_y) = cv2.minMaxLoc(match)
         coords = (best_x + MMAP_WIDTH // 2, best_y + MMAP_HEIGHT // 2)
 
@@ -130,6 +135,19 @@ class PUBGISMatch:
                                                 PUBGISMatch.indicator_mask,
                                                 minimap,
                                                 PUBGISMatch.indicator_area_mask)
+
+        # Determining whether a particular minimap should actually be reported as a match
+        # is determined by the following:
+        # 1. How closely correlated was the match?
+        #     Because we are using normalized matching, this will report a 0-1 value, with 1
+        #     being a perfect match.  The higher the better.
+        # 2. The difference in color between the the player indicator and the area around it.
+        #     When the player indicator is on the screen, we expect to see a large difference in
+        #     the colors.  When the inventory is open for example, there should be very little
+        #     difference in the colors.
+        #
+        # There are two different regions used that correspond to experimentally determined
+        # regions, found during testing to effectively differentiate the areas.
 
         if (color_diff > COLOR_DIFF_THRESH_1 and result > TEMPLATE_MATCH_THRESH_1) or \
                 (color_diff > COLOR_DIFF_THRESH_2 and result > TEMPLATE_MATCH_THRESH_2):
@@ -147,40 +165,58 @@ class PUBGISMatch:
 
     def find_path_bounds(self):
         """
-        This function aims to provide bounds for the current path for pleasant viewing.
+        This function should provide a bounding box that contains the current coordinates of the
+        path for display.
 
-        To achieve this goal, the bounds provided should be:
+        To be aesthetically pleasing , the bounds provided shall be:
             - square to prevent distortion, as the preview box will be square
             - not smaller than the provided minimum size to prevent too much zoom
             - equally padded from the boundaries of the path (in the x and y directions)
 
-        :return: (x, y, w, h)
+        :return: (x, y, height, width)
         """
+        height, width = PUBGISMatch.gray_map.shape
+
         if self.all_coords:
             x_list, y_list = zip(*self.all_coords)
 
+            # First, the area of interest should be defined.  This is the area that absolutely
+            # needs to be displayed because it has all the coordinates in it.  It's OK for out of
+            # bounds here, this will be resolved later.
             min_x = min(x_list) - CROP_BORDER
             max_x = max(x_list) + CROP_BORDER
             min_y = min(y_list) - CROP_BORDER
             max_y = max(y_list) + CROP_BORDER
 
-            # To make padding easier, round up the path widths to an even number
-            # This mean we won't have to pad 1 side with an extra pixel
-            x_path_width = int(ceil((max_x - min_x) / 2) * 2)
-            y_path_width = int(ceil((max_y - min_y) / 2) * 2)
+            # Determine the width that the coordinates occupy in the x and y directions.  These
+            # are used to determine the final size of the bounds.
+            x_path_width = max_x - min_x
+            y_path_width = max_y - min_y
 
-            output_size = max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width)
+            # The size of the final output will be a square, so we need to find out the largest
+            # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
+            # for how small the output map can be.  The final output bounds also can't be larger
+            # than the entire map
+            output_size = min(max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width), height, width)
 
-            # Allocation the extra space needed to fill up the required size equally on both sides
-            x_pad = (output_size - x_path_width) // 2
-            y_pad = (output_size - y_path_width) // 2
+            # Each side is now padded to take up additional room in the smaller direction.
+            # If a particular direction was chosen to the be the output size, the padding in that
+            # direction will be 0.
+            x_corner = min_x - (output_size - x_path_width) // 2
+            y_corner = min_y - (output_size - y_path_width) // 2
 
-            x_corner = max(0, min_x - x_pad)
-            y_corner = max(0, min_y - y_pad)
+            # Bounds checks for the corners to make sure it's always in bounds.
+            x_corner = 0 if x_corner < 0 else x_corner
+            y_corner = 0 if y_corner < 0 else y_corner
+
+            x_corner = width - output_size if x_corner + output_size > width else x_corner
+            y_corner = height - output_size if y_corner + output_size > height else y_corner
 
             return x_corner, y_corner, output_size, output_size
 
-        return (0, 0) + tuple(PUBGISMatch.gray_map.shape)
+        # If no frames have been processed yet, the full map should be displayed to show that
+        # processing has begun.
+        return 0, 0, height, width
 
     def process_match(self):
         """

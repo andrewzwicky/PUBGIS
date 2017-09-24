@@ -1,5 +1,8 @@
-from pubgis.match import MMAP_HEIGHT, MMAP_WIDTH, MMAP_X, MMAP_Y
+from threading import RLock
+
 import cv2
+
+from pubgis.match import MMAP_HEIGHT, MMAP_WIDTH, MMAP_X, MMAP_Y
 
 DEFAULT_STEP_INTERVAL = 1
 
@@ -21,7 +24,7 @@ class VideoIterator:
             self.death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
         self.frames_to_process = self.death_frame - self.landing_frame
-        self.initialized = False
+        self._lock = RLock()
 
     def __iter__(self):
         for _ in range(self.landing_frame):
@@ -29,6 +32,7 @@ class VideoIterator:
         return self
 
     def __next__(self):
+        self._lock.acquire()
         grabbed, frame = self.cap.read()
         self.frames_processed += 1
 
@@ -44,6 +48,8 @@ class VideoIterator:
                 self.cap.grab()
             self.frames_processed += self.step_frames
 
+            self._lock.release()
             return percent, minimap
         else:
+            self._lock.release()
             raise StopIteration
