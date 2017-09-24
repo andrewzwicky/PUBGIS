@@ -1,4 +1,6 @@
 environment:
+  PYPI_USER: "andrewzwicky"
+  PYPI_PW: "UYwQCnByKXfEv0Z72TOSKw=="
   global:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\windows_sdk.cmd"
   matrix:
