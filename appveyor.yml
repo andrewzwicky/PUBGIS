@@ -11,12 +11,12 @@ platform:
   - x64
 
 install:
-  - "%PYTHON% --version"
+  - "%PYTHON%\\python --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
   - "%PIP% install twine pytest pyinstaller"
 
 build_script:
-  - "%PYTHON% setup.py install"
+  - "%PYTHON%\\python setup.py install"
   - "pyinstaller pubgis.spec --onefile --clean -y"
 
 test_script:
