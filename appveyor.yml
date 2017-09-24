@@ -28,7 +28,7 @@ build_script:
 
 test_script:
   - "pylint pubgis"
-  #- "pytest -v"
+  - "pytest -v"
 
 artifacts:
   - path: dist/PUBGIS.exe
