@@ -3,7 +3,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from .gui import PUBGISMainWindow
+from pubgis.gui import PUBGISMainWindow
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
