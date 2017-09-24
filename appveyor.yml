@@ -22,7 +22,7 @@ install:
   - "%PIP% install -r requirements.txt"
 
 build_script:
-  - "%PYTHON%\\python setup.py build"
+  - "%PYTHON%\\python setup.py install"
   - "%PYTHON%\\python setup.py sdist"
   - "pyinstaller pubgis.spec --onefile --clean -y"
 
