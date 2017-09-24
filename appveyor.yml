@@ -1,0 +1,40 @@
+environment:
+  global:
+    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\windows_sdk.cmd"
+  matrix:
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "64"
+
+platform:
+  - x64
+
+install:
+  - "python --version"
+  - "pip install --disable-pip-version-check --user --upgrade pip"
+  - "pip install twine pytest pyinstaller"
+
+build_script:
+  - "python setup.py install"
+  - "pyinstaller pubgis.spec --onefile --clean -y"
+
+test_script:
+  - "pylint pubgis"
+  - "pytest -v"
+
+
+artifacts:
+  - path: dist/*
+
+deploy:
+  release: PUBGIS-$(tag)
+  description: PUBGIS-$(tag)
+  provider: GitHub
+  auth_token:
+    secure: jjeC9sJwrut5ynFmVuhHyBIVTd2yKhWx8+9J919+lvIbKZ0e5g88oHyoaXZ6yE3a
+  artifact: dist/*
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    appveyor_repo_tag: true
