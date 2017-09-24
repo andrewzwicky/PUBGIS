@@ -6,10 +6,10 @@ python:
 - 3.6
 script:
 - python setup.py install
-- pylint pubgis
-- pytest -v
 - pip3 install pyinstaller
 - pyinstaller pubgis.spec --onefile --clean
+- pylint pubgis
+- pytest -v
 deploy:
   provider: releases
   file: dist/pubgis.exe
