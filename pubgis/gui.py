@@ -187,7 +187,7 @@ class PUBGISMainWindow(QMainWindow):
                 minimap_iter = VideoIterator(video_file=self.video_file_edit.text(),
                                              landing_time=zero.secsTo(self.landing_time.time()),
                                              death_time=zero.secsTo(self.death_time.time()),
-                                             step_interval=int(self.time_step_combo.currentText()))
+                                             step_interval=float(self.time_step_combo.currentText()))
 
         if self.tabWidget.currentIndex() == 1:
             minimap_iter = LiveFeed()

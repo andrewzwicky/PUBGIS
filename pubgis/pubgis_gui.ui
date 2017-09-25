@@ -111,6 +111,16 @@
             <widget class="QComboBox" name="time_step_combo">
              <item>
               <property name="text">
+               <string>0.25</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>0.5</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>1</string>
               </property>
              </item>
