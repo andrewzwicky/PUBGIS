@@ -4,7 +4,7 @@ from distutils.sysconfig import get_python_lib
 
 block_cipher = None
 
-a = Analysis(['pubgis\\pubgis.py'],
+a = Analysis(['pubgis/pubgis.py'],
              pathex=[],
              binaries=[(os.path.join(get_python_lib(), 'cv2', '*.dll'), '.')],
              datas=[('pubgis/images/*.jpg', 'pubgis/images'), ('pubgis/pubgis_gui.ui', 'pubgis')],
@@ -22,7 +22,7 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='debug_main',
+          name='PUBGIS',
           debug=False,
           strip=False,
           upx=True,

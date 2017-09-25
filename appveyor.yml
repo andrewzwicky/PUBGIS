@@ -1,0 +1,54 @@
+environment:
+  PYPI_USER: "andrewzwicky"
+  PYPI_PW:
+    secure: "UYwQCnByKXfEv0Z72TOSKw=="
+  global:
+    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\windows_sdk.cmd"
+  matrix:
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "64"
+      PIP: "C:\\Python36-x64\\Scripts\\pip"
+
+platform:
+  - x64
+
+install:
+  - "%PYTHON%\\python --version"
+  - "%PIP% --version"
+  - "%PIP% install --disable-pip-version-check --user --upgrade pip"
+  - "%PIP% install twine pytest pyinstaller wheel"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "%PIP% install -r requirements.txt"
+
+build_script:
+  - "%PYTHON%\\python setup.py install"
+  - "pyinstaller pubgis.spec --onefile --clean -y"
+  - "%PYTHON%\\python setup.py sdist"
+
+test_script:
+  - "pylint pubgis"
+  #- "pytest -v"
+
+artifacts:
+  - path: dist/PUBGIS.exe
+    name: "github_artifacts"
+
+  - path: dist/PUBGIS*.tar.gz
+    name: "pypi_artifacts"
+
+deploy:
+  description: PUBGIS-$(tag)
+  provider: GitHub
+  auth_token:
+    secure: jjeC9sJwrut5ynFmVuhHyBIVTd2yKhWx8+9J919+lvIbKZ0e5g88oHyoaXZ6yE3a
+  artifact: dist/PUBGIS.exe
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    appveyor_repo_tag: true
+
+after_deploy:
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { Invoke-Expression "twine upload -u $env:PYPI_USER -p $env:PYPI_PW -r pypi --skip-existing dist/*.tar.gz" 2>$null }
+
