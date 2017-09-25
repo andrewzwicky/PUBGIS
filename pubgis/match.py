@@ -105,7 +105,7 @@ class PUBGISMatch:
 
     #  This method should be static to make imap work with an external iterator class.
     @staticmethod
-    def find_map_section(args):
+    def find_map_section(args, debug=False):
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
@@ -121,7 +121,6 @@ class PUBGISMatch:
         this_percent, minimap = args
 
         # TODO: figure out how to pass debug information from gui
-        debug = False
 
         match = cv2.matchTemplate(PUBGISMatch.gray_map,
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),

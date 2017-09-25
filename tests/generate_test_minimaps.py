@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from pubgis.match import PUBGISMatch
+from pubgis.video_iterator import VideoIterator
 
 J = 106
 K = 107
@@ -13,23 +14,20 @@ L = 108
 
 def generate_test_minimaps(video_file):
     video_name = os.path.splitext(os.path.basename(video_file))[0]
-    match = PUBGISMatch(video_file=video_file,
-                        debug=True,
-                        step_interval=10,
-                        landing_time=60)
+    video_iter = VideoIterator(video_file=video_file)
 
-    for frames, minimap in match.minimap_iterator():
+    for i, (percent, minimap) in enumerate(video_iter):
         raw_minimap = np.copy(minimap)
-        match_found, coords, _, _, _ = match.find_map_section((None, minimap))
+        match_found, coords, _, _, _ = PUBGISMatch.find_map_section((None, minimap), debug=True)
         x, y = coords
         key = cv2.waitKey(-1)
 
         if key == J:
-            cv2.imwrite(os.path.join('bad', f"{video_name}_{frames}.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('bad', f"{video_name}_{i}.jpg"), raw_minimap)
         elif key == K:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frames}_0_0.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{i}_0_0.jpg"), raw_minimap)
         elif key == L:
-            cv2.imwrite(os.path.join('good', f"{video_name}_{frames}_{x}_{y}.jpg"), raw_minimap)
+            cv2.imwrite(os.path.join('good', f"{video_name}_{i}_{x}_{y}.jpg"), raw_minimap)
         else:
             pass
 
