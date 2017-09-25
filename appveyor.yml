@@ -29,7 +29,7 @@ install:
 
 build_script:
   - "%PYTHON%\\python setup.py install"
-  - "pyinstaller pubgis_main.spec --onefile --clean -y --icon pubgis\\images\\icons\\pubgis.ico"
+  - "pyinstaller pubgis_main.spec --onefile --clean -y"
   - "%PYTHON%\\python setup.py sdist"
 
 test_script:
