@@ -10,6 +10,6 @@ except ImportError:
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    app = QApplication(sys.argv)
-    win = PUBGISMainWindow()
-    sys.exit(app.exec_())
+    APP = QApplication(sys.argv)
+    WIN = PUBGISMainWindow()
+    sys.exit(APP.exec_())
