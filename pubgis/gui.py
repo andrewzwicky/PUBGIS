@@ -92,13 +92,15 @@ class PUBGISMainWindow(QMainWindow):
                         self.video_file_edit,
                         self.tabWidget]
 
-    def dragEnterEvent(self, event):
+    # name must match because we're overriding QMainWindow method
+    def dragEnterEvent(self, event):  #pylint: disable=invalid-name, no-self-use
         if event.mimeData().hasUrls:
             event.accept()
         else:
             event.ignore()
 
-    def dropEvent(self, event):
+    # name must match because we're overriding QMainWindow method
+    def dropEvent(self, event):  #pylint: disable=invalid-name
         if event.mimeData().hasUrls:
             fname = event.mimeData().urls()[0].toLocalFile()
             self._set_video_file(fname)
