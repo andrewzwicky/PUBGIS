@@ -7,7 +7,10 @@ block_cipher = None
 a = Analysis(['pubgis/pubgis_main.py'],
              pathex=[],
              binaries=[(os.path.join(get_python_lib(), 'cv2', '*.dll'), '.')],
-             datas=[('pubgis/images/*.jpg', 'pubgis/images'), ('pubgis/pubgis_gui.ui', 'pubgis')],
+             datas=[('pubgis/images/*.jpg', 'pubgis/images'),
+                    ('pubgis/images/icons/navigation.png', 'pubgis/images/icons'),
+                    ('pubgis/images/icons/pubgis.ico', 'pubgis/images/icons'),
+                    ('pubgis/pubgis_gui.ui', 'pubgis')],
              hiddenimports=['numpy'],
              hookspath=[],
              runtime_hooks=[],
@@ -27,4 +30,5 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=False)
+          console=False,
+          icon='pubgis/images/icons/pubgis.ico')

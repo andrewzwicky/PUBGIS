@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread, QTime
-from PyQt5.QtGui import QPixmap, QImage, QColor
+from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
 
 from pubgis.color import Color, Space, Scaling
@@ -73,6 +73,12 @@ class PUBGISMainWindow(QMainWindow):
 
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
+
+        self.setWindowTitle("PUBGIS")
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),
+                                              "images",
+                                              "icons",
+                                              "navigation.png")))
 
         self.preview_lock = RLock()
         self.progress_bar_lock = RLock()
