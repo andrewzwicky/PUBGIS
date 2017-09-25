@@ -50,4 +50,5 @@ deploy:
     appveyor_repo_tag: true
 
 deploy_script:
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { twine upload -u $env:PYPI_USER -p $env:PYPI_PW -r pypi dist/*.tar.gz }
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { Invoke-Expression "twine upload -u $env:PYPI_USER -p $env:PYPI_PW -r pypi --skip-existing dist/*.tar.gz" 2>$null }
+
