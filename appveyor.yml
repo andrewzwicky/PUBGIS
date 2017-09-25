@@ -38,10 +38,13 @@ test_script:
 
 artifacts:
   - path: dist/PUBGIS.exe
-    name: "github_artifacts"
+    name: "github executable"
 
   - path: dist/PUBGIS*.tar.gz
-    name: "pypi_artifacts"
+    name: "pypi sdist"
+
+  - path: tests/*.png
+    name: "test results"
 
 deploy:
   description: PUBGIS-$(tag)
