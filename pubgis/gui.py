@@ -85,18 +85,22 @@ class PUBGISMainWindow(QMainWindow):
 
         self.setAcceptDrops(True)
 
-        self.show()
+        self.preprocess_buttons = [self.video_file_browse_button,
+                                   self.output_file_browse_button,
+                                   self.color_select_button,
+                                   self.process_button,
+                                   self.time_step_combo,
+                                   self.landing_time,
+                                   self.death_time,
+                                   self.output_file_edit,
+                                   self.video_file_edit,
+                                   self.tabWidget]
 
-        self.buttons = [self.video_file_browse_button,
-                        self.output_file_browse_button,
-                        self.color_select_button,
-                        self.process_button,
-                        self.time_step_combo,
-                        self.landing_time,
-                        self.death_time,
-                        self.output_file_edit,
-                        self.video_file_edit,
-                        self.tabWidget]
+        self.duringprocess_buttons = [self.cancel_button]
+
+        self.enable_selection_buttons()
+
+        self.show()
 
     # name must match because we're overriding QMainWindow method
     def dragEnterEvent(self, event):  #pylint: disable=invalid-name, no-self-use
@@ -162,13 +166,17 @@ class PUBGISMainWindow(QMainWindow):
         self.progress_bar.setValue(progress)
         self.progress_bar_lock.release()
 
-    def disable_buttons(self):
-        for control in self.buttons:
+    def disable_selection_buttons(self):
+        for control in self.preprocess_buttons:
             control.setEnabled(False)
-
-    def enable_buttons(self):
-        for control in self.buttons:
+        for control in self.duringprocess_buttons:
             control.setEnabled(True)
+
+    def enable_selection_buttons(self):
+        for control in self.preprocess_buttons:
+            control.setEnabled(True)
+        for control in self.duringprocess_buttons:
+            control.setEnabled(False)
 
     def process_match(self):
         minimap_iter = None
@@ -185,7 +193,7 @@ class PUBGISMainWindow(QMainWindow):
             minimap_iter = LiveFeed()
 
         if minimap_iter:
-            self.disable_buttons()
+            self.disable_selection_buttons()
 
             match_thread = PUBGISWorkerThread(self,
                                               minimap_iterator=minimap_iter,
@@ -194,6 +202,6 @@ class PUBGISMainWindow(QMainWindow):
             match_thread.percent_update.connect(self.update_pbar_value)
             match_thread.percent_max_update.connect(self.update_pbar_max)
             match_thread.minimap_update.connect(self.update_map_preview)
-            match_thread.finished.connect(self.enable_buttons)
+            match_thread.finished.connect(self.enable_selection_buttons)
             self.cancel_button.released.connect(match_thread.requestInterruption)
             match_thread.start()
