@@ -4,7 +4,7 @@ from distutils.sysconfig import get_python_lib
 
 block_cipher = None
 
-a = Analysis(['pubgis/pubgis_main.py'],
+a = Analysis(['pubgis/__main__.py'],
              pathex=[],
              binaries=[(os.path.join(get_python_lib(), 'cv2', '*.dll'), '.')],
              datas=[('pubgis/images/*.jpg', 'pubgis/images'),
