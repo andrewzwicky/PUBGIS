@@ -1,4 +1,4 @@
-# PUBGIS [![Build status](https://ci.appveyor.com/api/projects/status/sbooipngsjk1kx46?svg=true)](https://ci.appveyor.com/project/andrewzwicky/pubgis)
+# ![icon](pubgis/images/icons/navigation_64.png) PUBGIS [![Build status](https://ci.appveyor.com/api/projects/status/sbooipngsjk1kx46?svg=true)](https://ci.appveyor.com/project/andrewzwicky/pubgis)
 
 PUBGIS (PUBG Geographic Information System) is a python program that generates player paths through the PUBG map from gameplay footage.
 
