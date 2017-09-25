@@ -163,10 +163,11 @@ class PUBGISMatch:
 
         return match_found, coords, color_diff, result, this_percent
 
-    def find_path_bounds(self):
+    @staticmethod
+    def find_path_bounds(coords, crop_border=CROP_BORDER, min_output_size=MIN_PROGRESS_MAP_SIZE):
         """
         This function should provide a bounding box that contains the current coordinates of the
-        path for display.
+        path for display, and does not exceed the bounds of the map.
 
         To be aesthetically pleasing , the bounds provided shall be:
             - square to prevent distortion, as the preview box will be square
@@ -177,16 +178,16 @@ class PUBGISMatch:
         """
         height, width = PUBGISMatch.gray_map.shape
 
-        if self.all_coords:
-            x_list, y_list = zip(*self.all_coords)
+        if coords:
+            x_list, y_list = zip(*coords)
 
             # First, the area of interest should be defined.  This is the area that absolutely
             # needs to be displayed because it has all the coordinates in it.  It's OK for out of
             # bounds here, this will be resolved later.
-            min_x = min(x_list) - CROP_BORDER
-            max_x = max(x_list) + CROP_BORDER
-            min_y = min(y_list) - CROP_BORDER
-            max_y = max(y_list) + CROP_BORDER
+            min_x = min(x_list) - crop_border
+            max_x = max(x_list) + crop_border
+            min_y = min(y_list) - crop_border
+            max_y = max(y_list) + crop_border
 
             # Determine the width that the coordinates occupy in the x and y directions.  These
             # are used to determine the final size of the bounds.
@@ -197,7 +198,7 @@ class PUBGISMatch:
             # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
             # for how small the output map can be.  The final output bounds also can't be larger
             # than the entire map.
-            output_size = min(max(MIN_PROGRESS_MAP_SIZE, x_path_width, y_path_width), height, width)
+            output_size = min(max(min_output_size, x_path_width, y_path_width), height, width)
 
             # Each side is now padded to take up additional room in the smaller direction.
             # If a particular direction was chosen to the be the output size, the padding in that
@@ -237,7 +238,7 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-                min_x, min_y, height, width = self.find_path_bounds()
+                min_x, min_y, height, width = self.find_path_bounds(self.all_coords)
                 yield percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
 
         pool.close()
@@ -254,7 +255,7 @@ class PUBGISMatch:
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
             output_axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
-            min_x, min_y, width, height = self.find_path_bounds()
+            min_x, min_y, width, height = self.find_path_bounds(self.all_coords)
             output_axis.axes.set_xlim(min_x, min_x + width)
             output_axis.axes.set_ylim(min_y + height, min_y)
 
