@@ -72,7 +72,7 @@ class PUBGISMatch:
         self.all_coords = []
 
     @staticmethod
-    def debug_minimap(minimap, match_found, color_diff,match_val):
+    def debug_minimap(minimap, match_found, color_diff, match_val):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -160,7 +160,9 @@ class PUBGISMatch:
         return match_found, coords, color_diff, result, this_percent
 
     @staticmethod
-    def find_path_bounds(coords, crop_border=CROP_BORDER, min_output_size=MIN_PROGRESS_MAP_SIZE):
+    def find_path_bounds(coords,  # pylint: disable=too-many-locals
+                         crop_border=CROP_BORDER,
+                         min_output_size=MIN_PROGRESS_MAP_SIZE):
         """
         This function should provide a bounding box that contains the current coordinates of the
         path for display, and does not exceed the bounds of the map.

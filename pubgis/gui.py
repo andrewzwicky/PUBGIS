@@ -85,18 +85,17 @@ class PUBGISMainWindow(QMainWindow):
 
         self.setAcceptDrops(True)
 
-        self.preprocess_buttons = [self.video_file_browse_button,
-                                   self.output_file_browse_button,
-                                   self.color_select_button,
-                                   self.process_button,
-                                   self.time_step_combo,
-                                   self.landing_time,
-                                   self.death_time,
-                                   self.output_file_edit,
-                                   self.video_file_edit,
-                                   self.tabWidget]
-
-        self.duringprocess_buttons = [self.cancel_button]
+        self.buttons = {'preprocess': [self.video_file_browse_button,
+                                       self.output_file_browse_button,
+                                       self.color_select_button,
+                                       self.process_button,
+                                       self.time_step_combo,
+                                       self.landing_time,
+                                       self.death_time,
+                                       self.output_file_edit,
+                                       self.video_file_edit,
+                                       self.tabWidget],
+                        'during': [self.cancel_button]}
 
         self.enable_selection_buttons()
 
@@ -167,36 +166,36 @@ class PUBGISMainWindow(QMainWindow):
         self.progress_bar_lock.release()
 
     def disable_selection_buttons(self):
-        for control in self.preprocess_buttons:
+        for control in self.buttons['preprocess']:
             control.setEnabled(False)
-        for control in self.duringprocess_buttons:
+        for control in self.buttons['during']:
             control.setEnabled(True)
 
     def enable_selection_buttons(self):
-        for control in self.preprocess_buttons:
+        for control in self.buttons['preprocess']:
             control.setEnabled(True)
-        for control in self.duringprocess_buttons:
+        for control in self.buttons['during']:
             control.setEnabled(False)
 
     def process_match(self):
-        minimap_iter = None
+        map_iter = None
 
         if self.tabWidget.currentIndex() == 0:
             if self.video_file_edit.text() != "":
                 zero = QTime(0, 0, 0)
-                minimap_iter = VideoIterator(video_file=self.video_file_edit.text(),
-                                             landing_time=zero.secsTo(self.landing_time.time()),
-                                             death_time=zero.secsTo(self.death_time.time()),
-                                             step_interval=float(self.time_step_combo.currentText()))
+                map_iter = VideoIterator(video_file=self.video_file_edit.text(),
+                                         landing_time=zero.secsTo(self.landing_time.time()),
+                                         death_time=zero.secsTo(self.death_time.time()),
+                                         step_interval=float(self.time_step_combo.currentText()))
 
         if self.tabWidget.currentIndex() == 1:
-            minimap_iter = LiveFeed()
+            map_iter = LiveFeed()
 
-        if minimap_iter:
+        if map_iter:
             self.disable_selection_buttons()
 
             match_thread = PUBGISWorkerThread(self,
-                                              minimap_iterator=minimap_iter,
+                                              minimap_iterator=map_iter,
                                               output_file=self.output_file_edit.text(),
                                               path_color=self.path_color)
             match_thread.percent_update.connect(self.update_pbar_value)
