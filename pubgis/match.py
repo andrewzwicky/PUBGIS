@@ -227,6 +227,7 @@ class PUBGISMatch:
 
         for match, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                       self.minimap_iterator):
+            if match == MatchResult.SUCCESSFUL:
                 if self.all_coords:
                     cv2.line(self.preview_map,
                              self.all_coords[-1],
@@ -242,7 +243,6 @@ class PUBGISMatch:
 
         pool.close()
         pool.join()
-            if match == MatchResult.SUCCESSFUL:
 
     def create_output(self):
         """
