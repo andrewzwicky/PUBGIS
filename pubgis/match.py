@@ -72,10 +72,7 @@ class PUBGISMatch:
         self.all_coords = []
 
     @staticmethod
-    def debug_minimap(minimap,
-                      match_found,
-                      color_diff,
-                      match_val):
+    def debug_minimap(minimap, match_found, color_diff,match_val):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -211,7 +208,7 @@ class PUBGISMatch:
             x_corner = width - output_size if x_corner + output_size > width else x_corner
             y_corner = height - output_size if y_corner + output_size > height else y_corner
 
-            return x_corner, y_corner, output_size, output_size
+            return int(x_corner), int(y_corner), int(output_size)
 
         # If no frames have been processed yet, the full map should be displayed to show that
         # processing has begun.
@@ -237,8 +234,8 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-                min_x, min_y, height, width = self.find_path_bounds(self.all_coords)
-                yield percent, self.preview_map[min_y:min_y + height, min_x:min_x + width]
+                min_x, min_y, size = PUBGISMatch.find_path_bounds(self.all_coords)
+                yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
 
         pool.close()
         pool.join()
@@ -254,9 +251,9 @@ class PUBGISMatch:
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
             output_axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
-            min_x, min_y, width, height = self.find_path_bounds(self.all_coords)
-            output_axis.axes.set_xlim(min_x, min_x + width)
-            output_axis.axes.set_ylim(min_y + height, min_y)
+            min_x, min_y, size = self.find_path_bounds(self.all_coords)
+            output_axis.axes.set_xlim(min_x, min_x + size)
+            output_axis.axes.set_ylim(min_y + size, min_y)
 
             mpl_color = self.path_color(space=Space.RGB,
                                         scaling=Scaling.PERC,
