@@ -3,7 +3,7 @@ from os.path import join, dirname
 import cv2
 import pytest
 
-from pubgis.image_iterator import ImageIterator
+from pubgis.minimap_iterators.images import ImageIterator
 from pubgis.match import PUBGISMatch
 
 WATER_IMAGES_FOLDER = join(dirname(__file__), "water_test")
