@@ -54,6 +54,7 @@ MMAP_X = 1630
 class PUBGISMatch:
     map = cv2.imread(join(IMAGES, "full_map_scaled.jpg"))
     gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
+    assert gray_map.shape[0] == gray_map.shape[1]
     indicator_file = cv2.imread(join(IMAGES, "indicator_mask.jpg"), cv2.IMREAD_GRAYSCALE)
     indicator_area_file = cv2.imread(join(IMAGES, "indicator_area_mask.jpg"), cv2.IMREAD_GRAYSCALE)
     _, indicator_mask = cv2.threshold(indicator_file, 10, 255, cv2.THRESH_BINARY)
@@ -174,7 +175,7 @@ class PUBGISMatch:
 
         :return: (x, y, height, width)
         """
-        height, width = PUBGISMatch.gray_map.shape
+        map_size, _ = PUBGISMatch.gray_map.shape
 
         if coords:
             x_list, y_list = zip(*coords)
@@ -196,7 +197,7 @@ class PUBGISMatch:
             # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
             # for how small the output map can be.  The final output bounds also can't be larger
             # than the entire map.
-            output_size = min(max(min_output_size, x_path_width, y_path_width), height, width)
+            output_size = min(max(min_output_size, x_path_width, y_path_width), map_size)
 
             # Each side is now padded to take up additional room in the smaller direction.
             # If a particular direction was chosen to the be the output size, the padding in that
@@ -207,14 +208,14 @@ class PUBGISMatch:
             # Bounds checks for the corners to make sure all of the bounds is within the map limits.
             x_corner = 0 if x_corner < 0 else x_corner
             y_corner = 0 if y_corner < 0 else y_corner
-            x_corner = width - output_size if x_corner + output_size > width else x_corner
-            y_corner = height - output_size if y_corner + output_size > height else y_corner
+            x_corner = map_size - output_size if x_corner + output_size > map_size else x_corner
+            y_corner = map_size - output_size if y_corner + output_size > map_size else y_corner
 
             return int(x_corner), int(y_corner), int(output_size)
 
         # If no frames have been processed yet, the full map should be displayed to show that
         # processing has begun.
-        return 0, 0, height, width
+        return 0, 0, map_size
 
     def process_match(self):
         """
