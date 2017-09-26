@@ -149,6 +149,7 @@ class PUBGISMainWindow(QMainWindow):
         height, width, _ = img2.shape
         bytes_per_line = 3 * width
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        # noinspection PyCallByClass
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
         self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())
         self.map_creation_view.update()
