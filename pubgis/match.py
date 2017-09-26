@@ -96,7 +96,7 @@ class PUBGISMatch:
         cv2.rectangle(minimap,
                       (0, 0),
                       (MMAP_HEIGHT, MMAP_WIDTH),
-                      MATCH_COLOR() if match_found == MatchResult.SUCCESFUL else NO_MATCH_COLOR(),
+                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
 
         return minimap
@@ -149,7 +149,7 @@ class PUBGISMatch:
 
         if (color_diff > COLOR_DIFF_THRESH_1 and result > TEMPLATE_MATCH_THRESH_1) or \
                 (color_diff > COLOR_DIFF_THRESH_2 and result > TEMPLATE_MATCH_THRESH_2):
-            match_found = MatchResult.SUCCESFUL
+            match_found = MatchResult.SUCCESSFUL
         else:
             match_found = MatchResult.OUT_OF_RANGE
 
@@ -227,7 +227,6 @@ class PUBGISMatch:
 
         for match, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
                                                       self.minimap_iterator):
-            if match == MatchResult.SUCCESFUL:
                 if self.all_coords:
                     cv2.line(self.preview_map,
                              self.all_coords[-1],
@@ -243,6 +242,7 @@ class PUBGISMatch:
 
         pool.close()
         pool.join()
+            if match == MatchResult.SUCCESSFUL:
 
     def create_output(self):
         """

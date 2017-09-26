@@ -87,7 +87,7 @@ def test_bad_images(test_image, match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
     match_found, (_, _), color_diff, result, _ = match_fixture.find_map_section((None, img))
     template_match_plot_axes.append((color_diff, result, 'r'))
-    assert match_found != MatchResult.SUCCESFUL
+    assert match_found != MatchResult.SUCCESSFUL
 
 
 # noinspection PyShadowingNames
@@ -109,6 +109,6 @@ def test_good_images(test_image, match_fixture, template_match_plot_axes, map_co
     else:
         (e_x, e_y) = (None, None)
 
-    assert (match_found, f_x, f_y) == (MatchResult.SUCCESFUL,
+    assert (match_found, f_x, f_y) == (MatchResult.SUCCESSFUL,
                                        pytest.approx(e_x, abs=ALLOWED_VARIATION),
                                        pytest.approx(e_y, abs=ALLOWED_VARIATION))
