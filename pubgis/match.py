@@ -111,6 +111,7 @@ class PUBGISMatch:
         done to ensure that the supplied minimap is actually
 
         :param args:
+        :param debug:
         :return:
         """
 
