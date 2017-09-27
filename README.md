@@ -12,13 +12,6 @@ PUBGIS works by continuously polling the minimap in the corner of the game (seen
 
 To run PUBGIS, download the latest executable [here](https://github.com/andrewzwicky/PUBGIS/releases/latest).  That's it, there's no dependencies or installation process.
 
-## Usage
-
-When PUBGIS is started, you'll see this:
-<p align="center">
-  <img src="docs\example_setup.jpg" width="45%">
-</p>
-
 ## Examples
 
 <p align="center">
@@ -27,6 +20,12 @@ When PUBGIS is started, you'll see this:
   <img src="docs\example_path_3.jpg" width="33%">
 </p>
 
+## Usage
+
+When PUBGIS is started, you'll see this:
+<p align="center">
+  <img src="docs\example_setup.jpg" width="45%">
+</p>
 
 ## Development
 
