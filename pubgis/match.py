@@ -70,8 +70,7 @@ class PUBGISMatch:
         self.all_coords = []
 
     @staticmethod
-    def debug_minimap(minimap, match_found, color_diff, match_val, match_coords, overall_coords,
-                      zoomed_coords):
+    def debug_minimap(minimap, match_found, color_diff, match_val, all_coords):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -90,7 +89,7 @@ class PUBGISMatch:
         :param zoomed_coords:
         :return:
         """
-        over_x, over_y = overall_coords
+        (match_x, match_y), (over_x, over_y), (z_x, z_y, size) = all_coords
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
@@ -104,12 +103,11 @@ class PUBGISMatch:
         cropped_map = PUBGISMatch.map[over_y:over_y + MMAP_HEIGHT, over_x:over_x + MMAP_WIDTH]
         cv2.imshow("debug", np.concatenate((minimap, cropped_map), axis=1))
 
-        z_x, z_y, size = zoomed_coords
         debug_zoomed = np.copy(PUBGISMatch.map[z_y:z_y + size, z_x:z_x + size])
 
         cv2.rectangle(debug_zoomed,
-                      match_coords,
-                      (match_coords[0] + MMAP_WIDTH, match_coords[1] + MMAP_HEIGHT),
+                      (match_x, match_y),
+                      (match_x + MMAP_WIDTH, match_y + MMAP_HEIGHT),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
 
@@ -119,7 +117,7 @@ class PUBGISMatch:
                                          fy=600 / size))
         cv2.waitKey(10)
 
-    def find_map_section(self, minimap, debug=False):
+    def find_map_section(self, minimap, debug=False):  # pylint: disable=too-many-locals
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
@@ -179,8 +177,8 @@ class PUBGISMatch:
             match_found = MatchResult.OUT_OF_RANGE
 
         if debug:
-            PUBGISMatch.debug_minimap(minimap, match_found, color_diff, result, (match_x, match_y),
-                                      coords, (z_x, z_y, size))
+            PUBGISMatch.debug_minimap(minimap, match_found, color_diff, result,
+                                      ((match_x, match_y), coords, (z_x, z_y, size)))
 
         return match_found, coords, color_diff, result
 
