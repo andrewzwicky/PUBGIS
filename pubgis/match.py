@@ -99,7 +99,7 @@ class PUBGISMatch:
                       (MMAP_HEIGHT, MMAP_WIDTH),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
-
+        # TODO: cropped map is in wrong place, need to scale back by MMAP_WIDTH/HEIGHT // 2
         cropped_map = PUBGISMatch.map[over_y:over_y + MMAP_HEIGHT, over_x:over_x + MMAP_WIDTH]
         cv2.imshow("debug", np.concatenate((minimap, cropped_map), axis=1))
 
