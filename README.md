@@ -11,9 +11,9 @@ To run PUBGIS, download the latest executable [here](https://github.com/andrewzw
 ## Examples
 
 <p align="center">
-  <img src="docs\example_path.jpg" height="200" align="top">
-  <img src="docs\example_path_2.jpg" height="200" align="top">
-  <img src="docs\example_path_3.jpg" height="200" align="top">
+  <img src="docs\example_path.jpg" height="400" align="top">
+  <img src="docs\example_path_2.jpg" height="400" align="top">
+  <img src="docs\example_path_3.jpg" height="400" align="top">
 </p>
 
 ## Usage
