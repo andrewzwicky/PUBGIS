@@ -4,6 +4,9 @@ PUBGIS (PUBG Geographic Information System) analyzes gameplay from [PUBG](https:
 
 PUBGIS works by continuously polling the minimap in the corner of the game (seen below) and matching that to a location on the world map.  If you want more details about how PUBGIS works, check out the [Implementation](https://github.com/andrewzwicky/PUBGIS/wiki/Implementation) wiki page
 
+<p align="center">
+  <img src="docs\example_minimap.jpg" width="50%">
+</p>
 
 ## Examples
 
