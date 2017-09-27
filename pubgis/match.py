@@ -36,7 +36,7 @@ NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
 WHITE = Color(mpl_colors.to_rgb("White"))
 
-DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Lime"), alpha=0.7)
+DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
 
 MMAP_WIDTH = 252
 MMAP_HEIGHT = 253
