@@ -72,7 +72,7 @@ def test_bad_images(test_image, match_fixture, template_match_plot_axes):
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER)[:50])
+@pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
 def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
     match_found, (f_x, f_y), color_diff, result = match_fixture.find_map_section(img)
