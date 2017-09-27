@@ -43,7 +43,7 @@ class VideoIterator:
             else:
                 raise ValueError("Only 1920x1800 video is supported at this time.")
 
-            percent = min(int((self.frames_processed / self.frames_to_process) * 100), 100)
+            percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
 
             for _ in range(self.step_frames):
                 self.cap.grab()

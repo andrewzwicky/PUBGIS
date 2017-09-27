@@ -47,6 +47,7 @@ class PUBGISWorkerThread(QThread):
         if self.isInterruptionRequested():
             self.percent_max_update.emit(100)
 
+        self.percent_update.emit(100)
         match.create_output()
 
 
@@ -79,6 +80,7 @@ class PUBGISMainWindow(QMainWindow):
 
         self.preview_lock = RLock()
         self.progress_bar_lock = RLock()
+        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
 
         self.setAcceptDrops(True)
 
