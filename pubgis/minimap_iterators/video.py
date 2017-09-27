@@ -37,7 +37,7 @@ class VideoIterator:
         grabbed, frame = self.cap.read()
         self.frames_processed += 1
 
-        if grabbed and not self.stop_requested:
+        if grabbed and not self.stop_requested and self.frames_processed < self.frames_to_process:
             if frame.shape == (1080, 1920, 3):
                 minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
             else:
