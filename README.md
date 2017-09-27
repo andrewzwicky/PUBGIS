@@ -1,11 +1,12 @@
 # ![icon](pubgis/images/icons/navigation_32.png) PUBGIS [![Build status](https://ci.appveyor.com/api/projects/status/sbooipngsjk1kx46?svg=true)](https://ci.appveyor.com/project/andrewzwicky/pubgis)
 
-PUBGIS (PUBG Geographic Information System) analyzes gameplay from [PUBG](https://www.playbattlegrounds.com/main.pu) (either live or recorded) and provides a plot of your player position throughout the course of the game.
+PUBGIS (PUBG Geographic Information System) analyzes gameplay from [PUBG](https://www.playbattlegrounds.com/main.pu) (either live or video) and tracks your position during the game.  You can view this information later to see your path throughout the game.
 
 PUBGIS works by continuously polling the minimap in the corner of the game (seen below) and matching that to a location on the world map.  If you want more details about how PUBGIS works, check out the [Implementation](https://github.com/andrewzwicky/PUBGIS/wiki/Implementation) wiki page
 
 <p align="center">
-  <img src="docs\example_minimap.jpg" width="50%">
+  <img src="docs\example_minimap.jpg" width="45%">
+  <img src="docs\example_minimap_location.jpg" width="45%">
 </p>
 
 ## Installation
