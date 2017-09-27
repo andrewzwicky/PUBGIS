@@ -23,7 +23,7 @@ When PUBGIS is started, you'll see this:
 
 ## Development
 
-If you'd like to use PUBGIS as a pythong package, you can install it using `pip`
+PUBGIS is written in Python 3.6.  If you'd like to use PUBGIS as a python package, you can install it using `pip`
 
     pip install pubgis
 
@@ -31,7 +31,7 @@ and run it using:
 
     python -m pubgis
 
-Pull requests are welcome!
+PUBGIS should be written so others can use it to get the data, then plot in whatever manner they like.
 
 ## Functionality
 
