@@ -12,7 +12,7 @@ PUBGIS (PUBG Geographic Information System) analyzes gameplay from [PUBG](https:
 
 ## Installation
 
-Download the executable [here](https://github.com/andrewzwicky/PUBGIS/releases/latest) to get started.  There are no dependencies or installation process.
+To run PUBGIS, download the latest executable [here](https://github.com/andrewzwicky/PUBGIS/releases/latest).  That's it, there's no dependencies or installation process.
 
 ## Usage
 
@@ -31,7 +31,7 @@ and run it using:
 
     python -m pubgis
 
-PUBGIS should be written so others can use it to get the data, then plot in whatever manner they like.
+To learn more about extending or contributing to PUBGIS, check out the [Development](https://github.com/andrewzwicky/PUBGIS/wiki/Development) page.
 
 ## Functionality
 
