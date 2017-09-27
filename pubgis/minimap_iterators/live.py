@@ -19,7 +19,7 @@ class LiveFeed:  # pylint: disable=no-self-use
             frame = np.array(sct.grab(sct.monitors[1]))
         minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH][:, :, :3]
         minimap = minimap.copy()
-        return 50, minimap
+        return None, minimap
 
     def stop(self):
         self.stop_requested = True
