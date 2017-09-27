@@ -37,13 +37,13 @@ class VideoIterator:
         grabbed, frame = self.cap.read()
         self.frames_processed += 1
 
-        if grabbed and not self.stop_requested:
+        if grabbed and not self.stop_requested and self.frames_processed < self.frames_to_process:
             if frame.shape == (1080, 1920, 3):
                 minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
             else:
                 raise ValueError("Only 1920x1800 video is supported at this time.")
 
-            percent = min(int((self.frames_processed / self.frames_to_process) * 100), 100)
+            percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
 
             for _ in range(self.step_frames):
                 self.cap.grab()

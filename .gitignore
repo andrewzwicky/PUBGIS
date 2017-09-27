@@ -45,3 +45,5 @@ test_cases/unknown/
 tests/prof/
 .pyirc
 pubgis/debug*
+tests/map_coverage.png
+tests/summary_plot.png

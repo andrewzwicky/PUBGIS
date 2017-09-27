@@ -1,4 +1,3 @@
-from multiprocessing import Pool, cpu_count
 from os.path import join, dirname
 
 import cv2
@@ -22,10 +21,8 @@ MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
 MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
 
 # calibrated based on test cases
-COLOR_DIFF_THRESH_1 = 70
-TEMPLATE_MATCH_THRESH_1 = .40
-COLOR_DIFF_THRESH_2 = 30
-TEMPLATE_MATCH_THRESH_2 = .75
+COLOR_DIFF_THRESHS = [30, 70, 150]
+TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
 PATH_WIDTH = 4
 
@@ -39,7 +36,7 @@ NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
 WHITE = Color(mpl_colors.to_rgb("White"))
 
-DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Lime"), alpha=0.7)
+DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
 
 MMAP_WIDTH = 252
 MMAP_HEIGHT = 253
@@ -73,7 +70,7 @@ class PUBGISMatch:
         self.all_coords = []
 
     @staticmethod
-    def debug_minimap(minimap, match_found, color_diff, match_val):
+    def debug_minimap(minimap, match_found, color_diff, match_val, all_coords):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -87,8 +84,12 @@ class PUBGISMatch:
         :param match_found:
         :param color_diff:
         :param match_val:
+        :param match_coords:
+        :param overall_coords:
+        :param zoomed_coords:
         :return:
         """
+        (match_x, match_y), (over_x, over_y), (z_x, z_y, size) = all_coords
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
@@ -98,35 +99,55 @@ class PUBGISMatch:
                       (MMAP_HEIGHT, MMAP_WIDTH),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
+        # TODO: cropped map is in wrong place, need to scale back by MMAP_WIDTH/HEIGHT // 2
+        cropped_map = PUBGISMatch.map[over_y:over_y + MMAP_HEIGHT, over_x:over_x + MMAP_WIDTH]
+        cv2.imshow("debug", np.concatenate((minimap, cropped_map), axis=1))
 
-        return minimap
+        debug_zoomed = np.copy(PUBGISMatch.map[z_y:z_y + size, z_x:z_x + size])
 
-    #  This method should be static to make imap work with an external iterator class.
-    @staticmethod
-    def find_map_section(args, debug=False):
+        cv2.rectangle(debug_zoomed,
+                      (match_x, match_y),
+                      (match_x + MMAP_WIDTH, match_y + MMAP_HEIGHT),
+                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
+                      thickness=4)
+
+        cv2.imshow("context", cv2.resize(debug_zoomed,
+                                         (0, 0),
+                                         fx=600 / size,
+                                         fy=600 / size))
+        cv2.waitKey(10)
+
+    def find_map_section(self, minimap, debug=False):  # pylint: disable=too-many-locals
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
         The actual template matching is done by opencv, but there is additional checking that is
         done to ensure that the supplied minimap is actually
 
-        :param args:
+        :param minimap:
         :param debug:
         :return:
         """
+        last_coord = self.all_coords[-1] if self.all_coords else None
 
-        # The args are grouped like this because this method is being called via imap.
-        # To avoid more complicated argument handling, all the arguments are passed as one group.
-        this_percent, minimap = args
+        if last_coord:
+            z_x, z_y, size = PUBGISMatch.find_path_bounds([last_coord],
+                                                          crop_border=0,
+                                                          min_output_size=minimap.shape[0] * 3)
+            zoomed_gray_map = np.copy(PUBGISMatch.gray_map[z_y:z_y + size, z_x:z_x + size])
+        else:
+            z_x = z_y = 0
+            size = PUBGISMatch.gray_map.shape[0]
+            zoomed_gray_map = np.copy(PUBGISMatch.gray_map)
 
-        # TODO: figure out how to pass debug information from gui
-
-        match = cv2.matchTemplate(PUBGISMatch.gray_map,
+        match = cv2.matchTemplate(zoomed_gray_map,
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
 
         # When using TM_CCOEFF_NORMED, the minimum of the output is the best match
-        _, result, _, (best_x, best_y) = cv2.minMaxLoc(match)
+        _, result, _, (match_x, match_y) = cv2.minMaxLoc(match)
+        best_x = match_x + z_x
+        best_y = match_y + z_y
         coords = (best_x + MMAP_WIDTH // 2, best_y + MMAP_HEIGHT // 2)
 
         color_diff = Color.calculate_color_diff(minimap,
@@ -147,19 +168,19 @@ class PUBGISMatch:
         # There are two different regions used that correspond to experimentally determined
         # regions, found during testing to effectively differentiate the areas.
 
-        if (color_diff > COLOR_DIFF_THRESH_1 and result > TEMPLATE_MATCH_THRESH_1) or \
-                (color_diff > COLOR_DIFF_THRESH_2 and result > TEMPLATE_MATCH_THRESH_2):
+        within_bounds = [color_diff > c_thresh and result > temp_thresh for c_thresh, temp_thresh in
+                         zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
+
+        if any(within_bounds):
             match_found = MatchResult.SUCCESSFUL
         else:
             match_found = MatchResult.OUT_OF_RANGE
 
         if debug:
-            debug_minimap = PUBGISMatch.debug_minimap(minimap, match_found, color_diff, result)
-            cropped_map = PUBGISMatch.map[best_y:best_y + MMAP_HEIGHT, best_x:best_x + MMAP_WIDTH]
-            cv2.imshow("debug", np.concatenate((debug_minimap, cropped_map), axis=1))
-            cv2.waitKey(10)
+            PUBGISMatch.debug_minimap(minimap, match_found, color_diff, result,
+                                      ((match_x, match_y), coords, (z_x, z_y, size)))
 
-        return match_found, coords, color_diff, result, this_percent
+        return match_found, coords, color_diff, result
 
     @staticmethod
     def find_path_bounds(coords,  # pylint: disable=too-many-locals
@@ -223,10 +244,8 @@ class PUBGISMatch:
 
         :return:
         """
-        pool = Pool(cpu_count())
-
-        for match, coords, _, _, percent in pool.imap(PUBGISMatch.find_map_section,
-                                                      self.minimap_iterator):
+        for percent, minimap in self.minimap_iterator:
+            match, coords, _, _ = self.find_map_section(minimap)
             if match == MatchResult.SUCCESSFUL:
                 if self.all_coords:
                     cv2.line(self.preview_map,
@@ -240,9 +259,6 @@ class PUBGISMatch:
 
                 min_x, min_y, size = PUBGISMatch.find_path_bounds(self.all_coords)
                 yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
-
-        pool.close()
-        pool.join()
 
     def create_output(self):
         """

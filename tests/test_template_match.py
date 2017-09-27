@@ -4,13 +4,12 @@ from math import sqrt
 from os.path import join, dirname
 
 import cv2
-import matplotlib.patches as patches
+from matplotlib.patches import Polygon, Rectangle
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESH_1, \
-    TEMPLATE_MATCH_THRESH_1, MMAP_HEIGHT, MMAP_WIDTH, COLOR_DIFF_THRESH_2, \
-    TEMPLATE_MATCH_THRESH_2
+from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS,\
+    MMAP_HEIGHT, MMAP_WIDTH
 
 plt.switch_backend('Agg')
 
@@ -37,36 +36,18 @@ def template_match_plot_axes():
     ax.set_ylim(0, 1)
     ax.set_xlim(0, MAX_COLOR_DIFF)
 
-    ax.add_patch(patches.Rectangle((0, 0),
-                                   MAX_COLOR_DIFF,
-                                   TEMPLATE_MATCH_THRESH_1,
-                                   edgecolor="none",
-                                   facecolor='r',
-                                   alpha=0.1))
-    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESH_1),
-                                   COLOR_DIFF_THRESH_1,
-                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
-                                   edgecolor="none",
-                                   facecolor='r',
-                                   alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESH_1, TEMPLATE_MATCH_THRESH_1),
-                                   MAX_COLOR_DIFF,
-                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
-                                   edgecolor="none",
-                                   facecolor='g',
-                                   alpha=0.1))
-    ax.add_patch(patches.Rectangle((0, TEMPLATE_MATCH_THRESH_2),
-                                   COLOR_DIFF_THRESH_2,
-                                   TEMPLATE_MATCH_THRESH_2 - TEMPLATE_MATCH_THRESH_1,
-                                   edgecolor="none",
-                                   facecolor='r',
-                                   alpha=0.1))
-    ax.add_patch(patches.Rectangle((COLOR_DIFF_THRESH_2, TEMPLATE_MATCH_THRESH_2),
-                                   MAX_COLOR_DIFF,
-                                   1 - TEMPLATE_MATCH_THRESH_2,
-                                   edgecolor="none",
-                                   facecolor='g',
-                                   alpha=0.1))
+    x_coords = [val for val in COLOR_DIFF_THRESHS + [MAX_COLOR_DIFF] for _ in (0, 1)]
+    x_coords2 = [val for val in COLOR_DIFF_THRESHS + [0] for _ in (0, 1)]
+    y_coords = [1] + [val for val in TEMPLATE_MATCH_THRESHS for _ in (0, 1)] + [1]
+
+    ax.add_patch(Polygon(list(zip(x_coords, y_coords)), alpha=0.1, edgecolor='none', facecolor='g'))
+    ax.add_patch(Polygon(list(zip(x_coords2, y_coords)), alpha=0.1, edgecolor='none', facecolor='r'))
+    ax.add_patch(Rectangle((0, 0),
+                           MAX_COLOR_DIFF,
+                           min(TEMPLATE_MATCH_THRESHS),
+                           edgecolor="none",
+                           facecolor='r',
+                           alpha=0.1))
     fig.savefig("summary_plot.png")
 
 
@@ -85,7 +66,7 @@ def map_coverage_axes():
 @pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
 def test_bad_images(test_image, match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
-    match_found, (_, _), color_diff, result, _ = match_fixture.find_map_section((None, img))
+    match_found, (_, _), color_diff, result = match_fixture.find_map_section(img)
     template_match_plot_axes.append((color_diff, result, 'r'))
     assert match_found != MatchResult.SUCCESSFUL
 
@@ -94,15 +75,14 @@ def test_bad_images(test_image, match_fixture, template_match_plot_axes):
 @pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
 def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
-    match_found, (f_x, f_y), color_diff, result, _ = match_fixture.find_map_section((None, img))
+    match_found, (f_x, f_y), color_diff, result = match_fixture.find_map_section(img)
     template_match_plot_axes.append((color_diff, result, 'g'))
-    map_coverage_axes.add_patch(patches.Rectangle((f_x - (MMAP_WIDTH // 2),
-                                                   f_y - (MMAP_HEIGHT // 2)),
-                                                  MMAP_WIDTH,
-                                                  MMAP_HEIGHT,
-                                                  edgecolor="none",
-                                                  facecolor='white',
-                                                  alpha=0.1))
+    map_coverage_axes.add_patch(Rectangle((f_x - (MMAP_WIDTH // 2), f_y - (MMAP_HEIGHT // 2)),
+                                          MMAP_WIDTH,
+                                          MMAP_HEIGHT,
+                                          edgecolor="none",
+                                          facecolor='white',
+                                          alpha=0.1))
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     if coords_match is not None:
         (e_x, e_y) = tuple(map(int, coords_match.groups()))

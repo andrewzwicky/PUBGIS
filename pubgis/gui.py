@@ -27,30 +27,28 @@ class PUBGISWorkerThread(QThread):
 
     def run(self):
         self.percent_max_update.emit(0)
+        self.percent_update.emit(0)
 
         match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
                             output_file=self.output_file,
                             path_color=self.path_color)
+
         self.minimap_update.emit(PUBGISMatch.map)
 
-        percent_init = False
-
         for percent, progress_minimap in match.process_match():
-            if not percent_init:
+            if percent is not None:
                 self.percent_max_update.emit(100)
-                percent_init = True
-            self.percent_update.emit(percent)
+                self.percent_update.emit(percent)
             self.minimap_update.emit(progress_minimap)
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
 
         if self.isInterruptionRequested():
-            self.percent_update.emit(0)
             self.percent_max_update.emit(100)
-        else:
-            self.percent_update.emit(100)
-            match.create_output()
+
+        self.percent_update.emit(100)
+        match.create_output()
 
 
 class PUBGISMainWindow(QMainWindow):
@@ -82,6 +80,7 @@ class PUBGISMainWindow(QMainWindow):
 
         self.preview_lock = RLock()
         self.progress_bar_lock = RLock()
+        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
 
         self.setAcceptDrops(True)
 
