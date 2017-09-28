@@ -28,13 +28,13 @@ When PUBGIS is started, you'll see this:
   <img src="docs\example_setup.jpg" width="45%">
 </p>
 
-1. Select a video file.
+1. Select a video file (only tested with .mp4 currently)
 2. Adjust the output file if needed.
 3. Click Process!
 
 **Optional**:
 * If the video contains extra footage *before your parachute landing*, put that time in **landing time**
-* If the video contains extra footage *after you die*, such as spectating a teammate, input your **death time**
+* If the video contains extra footage *after you die*, such as spectating a teammate, input your **death time** (death time of 00:00 means it will process until the end of the video)
 * Adjust the time step.  This is how often the map is checked.  Larger values will process a game faster, but the path will not be as detailed.
 * Select a different color path
 
