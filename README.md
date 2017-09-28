@@ -11,7 +11,7 @@ PUBGIS works by continuously scanning the minimap in the corner of the game (see
 
 ## Installation
 
-To run PUBGIS, download the latest executable [here](https://github.com/andrewzwicky/PUBGIS/releases/latest).  That's it, there's no dependencies or installation process.
+PUBGIS is a sellf-contained executable.  Download the latest version [here](https://github.com/andrewzwicky/PUBGIS/releases/latest).
 
 ## Examples
 
