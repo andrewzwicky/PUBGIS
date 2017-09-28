@@ -38,12 +38,6 @@ WHITE = Color(mpl_colors.to_rgb("White"))
 
 DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
 
-MMAP_WIDTH = 252
-MMAP_HEIGHT = 253
-MMAP_Y = 798
-MMAP_X = 1630
-
-
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
 
@@ -148,7 +142,7 @@ class PUBGISMatch:
         _, result, _, (match_x, match_y) = cv2.minMaxLoc(match)
         best_x = match_x + z_x
         best_y = match_y + z_y
-        coords = (best_x + MMAP_WIDTH // 2, best_y + MMAP_HEIGHT // 2)
+        coords = (best_x + minimap.shape[1] // 2, best_y + minimap.shape[0] // 2)
 
         color_diff = Color.calculate_color_diff(minimap,
                                                 PUBGISMatch.indicator_mask,

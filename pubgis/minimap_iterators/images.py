@@ -2,22 +2,23 @@ import os
 from threading import RLock
 
 import cv2
+from pubgis.minimap_iterators.generic import GenericIterator
 
 
-class ImageIterator:
+class ImageIterator(GenericIterator):
     def __init__(self, folder):
-        images = [os.path.join(folder, img) for img in os.listdir(folder)]
+        super().__init__()
         self.total = len(images)
-        self.images = iter(images)
+        self.images = iter([os.path.join(folder, img) for img in os.listdir(folder)])
         self.count = 0
-        self._lock = RLock()
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        self._lock.acquire()
-        img_path = next(self.images)
-        self.count += 1
-        self._lock.release()
-        return self.count*100/self.total, cv2.imread(img_path)
+        self.check_for_stop()
+
+        with self._lock:
+            img_path = next(self.images)
+            self.count += 1
+            return self.count*100/self.total, cv2.imread(img_path)

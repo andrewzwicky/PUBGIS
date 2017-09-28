@@ -6,12 +6,13 @@ import numpy as np
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QThread, QTime
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.color import Color, Space, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
+from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 
 
 class PUBGISWorkerThread(QThread):
@@ -180,16 +181,21 @@ class PUBGISMainWindow(QMainWindow):
     def process_match(self):
         map_iter = None
 
-        if self.tabWidget.currentIndex() == 0:
-            if self.video_file_edit.text() != "":
-                zero = QTime(0, 0, 0)
-                map_iter = VideoIterator(video_file=self.video_file_edit.text(),
-                                         landing_time=zero.secsTo(self.landing_time.time()),
-                                         death_time=zero.secsTo(self.death_time.time()),
-                                         step_interval=float(self.time_step_combo.currentText()))
+        try:
+            if self.tabWidget.currentIndex() == 0:
+                if self.video_file_edit.text() != "":
+                    zero = QTime(0, 0, 0)
+                    map_iter = VideoIterator(video_file=self.video_file_edit.text(),
+                                             landing_time=zero.secsTo(self.landing_time.time()),
+                                             death_time=zero.secsTo(self.death_time.time()),
+                                             step_interval=float(self.time_step_combo.currentText()))
 
-        if self.tabWidget.currentIndex() == 1:
-            map_iter = LiveFeed()
+            if self.tabWidget.currentIndex() == 1:
+                map_iter = LiveFeed()
+        except ResolutionNotSupportedException:
+            res_message = QMessageBox()
+            res_message.setText("This resolution is not supported")
+            res_message.exec()
 
         if map_iter:
             self.disable_selection_buttons()

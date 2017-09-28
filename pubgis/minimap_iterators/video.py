@@ -1,19 +1,21 @@
-from threading import RLock
-
 import cv2
 
-from pubgis.match import MMAP_HEIGHT, MMAP_WIDTH, MMAP_X, MMAP_Y
+from pubgis.minimap_iterators.generic import GenericIterator, ResolutionNotSupportedException
 
 DEFAULT_STEP_INTERVAL = 1
 
 
-class VideoIterator:
+class VideoIterator(GenericIterator):
     def __init__(self,
                  video_file=None,
                  landing_time=0,
                  step_interval=DEFAULT_STEP_INTERVAL,
                  death_time=None,):
+        super().__init__()
         self.cap = cv2.VideoCapture(video_file)
+        self.frame_index = self.get_minimap_bounds(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                                                   int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
         fps = int(self.cap.get(cv2.CAP_PROP_FPS))
         self.landing_frame = int(landing_time * fps)
         self.step_frames = max(int(step_interval * fps), 1) - 1
@@ -24,8 +26,6 @@ class VideoIterator:
             death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
         self.frames_to_process = death_frame - self.landing_frame
-        self.stop_requested = False
-        self._lock = RLock()
 
     def __iter__(self):
         for _ in range(self.landing_frame):
@@ -33,29 +33,20 @@ class VideoIterator:
         return self
 
     def __next__(self):
-        self._lock.acquire()
-        grabbed, frame = self.cap.read()
-        self.frames_processed += 1
+        self.check_for_stop()
 
-        if grabbed and not self.stop_requested and self.frames_processed < self.frames_to_process:
-            if frame.shape == (1080, 1920, 3):
-                minimap = frame[MMAP_Y:MMAP_Y + MMAP_HEIGHT, MMAP_X:MMAP_X + MMAP_WIDTH]
+        with self._lock:
+            grabbed, frame = self.cap.read()
+            self.frames_processed += 1
+
+            if grabbed and self.frames_processed < self.frames_to_process:
+                minimap = frame[self.frame_index]
+                percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
+
+                for _ in range(self.step_frames):
+                    self.cap.grab()
+                self.frames_processed += self.step_frames
+
+                return percent, minimap
             else:
-                raise ValueError("Only 1920x1800 video is supported at this time.")
-
-            percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
-
-            for _ in range(self.step_frames):
-                self.cap.grab()
-            self.frames_processed += self.step_frames
-
-            self._lock.release()
-            return percent, minimap
-        else:
-            self._lock.release()
-            raise StopIteration
-
-    def stop(self):
-        self._lock.acquire()
-        self.stop_requested = True
-        self._lock.release()
+                raise StopIteration
