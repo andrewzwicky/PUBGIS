@@ -251,8 +251,8 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-                min_x, min_y, size = PUBGISMatch.find_path_bounds(self.all_coords)
-                yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
+            min_x, min_y, size = PUBGISMatch.find_path_bounds(self.all_coords)
+            yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
 
     def create_output(self):
         """
