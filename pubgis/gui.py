@@ -8,11 +8,11 @@ from PyQt5.QtCore import QThread, QTime
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
-from pubgis.minimap_iterators.live import LiveFeed
-from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.color import Color, Space, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
+from pubgis.minimap_iterators.live import LiveFeed
+from pubgis.minimap_iterators.video import VideoIterator
 
 
 class PUBGISWorkerThread(QThread):

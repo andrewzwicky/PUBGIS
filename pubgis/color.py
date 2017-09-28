@@ -1,5 +1,6 @@
 from enum import IntFlag
 from math import sqrt
+
 import cv2
 
 
