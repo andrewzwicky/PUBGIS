@@ -89,7 +89,7 @@ class PUBGISMainWindow(QMainWindow):
                                        self.output_file_browse_button,
                                        self.color_select_button,
                                        self.process_button,
-                                       self.time_step_combo,
+                                       self.time_step,
                                        self.landing_time,
                                        self.death_time,
                                        self.output_file_edit,
@@ -188,7 +188,7 @@ class PUBGISMainWindow(QMainWindow):
                     map_iter = VideoIterator(video_file=self.video_file_edit.text(),
                                              landing_time=zero.secsTo(self.landing_time.time()),
                                              death_time=zero.secsTo(self.death_time.time()),
-                                             step_interval=float(self.time_step_combo.currentText()))
+                                             step_interval=float(self.time_step.currentText()))
 
             if self.tabWidget.currentIndex() == 1:
                 map_iter = LiveFeed()
