@@ -1,15 +1,16 @@
 import os
-from threading import RLock
 
 import cv2
+
 from pubgis.minimap_iterators.generic import GenericIterator
 
 
 class ImageIterator(GenericIterator):
     def __init__(self, folder):
         super().__init__()
+        images = [os.path.join(folder, img) for img in os.listdir(folder)]
         self.total = len(images)
-        self.images = iter([os.path.join(folder, img) for img in os.listdir(folder)])
+        self.images = iter(images)
         self.count = 0
 
     def __iter__(self):

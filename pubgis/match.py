@@ -78,30 +78,33 @@ class PUBGISMatch:
         :param match_found:
         :param color_diff:
         :param match_val:
-        :param match_coords:
-        :param overall_coords:
-        :param zoomed_coords:
+        :param all_coords:
         :return:
         """
+        # TODO: clean up this mess
         (match_x, match_y), (over_x, over_y), (z_x, z_y, size) = all_coords
+
+        mm_height, mm_width = minimap.shape[:2]
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
 
         cv2.rectangle(minimap,
                       (0, 0),
-                      (MMAP_HEIGHT, MMAP_WIDTH),
+                      (mm_height, mm_width),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
         # TODO: cropped map is in wrong place, need to scale back by MMAP_WIDTH/HEIGHT // 2
-        cropped_map = PUBGISMatch.map[over_y:over_y + MMAP_HEIGHT, over_x:over_x + MMAP_WIDTH]
-        cv2.imshow("debug", np.concatenate((minimap, cropped_map), axis=1))
+        cv2.imshow("debug", np.concatenate((minimap,
+                                            PUBGISMatch.map[over_y:over_y + mm_height,
+                                                            over_x:over_x + mm_width]),
+                                           axis=1))
 
         debug_zoomed = np.copy(PUBGISMatch.map[z_y:z_y + size, z_x:z_x + size])
 
         cv2.rectangle(debug_zoomed,
                       (match_x, match_y),
-                      (match_x + MMAP_WIDTH, match_y + MMAP_HEIGHT),
+                      (match_x + mm_width, match_y + mm_height),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
                       thickness=4)
 

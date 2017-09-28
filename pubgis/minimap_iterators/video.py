@@ -1,6 +1,6 @@
 import cv2
 
-from pubgis.minimap_iterators.generic import GenericIterator, ResolutionNotSupportedException
+from pubgis.minimap_iterators.generic import GenericIterator
 
 DEFAULT_STEP_INTERVAL = 1
 
