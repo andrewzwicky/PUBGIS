@@ -11,7 +11,7 @@ PUBGIS works by continuously scanning the minimap in the corner of the game (see
 
 ## Installation
 
-PUBGIS is a sellf-contained executable.  Download the latest version [here](https://github.com/andrewzwicky/PUBGIS/releases/latest).
+PUBGIS is a self-contained executable.  Download the latest version [here](https://github.com/andrewzwicky/PUBGIS/releases/latest), no installation required!
 
 ## Examples
 
