@@ -46,10 +46,6 @@ class PUBGISMatch:
     map = cv2.imread(join(IMAGES, "full_map_scaled.jpg"))
     gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
     assert gray_map.shape[0] == gray_map.shape[1]
-    indicator_file = cv2.imread(join(IMAGES, "indicator_mask.jpg"), cv2.IMREAD_GRAYSCALE)
-    indicator_area_file = cv2.imread(join(IMAGES, "indicator_area_mask.jpg"), cv2.IMREAD_GRAYSCALE)
-    _, indicator_mask = cv2.threshold(indicator_file, 10, 255, cv2.THRESH_BINARY)
-    _, indicator_area_mask = cv2.threshold(indicator_area_file, 10, 255, cv2.THRESH_BINARY)
 
     def __init__(self,
                  minimap_iterator=None,
@@ -62,6 +58,36 @@ class PUBGISMatch:
         self.output_file = output_file
         self.path_color = path_color
         self.all_coords = []
+
+
+        _, self.indicator_mask = cv2.threshold(self.create_mask(self.minimap_iterator.minimap_size),
+                      10,
+                      255,
+                      cv2.THRESH_BINARY)
+        _, self.indicator_area_mask = cv2.threshold(self.create_area_mask(self.minimap_iterator.minimap_size),
+                      10,
+                      255,
+                      cv2.THRESH_BINARY)
+
+    @staticmethod
+    def create_mask(size):
+        mask = np.zeros((size, size, 1), np.uint8)
+        cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 255, thickness=2)
+        cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 255, thickness=1)
+        return mask
+
+    @staticmethod
+    def create_area_mask(size):
+        mask = np.zeros((size, size, 1), np.uint8)
+        width = int(size*.29)
+        cv2.rectangle(mask,
+                      (size//2 - width//2, size//2 - width//2),
+                      (size//2 + width//2, size//2 + width//2),
+                      255,
+                      thickness=-1)
+        cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 0, thickness=2)
+        cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 0, thickness=1)
+        return mask
 
     @staticmethod
     def debug_minimap(minimap, match_found, color_diff, match_val, all_coords):
@@ -114,7 +140,7 @@ class PUBGISMatch:
                                          fy=600 / size))
         cv2.waitKey(10)
 
-    def find_map_section(self, minimap, debug=False):  # pylint: disable=too-many-locals
+    def find_map_section(self, minimap, debug=True):  # pylint: disable=too-many-locals
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
@@ -148,9 +174,8 @@ class PUBGISMatch:
         coords = (best_x + minimap.shape[1] // 2, best_y + minimap.shape[0] // 2)
 
         color_diff = Color.calculate_color_diff(minimap,
-                                                PUBGISMatch.indicator_mask,
-                                                minimap,
-                                                PUBGISMatch.indicator_area_mask)
+                                                self.indicator_mask,
+                                                self.indicator_area_mask)
 
         # Determining whether a particular minimap should actually be reported as a match
         # is determined by the following:

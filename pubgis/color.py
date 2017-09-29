@@ -57,10 +57,10 @@ class Color:
         return output
 
     @staticmethod
-    def calculate_color_diff(image_1, mask_1, image_2, mask_2):
-        mean_1 = cv2.mean(image_1, mask_1)[:3]
+    def calculate_color_diff(image, mask_1, mask_2):
+        mean_1 = cv2.mean(image, mask_1)[:3]
         color_1 = Color(mean_1, scaling=Scaling.UINT8, space=Space.BGR)
-        mean_2 = cv2.mean(image_2, mask_2)[:3]
+        mean_2 = cv2.mean(image, mask_2)[:3]
         color_2 = Color(mean_2, scaling=Scaling.UINT8, space=Space.BGR)
 
         color_diff = sqrt(sum([(c1 - c2) ** 2 for c1, c2 in zip(color_1(), color_2())]))

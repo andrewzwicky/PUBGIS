@@ -12,6 +12,7 @@ class ImageIterator(GenericIterator):
         self.total = len(images)
         self.images = iter(images)
         self.count = 0
+        self.minimap_size = cv2.imread(images[0]).shape[0]
 
     def __iter__(self):
         return self
