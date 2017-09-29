@@ -191,7 +191,7 @@ class PUBGISMainWindow(QMainWindow):
                                              step_interval=float(self.time_step.currentText()))
 
             if self.tabWidget.currentIndex() == 1:
-                map_iter = LiveFeed()
+                map_iter = LiveFeed(time_step=float(self.time_step.currentText()))
         except ResolutionNotSupportedException:
             res_message = QMessageBox()
             res_message.setText("This resolution is not supported")
