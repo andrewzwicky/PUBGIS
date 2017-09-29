@@ -136,8 +136,8 @@ class PUBGISMainWindow(QMainWindow):
         self.last_output_file_directory = os.path.dirname(fname)
         self.output_file_edit.setText(fname)
 
-    def _parse_available_monitors(self, index):
-        if index == 1 and self.monitor_combo.count() == 0:
+    def _parse_available_monitors(self, mon_combo_index):
+        if mon_combo_index == 1 and self.monitor_combo.count() == 0:
             self.monitor_combo.clear()
 
             sizes = []
@@ -152,9 +152,9 @@ class PUBGISMainWindow(QMainWindow):
     def _update_monitor_preview(self):
         self.preview_lock.acquire()
         with mss.mss() as sct:
-            frame = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+            cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
 
-        img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img2 = cv2.cvtColor(cap, cv2.COLOR_BGR2RGB)
         height, width, _ = img2.shape
         bytes_per_line = 3 * width
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
