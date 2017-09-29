@@ -31,5 +31,4 @@ class LiveFeed(GenericIterator):  # pylint: disable=no-self-use
         minimap = minimap.copy()
 
         self.time = time.time()
-        print(self.time)
         return None, minimap
