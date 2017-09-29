@@ -1,4 +1,5 @@
-# ![icon](pubgis/images/icons/navigation_32.png) PUBGIS [![Build status](https://ci.appveyor.com/api/projects/status/sbooipngsjk1kx46?svg=true)](https://ci.appveyor.com/project/andrewzwicky/pubgis) [![Github All Releases](https://img.shields.io/github/downloads/andrewzwicky/PUBGIS/total.svg)](https://github.com/andrewzwicky/PUBGIS/releases/latest) [![PyPI](https://img.shields.io/pypi/v/PUBGIS.svg)](https://pypi.python.org/pypi/PUBGIS)
+# ![icon](pubgis/images/icons/navigation_32.png) PUBGIS [![Build status](https://ci.appveyor.com/api/projects/status/sbooipngsjk1kx46/branch/master?svg=true)](https://ci.appveyor.com/project/andrewzwicky/pubgis/branch/master)
+ [![Github All Releases](https://img.shields.io/github/downloads/andrewzwicky/PUBGIS/total.svg)](https://github.com/andrewzwicky/PUBGIS/releases/latest) [![PyPI](https://img.shields.io/pypi/v/PUBGIS.svg)](https://pypi.python.org/pypi/PUBGIS)
 
 PUBGIS (PUBG Geographic Information System) analyzes gameplay from [PUBG](https://www.playbattlegrounds.com/main.pu) (either live or video) and tracks your position during the game.  You can view this information later to see your path throughout the game.
 
