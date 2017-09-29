@@ -2,9 +2,10 @@ import os
 from threading import RLock
 
 import cv2
+import mss
 import numpy as np
 from PyQt5 import QtCore, uic
-from PyQt5.QtCore import QThread, QTime
+from PyQt5.QtCore import QThread, QTime, Qt
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
@@ -63,6 +64,8 @@ class PUBGISMainWindow(QMainWindow):
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
+        self.tabWidget.currentChanged.connect(self._parse_available_monitors)
+        self.monitor_combo.currentIndexChanged.connect(self._update_monitor_preview)
 
         self.map_creation_view.setScene(QGraphicsScene())
         self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
@@ -133,6 +136,36 @@ class PUBGISMainWindow(QMainWindow):
         self.last_output_file_directory = os.path.dirname(fname)
         self.output_file_edit.setText(fname)
 
+    def _parse_available_monitors(self, index):
+        if index == 1 and self.monitor_combo.count() == 0:
+            self.monitor_combo.clear()
+
+            sizes = []
+
+            with mss.mss() as sct:
+                for index, monitor in enumerate(sct.monitors[1:], start=1):
+                    sizes.append(f"{index}: {monitor['width']}x{monitor['height']}")
+
+            self.monitor_combo.insertItems(0, sizes)
+            self._update_monitor_preview()
+
+    def _update_monitor_preview(self):
+        self.preview_lock.acquire()
+        with mss.mss() as sct:
+            frame = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+
+        img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        height, width, _ = img2.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        # noinspection PyCallByClass
+        self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
+        self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect(),
+                                         Qt.KeepAspectRatio)
+        self.map_creation_view.update()
+        self.map_creation_view.repaint()
+        self.preview_lock.release()
+
     def select_background_color(self):
         color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
@@ -191,7 +224,8 @@ class PUBGISMainWindow(QMainWindow):
                                              step_interval=float(self.time_step.currentText()))
 
             if self.tabWidget.currentIndex() == 1:
-                map_iter = LiveFeed(time_step=float(self.time_step.currentText()))
+                map_iter = LiveFeed(time_step=float(self.time_step.currentText()),
+                                    monitor=self.monitor_combo.currentIndex() + 1)
         except ResolutionNotSupportedException:
             res_message = QMessageBox()
             res_message.setText("This resolution is not supported")

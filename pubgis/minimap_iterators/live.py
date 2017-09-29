@@ -7,7 +7,7 @@ from pubgis.minimap_iterators.generic import GenericIterator
 
 
 class LiveFeed(GenericIterator):  # pylint: disable=no-self-use
-    def __init__(self, time_step, monitor=1):
+    def __init__(self, time_step, monitor):
         super().__init__()
         self.monitor = monitor
         self.time_step = time_step
