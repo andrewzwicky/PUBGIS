@@ -2,9 +2,10 @@ import os
 from threading import RLock
 
 import cv2
+import mss
 import numpy as np
 from PyQt5 import QtCore, uic
-from PyQt5.QtCore import QThread, QTime
+from PyQt5.QtCore import QThread, QTime, Qt, QRectF
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
@@ -63,6 +64,8 @@ class PUBGISMainWindow(QMainWindow):
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
+        self.tabWidget.currentChanged.connect(self._parse_available_monitors)
+        self.monitor_combo.currentIndexChanged.connect(self._update_monitor_preview)
 
         self.map_creation_view.setScene(QGraphicsScene())
         self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
@@ -101,6 +104,30 @@ class PUBGISMainWindow(QMainWindow):
 
         self.show()
 
+    # pylint: disable=line-too-long
+    # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
+    # pylint: enable=line-too-long
+    # Copyright (c) 2014 Jason Newton <nevion@gmail.com>
+    # MIT License
+    # override arbitrary and unwanted margins: https://bugreports.qt.io/browse/QTBUG-42331
+    @staticmethod
+    def fit_in_view(view, rect, flags=Qt.IgnoreAspectRatio):
+        if view.scene() is None or rect.isNull():
+            return
+        view.last_scene_roi = rect
+        unity = view.transform().mapRect(QRectF(0, 0, 1, 1))
+        view.scale(1 / unity.width(), 1 / unity.height())
+        view_rect = view.viewport().rect()
+        scene_rect = view.transform().mapRect(rect)
+        xratio = view_rect.width() / scene_rect.width()
+        yratio = view_rect.height() / scene_rect.height()
+        if flags == Qt.KeepAspectRatio:
+            xratio = yratio = min(xratio, yratio)
+        elif flags == Qt.KeepAspectRatioByExpanding:
+            xratio = yratio = max(xratio, yratio)
+        view.scale(xratio, yratio)
+        view.centerOn(rect.center())
+
     # name must match because we're overriding QMainWindow method
     def dragEnterEvent(self, event):  # pylint: disable=invalid-name, no-self-use
         if event.mimeData().hasUrls:
@@ -133,6 +160,35 @@ class PUBGISMainWindow(QMainWindow):
         self.last_output_file_directory = os.path.dirname(fname)
         self.output_file_edit.setText(fname)
 
+    def _parse_available_monitors(self, mon_combo_index):
+        if mon_combo_index == 1 and self.monitor_combo.count() == 0:
+            self.monitor_combo.clear()
+
+            sizes = []
+
+            with mss.mss() as sct:
+                for index, monitor in enumerate(sct.monitors[1:], start=1):
+                    sizes.append(f"{index}: {monitor['width']}x{monitor['height']}")
+
+            self.monitor_combo.insertItems(0, sizes)
+            self._update_monitor_preview()
+
+    def _update_monitor_preview(self):
+        self.preview_lock.acquire()
+        with mss.mss() as sct:
+            cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+
+        img2 = cv2.cvtColor(cap, cv2.COLOR_BGR2RGB)
+        height, width, _ = img2.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        # noinspection PyCallByClass
+        self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
+        self.fit_in_view(self.map_creation_view,
+                         self.map_creation_view.scene().itemsBoundingRect(),
+                         flags=Qt.KeepAspectRatio)
+        self.preview_lock.release()
+
     def select_background_color(self):
         color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
@@ -151,9 +207,7 @@ class PUBGISMainWindow(QMainWindow):
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
         # noinspection PyCallByClass
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())
-        self.map_creation_view.update()
-        self.map_creation_view.repaint()
+        self.fit_in_view(self.map_creation_view, self.map_creation_view.scene().itemsBoundingRect())
         self.preview_lock.release()
 
     def update_pbar_max(self, maximum):
@@ -191,7 +245,8 @@ class PUBGISMainWindow(QMainWindow):
                                              step_interval=float(self.time_step.currentText()))
 
             if self.tabWidget.currentIndex() == 1:
-                map_iter = LiveFeed(time_step=float(self.time_step.currentText()))
+                map_iter = LiveFeed(time_step=float(self.time_step.currentText()),
+                                    monitor=self.monitor_combo.currentIndex() + 1)
         except ResolutionNotSupportedException:
             res_message = QMessageBox()
             res_message.setText("This resolution is not supported")
