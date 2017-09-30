@@ -1,6 +1,6 @@
 from threading import RLock
 
-SUPPORTED_RESOLUTIONS = {(1920, 1080): (798, 1630, 252),
+SUPPORTED_RESOLUTIONS = {(1920, 1080): (798, 1630, 251),
                          (2560, 1440): (1064, 2173, 335)}
 
 
