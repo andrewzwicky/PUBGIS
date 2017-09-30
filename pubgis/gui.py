@@ -5,7 +5,7 @@ import cv2
 import mss
 import numpy as np
 from PyQt5 import QtCore, uic
-from PyQt5.QtCore import QThread, QTime, Qt
+from PyQt5.QtCore import QThread, QTime, Qt, QRectF
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
@@ -104,6 +104,30 @@ class PUBGISMainWindow(QMainWindow):
 
         self.show()
 
+    # pylint: disable=line-too-long
+    # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
+    # pylint: enable=line-too-long
+    # Copyright (c) 2014 Jason Newton <nevion@gmail.com>
+    # MIT License
+    # override arbitrary and unwanted margins: https://bugreports.qt.io/browse/QTBUG-42331
+    @staticmethod
+    def fit_in_view(view, rect, flags=Qt.IgnoreAspectRatio):
+        if view.scene() is None or rect.isNull():
+            return
+        view.last_scene_roi = rect
+        unity = view.transform().mapRect(QRectF(0, 0, 1, 1))
+        view.scale(1 / unity.width(), 1 / unity.height())
+        view_rect = view.viewport().rect()
+        scene_rect = view.transform().mapRect(rect)
+        xratio = view_rect.width() / scene_rect.width()
+        yratio = view_rect.height() / scene_rect.height()
+        if flags == Qt.KeepAspectRatio:
+            xratio = yratio = min(xratio, yratio)
+        elif flags == Qt.KeepAspectRatioByExpanding:
+            xratio = yratio = max(xratio, yratio)
+        view.scale(xratio, yratio)
+        view.centerOn(rect.center())
+
     # name must match because we're overriding QMainWindow method
     def dragEnterEvent(self, event):  # pylint: disable=invalid-name, no-self-use
         if event.mimeData().hasUrls:
@@ -160,10 +184,9 @@ class PUBGISMainWindow(QMainWindow):
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
         # noinspection PyCallByClass
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect(),
-                                         Qt.KeepAspectRatio)
-        self.map_creation_view.update()
-        self.map_creation_view.repaint()
+        self.fit_in_view(self.map_creation_view,
+                         self.map_creation_view.scene().itemsBoundingRect(),
+                         flags=Qt.KeepAspectRatio)
         self.preview_lock.release()
 
     def select_background_color(self):
@@ -184,9 +207,7 @@ class PUBGISMainWindow(QMainWindow):
         qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
         # noinspection PyCallByClass
         self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.map_creation_view.fitInView(self.map_creation_view.scene().itemsBoundingRect())
-        self.map_creation_view.update()
-        self.map_creation_view.repaint()
+        self.fit_in_view(self.map_creation_view, self.map_creation_view.scene().itemsBoundingRect())
         self.preview_lock.release()
 
     def update_pbar_max(self, maximum):
