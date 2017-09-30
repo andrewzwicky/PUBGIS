@@ -37,13 +37,11 @@ coverage.xml
 .ipynb_checkpoints
 
 # PUBGIS specific files
-Erangel_Minimap.jpg
 Erangel_Minimap.tga
 .idea/
 test_cases/failed/
 test_cases/unknown/
 tests/prof/
-.pyirc
 pubgis/debug*
 tests/map_coverage.png
 tests/summary_plot.png
