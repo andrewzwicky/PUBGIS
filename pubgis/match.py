@@ -114,8 +114,12 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         cv2.imshow("context", debug_zoomed)
         cv2.waitKey(10)
 
-    def debug_minimap(self, minimap, match_found, color_diff, match_val,
-                      world_coords):  # pylint: disable=too-many-arguments
+    def debug_minimap(self,  # pylint: disable=too-many-arguments
+                      minimap,
+                      match_found,
+                      color_diff,
+                      match_val,
+                      world_coords):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -140,7 +144,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                       thickness=match_ind_thickness)
 
         matched_minimap = self.map[world_y:world_y + self.minimap_iter.size,
-                          world_x:world_x + self.minimap_iter.size]
+                                   world_x:world_x + self.minimap_iter.size]
 
         cv2.imshow("debug", np.concatenate((minimap, matched_minimap), axis=1))
         cv2.waitKey(10)
@@ -153,11 +157,11 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         done to ensure that the supplied minimap is actually
         """
         if self.all_coords:
-            context_x, context_y, context_size = self.find_path_bounds(self.gray_map.shape[0]
-                                                                       [self.all_coords[-1]],
-                                                                       crop_border=0,
-                                                                       min_output_size=
-                                                                       minimap.shape[0] * 3)
+            context_x, context_y, context_size = PUBGISMatch.find_path_bounds(
+                self.gray_map.shape[0],
+                [self.all_coords[-1]],
+                crop_border=0,
+                min_output_size=minimap.shape[0] * 3)
             # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
             context_slice = (slice(context_y, context_y + context_size),
                              slice(context_x, context_x + context_size))
@@ -274,7 +278,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
                 self.all_coords.append(coords)
 
-            min_x, min_y, size = self.find_path_bounds(self.gray_map.shape[0], self.all_coords)
+            min_x, min_y, size = PUBGISMatch.find_path_bounds(self.gray_map.shape[0],
+                                                              self.all_coords)
             yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
 
     def create_output(self, output_file):
@@ -284,7 +289,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
             output_axis.imshow(cv2.cvtColor(self.map, cv2.COLOR_BGR2RGB))
-            min_x, min_y, size = self.find_path_bounds(self.gray_map.shape[0], self.all_coords)
+            min_x, min_y, size = PUBGISMatch.find_path_bounds(self.gray_map.shape[0],
+                                                              self.all_coords)
             output_axis.axes.set_xlim(min_x, min_x + size)
             output_axis.axes.set_ylim(min_y + size, min_y)
 
