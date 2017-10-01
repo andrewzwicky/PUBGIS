@@ -38,39 +38,39 @@ WHITE = Color(mpl_colors.to_rgb("White"))
 
 DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
 
+
 # when indexing an image the format is image[y,x]
 # but coords are passed as (x,y)
 
 
-class PUBGISMatch:
+class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  minimap_iterator=None,
-                 output_file=None,
                  path_color=DEFAULT_PATH_COLOR,
                  debug=False):
-        self.minimap_iterator = minimap_iterator
-
+        self.minimap_iter = minimap_iterator
         self.debug = debug
-        self.output_file = output_file
+
         self.path_color = path_color
         self.all_coords = []
 
         full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
         self.map = cv2.resize(full_map,
                               (0, 0),
-                              fx=self.minimap_iterator.minimap_size / 407,
-                              fy=self.minimap_iterator.minimap_size / 407)
+                              fx=self.minimap_iter.size / 407,
+                              fy=self.minimap_iter.size / 407)
         self.gray_map = cv2.cvtColor(self.map, cv2.COLOR_BGR2GRAY)
         self.preview_map = np.copy(self.map)
 
-        _, self.indicator_mask = cv2.threshold(self.create_mask(self.minimap_iterator.minimap_size),
-                      10,
-                      255,
-                      cv2.THRESH_BINARY)
-        _, self.indicator_area_mask = cv2.threshold(self.create_area_mask(self.minimap_iterator.minimap_size),
-                      10,
-                      255,
-                      cv2.THRESH_BINARY)
+        _, self.indicator_mask = cv2.threshold(self.create_mask(self.minimap_iter.size),
+                                               10,
+                                               255,
+                                               cv2.THRESH_BINARY)
+        _, self.indicator_area_mask = cv2.threshold(
+            self.create_area_mask(self.minimap_iter.size),
+            10,
+            255,
+            cv2.THRESH_BINARY)
 
     @staticmethod
     def create_mask(size):
@@ -82,18 +82,40 @@ class PUBGISMatch:
     @staticmethod
     def create_area_mask(size):
         mask = np.zeros((size, size, 1), np.uint8)
-        width = int(size*.29)
+        width = int(size * .29)
         cv2.rectangle(mask,
-                      (size//2 - width//2, size//2 - width//2),
-                      (size//2 + width//2, size//2 + width//2),
+                      (size // 2 - width // 2, size // 2 - width // 2),
+                      (size // 2 + width // 2, size // 2 + width // 2),
                       255,
                       thickness=-1)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 0, thickness=2)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 0, thickness=1)
         return mask
 
+    def debug_context(self, match_found, match_x, match_y, context_slice):
+        """
+        Display a map showing the context where the matching happened.  It will also display where
+        minimap was matched.
 
-    def debug_minimap(self, minimap, match_found, color_diff, match_val, all_coords):
+        If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
+        otherwise the surrounding rectangle will be NO_MATCH_COLOR
+        """
+        context_thickness = 6
+
+        debug_zoomed = np.copy(self.map[context_slice])
+
+        cv2.rectangle(debug_zoomed,
+                      (match_x + context_thickness // 2, match_y + context_thickness // 2),
+                      (match_x + self.minimap_iter.size - context_thickness,
+                       match_y + self.minimap_iter.size - context_thickness),
+                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
+                      thickness=context_thickness)
+
+        cv2.imshow("context", debug_zoomed)
+        cv2.waitKey(10)
+
+    def debug_minimap(self, minimap, match_found, color_diff, match_val,
+                      world_coords):  # pylint: disable=too-many-arguments
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -102,79 +124,57 @@ class PUBGISMatch:
 
         If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
         otherwise the surrounding rectangle will be NO_MATCH_COLOR
-
-        :param minimap:
-        :param match_found:
-        :param color_diff:
-        :param match_val:
-        :param all_coords:
-        :return:
         """
-        # TODO: clean up this mess
-        (match_x, match_y), (over_x, over_y), (z_x, z_y, size) = all_coords
+        world_x, world_y = world_coords
 
-        mm_height, mm_width = minimap.shape[:2]
+        match_ind_thickness = 4
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
 
         cv2.rectangle(minimap,
-                      (0, 0),
-                      (mm_height, mm_width),
+                      (match_ind_thickness // 2, match_ind_thickness // 2),
+                      (self.minimap_iter.size - match_ind_thickness,
+                       self.minimap_iter.size - match_ind_thickness),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
-                      thickness=4)
-        # TODO: cropped map is in wrong place, need to scale back by MMAP_WIDTH/HEIGHT // 2
-        cv2.imshow("debug", np.concatenate((minimap,
-                                            self.map[over_y:over_y + mm_height,
-                                                     over_x:over_x + mm_width]),
-                                           axis=1))
+                      thickness=match_ind_thickness)
 
-        debug_zoomed = np.copy(self.map[z_y:z_y + size, z_x:z_x + size])
+        matched_minimap = self.map[world_y:world_y + self.minimap_iter.size,
+                          world_x:world_x + self.minimap_iter.size]
 
-        cv2.rectangle(debug_zoomed,
-                      (match_x, match_y),
-                      (match_x + mm_width, match_y + mm_height),
-                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
-                      thickness=10)
-
-        cv2.imshow("context", cv2.resize(debug_zoomed,
-                                         (0, 0),
-                                         fx=600 / size,
-                                         fy=600 / size))
+        cv2.imshow("debug", np.concatenate((minimap, matched_minimap), axis=1))
         cv2.waitKey(10)
 
-    def find_map_section(self, minimap, debug=True):  # pylint: disable=too-many-locals
+    def find_map_section(self, minimap):  # pylint: disable=too-many-locals
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
         The actual template matching is done by opencv, but there is additional checking that is
         done to ensure that the supplied minimap is actually
-
-        :param minimap:
-        :param debug:
-        :return:
         """
-        last_coord = self.all_coords[-1] if self.all_coords else None
-
-        if last_coord:
-            z_x, z_y, size = self.find_path_bounds([last_coord],
-                                                   crop_border=0,
-                                                   min_output_size=minimap.shape[0] * 3)
-            zoomed_gray_map = np.copy(self.gray_map[z_y:z_y + size, z_x:z_x + size])
+        if self.all_coords:
+            context_x, context_y, context_size = self.find_path_bounds(self.gray_map.shape[0]
+                                                                       [self.all_coords[-1]],
+                                                                       crop_border=0,
+                                                                       min_output_size=
+                                                                       minimap.shape[0] * 3)
+            # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
+            context_slice = (slice(context_y, context_y + context_size),
+                             slice(context_x, context_x + context_size))
         else:
-            z_x = z_y = 0
-            size = self.gray_map.shape[0]
-            zoomed_gray_map = np.copy(self.gray_map)
+            context_x = context_y = 0
+            context_slice = slice(None)
 
-        match = cv2.matchTemplate(zoomed_gray_map,
+        match = cv2.matchTemplate(self.gray_map[context_slice],
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
 
         # When using TM_CCOEFF_NORMED, the minimum of the output is the best match
         _, result, _, (match_x, match_y) = cv2.minMaxLoc(match)
-        best_x = match_x + z_x
-        best_y = match_y + z_y
-        coords = (best_x + minimap.shape[1] // 2, best_y + minimap.shape[0] // 2)
+        world_x = match_x + context_x
+        world_y = match_y + context_y
+        coords = (world_x + (self.minimap_iter.size // 2),
+                  world_y + (self.minimap_iter.size // 2))
 
         color_diff = Color.calculate_color_diff(minimap,
                                                 self.indicator_mask,
@@ -196,18 +196,16 @@ class PUBGISMatch:
         within_bounds = [color_diff > c_thresh and result > temp_thresh for c_thresh, temp_thresh in
                          zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
 
-        if any(within_bounds):
-            match_found = MatchResult.SUCCESSFUL
-        else:
-            match_found = MatchResult.OUT_OF_RANGE
+        match_found = MatchResult.SUCCESSFUL if any(within_bounds) else MatchResult.OUT_OF_RANGE
 
-        if debug:
-            self.debug_minimap(minimap, match_found, color_diff, result,
-                                      ((match_x, match_y), coords, (z_x, z_y, size)))
+        if self.debug:
+            self.debug_context(match_found, match_x, match_y, context_slice)
+            self.debug_minimap(minimap, match_found, color_diff, result, (world_x, world_y))
 
         return match_found, coords, color_diff, result
 
-    def find_path_bounds(self,  # pylint: disable=too-many-locals
+    @staticmethod
+    def find_path_bounds(map_size,  # pylint: disable=too-many-locals
                          coords,
                          crop_border=CROP_BORDER,
                          min_output_size=MIN_PROGRESS_MAP_SIZE):
@@ -222,8 +220,6 @@ class PUBGISMatch:
 
         :return: (x, y, height, width)
         """
-        map_size, _ = self.gray_map.shape
-
         if coords:
             x_list, y_list = zip(*coords)
 
@@ -265,11 +261,7 @@ class PUBGISMatch:
         return 0, 0, map_size
 
     def process_match(self):
-        """
-
-        :return:
-        """
-        for percent, minimap in self.minimap_iterator:
+        for percent, minimap in self.minimap_iter:
             match, coords, _, _ = self.find_map_section(minimap)
             if match == MatchResult.SUCCESSFUL:
                 if self.all_coords:
@@ -282,21 +274,17 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-            min_x, min_y, size = self.find_path_bounds(self.all_coords)
+            min_x, min_y, size = self.find_path_bounds(self.gray_map.shape[0], self.all_coords)
             yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
 
-    def create_output(self):
-        """
-
-        :return:
-        """
-        if self.output_file:
+    def create_output(self, output_file):
+        if output_file:
             fig, output_axis = plt.subplots(figsize=(20, 20))
             fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
             output_axis.imshow(cv2.cvtColor(self.map, cv2.COLOR_BGR2RGB))
-            min_x, min_y, size = self.find_path_bounds(self.all_coords)
+            min_x, min_y, size = self.find_path_bounds(self.gray_map.shape[0], self.all_coords)
             output_axis.axes.set_xlim(min_x, min_x + size)
             output_axis.axes.set_ylim(min_y + size, min_y)
 
@@ -304,4 +292,4 @@ class PUBGISMatch:
                                         scaling=Scaling.PERC,
                                         alpha=True)
             output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH)
-            fig.savefig(self.output_file)
+            fig.savefig(output_file)

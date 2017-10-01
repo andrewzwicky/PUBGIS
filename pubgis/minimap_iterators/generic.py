@@ -1,6 +1,10 @@
 from threading import RLock
 
-SUPPORTED_RESOLUTIONS = {(1920, 1080): (798, 1630, 251),
+SUPPORTED_RESOLUTIONS = {(1280, 720): (532, 1087, 167),
+                         (1366, 768): (568, 1158, 178),
+                         (1600, 900): (665, 1358, 209),
+                         (1680, 1050): (776, 1398, 244),
+                         (1920, 1080): (798, 1630, 251),
                          (2560, 1440): (1064, 2173, 335)}
 
 
@@ -8,7 +12,7 @@ class GenericIterator:
     def __init__(self):
         self.stop_requested = False
         self._lock = RLock()
-        self.minimap_size = None
+        self.size = None
 
     def stop(self):
         with self._lock:
@@ -21,9 +25,9 @@ class GenericIterator:
     def get_minimap_bounds(self, width, height):
         try:
             x_offset, y_offset, size = SUPPORTED_RESOLUTIONS[(width, height)]
-            self.minimap_size = size
-            minimap_slice = (slice(x_offset, x_offset + self.minimap_size),
-                             slice(y_offset, y_offset + self.minimap_size))
+            self.size = size
+            minimap_slice = (slice(x_offset, x_offset + self.size),
+                             slice(y_offset, y_offset + self.size))
 
             return minimap_slice
         except KeyError:

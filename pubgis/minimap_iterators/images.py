@@ -17,11 +17,10 @@ class ImageIterator(GenericIterator):
         first_image = cv2.imread(images[0])
 
         if self.just_minimaps:
-            self.frame_index = None
-            self.minimap_size = first_image.shape[0]
+            self.frame_index = slice(None)
+            self.size = first_image.shape[0]
         else:
             self.frame_index = self.get_minimap_bounds(*first_image.shape[0:2][::-1])
-            self.minimap_size = first_image[self.frame_index].shape[0]
 
     def __iter__(self):
         return self
@@ -32,7 +31,4 @@ class ImageIterator(GenericIterator):
         with self._lock:
             img_path = next(self.images)
             self.count += 1
-            if self.just_minimaps:
-                return self.count * 100 / self.total, cv2.imread(img_path)
-            else:
-                return self.count * 100 / self.total, cv2.imread(img_path)[self.frame_index]
+            return self.count * 100 / self.total, cv2.imread(img_path)[self.frame_index]

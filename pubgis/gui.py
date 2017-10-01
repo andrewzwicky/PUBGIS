@@ -32,7 +32,6 @@ class PUBGISWorkerThread(QThread):
         self.percent_update.emit(0)
 
         match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
-                            output_file=self.output_file,
                             path_color=self.path_color)
 
         self.minimap_update.emit(match.map)
@@ -50,7 +49,7 @@ class PUBGISWorkerThread(QThread):
             self.percent_max_update.emit(100)
 
         self.percent_update.emit(100)
-        match.create_output()
+        match.create_output(self.output_file)
 
 
 class PUBGISMainWindow(QMainWindow):

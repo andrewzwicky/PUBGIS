@@ -43,4 +43,4 @@ CASES = [
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("input_coords, expected_bounds", CASES)
 def test_find_path_bounds(input_coords, expected_bounds):
-    assert PUBGISMatch.find_path_bounds(input_coords) == expected_bounds
+    assert PUBGISMatch.find_path_bounds(5079, input_coords) == expected_bounds

@@ -10,6 +10,7 @@ import pytest
 from matplotlib import pyplot as plt
 
 from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS
+from pubgis.minimap_iterators.images import ImageIterator
 
 plt.switch_backend('Agg')
 
@@ -22,8 +23,15 @@ GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
 
 
 @pytest.fixture(scope='module')
-def match_fixture():
-    return PUBGISMatch()
+def bad_match_fixture():
+    bad_iter = ImageIterator(BAD_IMAGES_FOLDER, just_minimaps=True)
+    return PUBGISMatch(minimap_iterator=bad_iter)
+
+
+@pytest.fixture(scope='module')
+def good_match_fixture():
+    good_iter = ImageIterator(GOOD_IMAGES_FOLDER, just_minimaps=True)
+    return PUBGISMatch(minimap_iterator=good_iter)
 
 
 @pytest.fixture(scope='module')
@@ -55,31 +63,31 @@ def template_match_plot_axes():
 
 
 @pytest.fixture(scope='module')
-def map_coverage_axes():
+def map_coverage_axes(good_match_fixture):
     fig, axis = plt.subplots(figsize=(10, 10))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
     axis.axes.xaxis.set_visible(False)
     axis.axes.yaxis.set_visible(False)
-    axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
+    axis.imshow(cv2.cvtColor(good_match_fixture.map, cv2.COLOR_BGR2RGB))
     yield axis
     fig.savefig("map_coverage.png")
 
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
-def test_bad_images(test_image, match_fixture, template_match_plot_axes):
+def test_bad_images(test_image, bad_match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
-    match_found, (_, _), color_diff, result = match_fixture.find_map_section(img)
+    match_found, (_, _), color_diff, result = bad_match_fixture.find_map_section(img)
     template_match_plot_axes.append((color_diff, result, 'r'))
     assert match_found != MatchResult.SUCCESSFUL
 
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
-def test_good_images(test_image, match_fixture, template_match_plot_axes, map_coverage_axes):
+def test_good_images(test_image, good_match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
     img_height, img_width = img.shape[:2]
-    match_found, (f_x, f_y), color_diff, result = match_fixture.find_map_section(img)
+    match_found, (f_x, f_y), color_diff, result = good_match_fixture.find_map_section(img)
     template_match_plot_axes.append((color_diff, result, 'g'))
     map_coverage_axes.add_patch(Rectangle((f_x - (img_width // 2), f_y - (img_height // 2)),
                                           img_width,
