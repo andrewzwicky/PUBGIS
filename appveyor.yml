@@ -23,7 +23,7 @@ install:
   - "%PYTHON%\\python --version"
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
-  - "%PIP% install twine pytest pyinstaller wheel"
+  - "%PIP% install twine pytest pyinstaller wheel pylint"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PIP% install ."
 
