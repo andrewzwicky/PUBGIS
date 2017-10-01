@@ -43,22 +43,25 @@ DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
 
 
 class PUBGISMatch:
-    map = cv2.imread(join(IMAGES, "full_map_scaled.jpg"))
-    gray_map = cv2.cvtColor(map, cv2.COLOR_BGR2GRAY)
-    assert gray_map.shape[0] == gray_map.shape[1]
-
     def __init__(self,
                  minimap_iterator=None,
                  output_file=None,
                  path_color=DEFAULT_PATH_COLOR,
                  debug=False):
         self.minimap_iterator = minimap_iterator
-        self.preview_map = np.copy(PUBGISMatch.map)
+
         self.debug = debug
         self.output_file = output_file
         self.path_color = path_color
         self.all_coords = []
 
+        full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
+        self.map = cv2.resize(full_map,
+                              (0, 0),
+                              fx=self.minimap_iterator.minimap_size / 407,
+                              fy=self.minimap_iterator.minimap_size / 407)
+        self.gray_map = cv2.cvtColor(self.map, cv2.COLOR_BGR2GRAY)
+        self.preview_map = np.copy(self.map)
 
         _, self.indicator_mask = cv2.threshold(self.create_mask(self.minimap_iterator.minimap_size),
                       10,
@@ -89,8 +92,8 @@ class PUBGISMatch:
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 0, thickness=1)
         return mask
 
-    @staticmethod
-    def debug_minimap(minimap, match_found, color_diff, match_val, all_coords):
+
+    def debug_minimap(self, minimap, match_found, color_diff, match_val, all_coords):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -122,17 +125,17 @@ class PUBGISMatch:
                       thickness=4)
         # TODO: cropped map is in wrong place, need to scale back by MMAP_WIDTH/HEIGHT // 2
         cv2.imshow("debug", np.concatenate((minimap,
-                                            PUBGISMatch.map[over_y:over_y + mm_height,
-                                                            over_x:over_x + mm_width]),
+                                            self.map[over_y:over_y + mm_height,
+                                                     over_x:over_x + mm_width]),
                                            axis=1))
 
-        debug_zoomed = np.copy(PUBGISMatch.map[z_y:z_y + size, z_x:z_x + size])
+        debug_zoomed = np.copy(self.map[z_y:z_y + size, z_x:z_x + size])
 
         cv2.rectangle(debug_zoomed,
                       (match_x, match_y),
                       (match_x + mm_width, match_y + mm_height),
                       MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
-                      thickness=4)
+                      thickness=10)
 
         cv2.imshow("context", cv2.resize(debug_zoomed,
                                          (0, 0),
@@ -154,14 +157,14 @@ class PUBGISMatch:
         last_coord = self.all_coords[-1] if self.all_coords else None
 
         if last_coord:
-            z_x, z_y, size = PUBGISMatch.find_path_bounds([last_coord],
-                                                          crop_border=0,
-                                                          min_output_size=minimap.shape[0] * 3)
-            zoomed_gray_map = np.copy(PUBGISMatch.gray_map[z_y:z_y + size, z_x:z_x + size])
+            z_x, z_y, size = self.find_path_bounds([last_coord],
+                                                   crop_border=0,
+                                                   min_output_size=minimap.shape[0] * 3)
+            zoomed_gray_map = np.copy(self.gray_map[z_y:z_y + size, z_x:z_x + size])
         else:
             z_x = z_y = 0
-            size = PUBGISMatch.gray_map.shape[0]
-            zoomed_gray_map = np.copy(PUBGISMatch.gray_map)
+            size = self.gray_map.shape[0]
+            zoomed_gray_map = np.copy(self.gray_map)
 
         match = cv2.matchTemplate(zoomed_gray_map,
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
@@ -199,13 +202,13 @@ class PUBGISMatch:
             match_found = MatchResult.OUT_OF_RANGE
 
         if debug:
-            PUBGISMatch.debug_minimap(minimap, match_found, color_diff, result,
+            self.debug_minimap(minimap, match_found, color_diff, result,
                                       ((match_x, match_y), coords, (z_x, z_y, size)))
 
         return match_found, coords, color_diff, result
 
-    @staticmethod
-    def find_path_bounds(coords,  # pylint: disable=too-many-locals
+    def find_path_bounds(self,  # pylint: disable=too-many-locals
+                         coords,
                          crop_border=CROP_BORDER,
                          min_output_size=MIN_PROGRESS_MAP_SIZE):
         """
@@ -219,7 +222,7 @@ class PUBGISMatch:
 
         :return: (x, y, height, width)
         """
-        map_size, _ = PUBGISMatch.gray_map.shape
+        map_size, _ = self.gray_map.shape
 
         if coords:
             x_list, y_list = zip(*coords)
@@ -279,7 +282,7 @@ class PUBGISMatch:
 
                 self.all_coords.append(coords)
 
-            min_x, min_y, size = PUBGISMatch.find_path_bounds(self.all_coords)
+            min_x, min_y, size = self.find_path_bounds(self.all_coords)
             yield percent, self.preview_map[min_y:min_y + size, min_x:min_x + size]
 
     def create_output(self):
@@ -292,7 +295,7 @@ class PUBGISMatch:
             fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
             output_axis.axes.xaxis.set_visible(False)
             output_axis.axes.yaxis.set_visible(False)
-            output_axis.imshow(cv2.cvtColor(PUBGISMatch.map, cv2.COLOR_BGR2RGB))
+            output_axis.imshow(cv2.cvtColor(self.map, cv2.COLOR_BGR2RGB))
             min_x, min_y, size = self.find_path_bounds(self.all_coords)
             output_axis.axes.set_xlim(min_x, min_x + size)
             output_axis.axes.set_ylim(min_y + size, min_y)

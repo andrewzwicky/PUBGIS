@@ -35,7 +35,7 @@ class PUBGISWorkerThread(QThread):
                             output_file=self.output_file,
                             path_color=self.path_color)
 
-        self.minimap_update.emit(PUBGISMatch.map)
+        self.minimap_update.emit(match.map)
 
         for percent, progress_minimap in match.process_match():
             if percent is not None:
