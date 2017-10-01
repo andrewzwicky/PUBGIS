@@ -20,7 +20,6 @@ setup(name='PUBGIS',
                         'opencv-python>=3.0',
                         'mss>=3.0.1',
                         'Pillow>=4.2.1',
-                        'pytest>=3.2.2'
                         ],
       classifiers=[
           'Development Status :: 3 - Alpha',
