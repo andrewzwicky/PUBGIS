@@ -25,10 +25,9 @@ install:
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
   - "%PIP% install twine pytest pyinstaller wheel"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "%PIP% install -r requirements.txt"
+  - "%PYTHON%\\python setup.py install"
 
 build_script:
-  - "%PYTHON%\\python setup.py install"
   - "pyinstaller pubgis_main.spec --onefile --clean -y"
   - "%PYTHON%\\python setup.py sdist"
 
