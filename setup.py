@@ -18,7 +18,6 @@ setup(name='PUBGIS',
                         'numpy>=1.13.0+mkl',
                         'PyQt5>=5.9',
                         'opencv-python>=3.0',
-                        'pylint>=1.7.2',
                         'mss>=3.0.1',
                         'Pillow>=4.2.1',
                         'pytest>=3.2.2'
