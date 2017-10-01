@@ -1,4 +1,5 @@
 from distutils.core import setup
+from setuptools import find_packages
 
 setup(name='PUBGIS',
       version='0.1.4',
@@ -7,7 +8,7 @@ setup(name='PUBGIS',
       author_email='andrew.zwicky@gmail.com',
       license='GPLv3',
       url='https://github.com/andrewzwicky/PUBGIS',
-      packages=['pubgis'],
+      packages=find_packages(),
       package_dir={'pubgis': 'pubgis'},
       package_data={'pubgis': ['images/*.jpg']},
       python_requires='>=3.6',
