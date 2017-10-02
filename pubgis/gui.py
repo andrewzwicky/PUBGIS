@@ -1,4 +1,6 @@
 import os
+import collections
+from datetime import datetime
 from threading import RLock
 
 import cv2
@@ -68,6 +70,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
+        self.output_directory_browse_button.clicked.connect(self._select_output_directory)
         self.tabWidget.currentChanged.connect(self._parse_available_monitors)
         self.monitor_combo.currentIndexChanged.connect(self._update_monitor_preview)
         self.thickness_spinbox.valueChanged.connect(self.update_path_color_preview)
@@ -87,6 +90,8 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
 
+        self._set_output_directory(self.last_output_file_directory)
+
         self.setWindowTitle("PUBGIS")
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),
                                               "images",
@@ -99,16 +104,23 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
 
         self.setAcceptDrops(True)
 
+        self.auto_naming_option_checkbox.stateChanged.connect(self.auto_naming_checkbox_clicked)
+
+        self.control_states = collections.defaultdict(lambda: True)
+
         self.buttons = {'preprocess': [self.video_file_browse_button,
                                        self.output_file_browse_button,
+                                       self.output_directory_browse_button,
                                        self.color_select_button,
                                        self.process_button,
                                        self.time_step,
                                        self.landing_time,
                                        self.death_time,
                                        self.output_file_edit,
+                                       self.output_directory_edit,
                                        self.video_file_edit,
                                        self.tabWidget,
+                                       self.auto_naming_option_checkbox,
                                        self.thickness_spinbox],
                         'during': [self.cancel_button]}
 
@@ -158,20 +170,35 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.last_video_file_directory = os.path.dirname(fname)
         self.video_file_edit.setText(fname)
 
-        if os.path.exists(fname):
-            self.output_file_edit.setText(os.path.join(os.path.dirname(fname),
-                                                       os.path.splitext(fname)[0] + '.jpg'))
+        if (os.path.exists(fname)
+                and self.auto_naming_option_checkbox.checkState() != QtCore.Qt.Checked):
+            self._set_output_file(os.path.join(self.last_output_file_directory,
+                                               os.path.splitext(os.path.split(fname)[1])[0]
+                                               + '.jpg'))
 
     def _select_video_file(self):
         fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
                                                filter="Videos (*.mp4)")
         self._set_video_file(fname)
 
+    def _set_output_file(self, fname):
+        if os.path.exists(os.path.dirname(fname)):
+            self._set_output_directory(os.path.dirname(fname))
+        self.output_file_edit.setText(fname)
+
     def _select_output_file(self):
         fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_directory,
                                                filter="Images (*.jpg)")
-        self.last_output_file_directory = os.path.dirname(fname)
-        self.output_file_edit.setText(fname)
+        self._set_output_file(fname)
+
+    def _set_output_directory(self, dname):
+        self.last_output_file_directory = dname
+        self.output_directory_edit.setText(dname)
+
+    def _select_output_directory(self):
+        dname = QFileDialog.getExistingDirectory(directory=self.last_output_file_directory,
+                                                 options=QFileDialog.ShowDirsOnly)
+        self._set_output_directory(dname)
 
     def _parse_available_monitors(self, mon_combo_index):
         if mon_combo_index == 1 and self.monitor_combo.count() == 0:
@@ -249,17 +276,32 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
 
     def disable_selection_buttons(self):
         for control in self.buttons['preprocess']:
+            self.control_states[control] = control.isEnabled()
             control.setEnabled(False)
         for control in self.buttons['during']:
             control.setEnabled(True)
 
     def enable_selection_buttons(self):
         for control in self.buttons['preprocess']:
-            control.setEnabled(True)
+            control.setEnabled(self.control_states[control])
         for control in self.buttons['during']:
             control.setEnabled(False)
 
+    def auto_naming_checkbox_clicked(self, state):
+        self.output_file_edit.clear()
+        if state == QtCore.Qt.Checked:
+            self.output_file_edit.setDisabled(True)
+            self.output_file_browse_button.setDisabled(True)
+        else:
+            self.output_file_edit.setEnabled(True)
+            self.output_file_browse_button.setEnabled(True)
+
     def process_match(self):
+        if self.auto_naming_option_checkbox.checkState() == QtCore.Qt.Checked:
+            self._set_output_file(os.path.join(self.last_output_file_directory,
+                                               "pubgis_map."
+                                               + datetime.now().strftime("%m.%d.%Y.%H.%M.%S")
+                                               + ".jpg"))
         map_iter = None
 
         try:
