@@ -9,11 +9,13 @@ from PyQt5.QtCore import QThread, QTime, Qt, QRectF
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
-from pubgis.color import Color, Space, Scaling
+from pubgis.color import Color, Scaling
 from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
+
+PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
 
 class PUBGISWorkerThread(QThread):
@@ -21,18 +23,21 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
 
-    def __init__(self, parent, minimap_iterator, output_file, path_color):
+    def __init__(self,  # pylint: disable=too-many-arguments
+                 parent, minimap_iterator, output_file, path_color, path_thickness):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
         self.path_color = path_color
+        self.path_thickness = path_thickness
 
     def run(self):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
         match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
-                            path_color=self.path_color)
+                            path_color=self.path_color,
+                            path_thickness=self.path_thickness)
 
         self.minimap_update.emit(match.map)
 
@@ -52,7 +57,7 @@ class PUBGISWorkerThread(QThread):
         match.create_output(self.output_file)
 
 
-class PUBGISMainWindow(QMainWindow):
+class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attributes
     changed_percent = QtCore.pyqtSignal(int)
     update_minimap = QtCore.pyqtSignal(QImage)
 
@@ -65,12 +70,19 @@ class PUBGISMainWindow(QMainWindow):
         self.output_file_browse_button.clicked.connect(self._select_output_file)
         self.tabWidget.currentChanged.connect(self._parse_available_monitors)
         self.monitor_combo.currentIndexChanged.connect(self._update_monitor_preview)
+        self.thickness_spinbox.valueChanged.connect(self.update_path_color_preview)
+
+        self.path_preview_image = cv2.imread(os.path.join(os.path.dirname(__file__),
+                                                          "images",
+                                                          "path_preview_minimap.jpg"))
 
         self.map_creation_view.setScene(QGraphicsScene())
         self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
 
+        self.path_preview_view.setScene(QGraphicsScene())
+        self.path_pixmap = self.path_preview_view.scene().addPixmap(QPixmap())
+
         self.path_color = DEFAULT_PATH_COLOR
-        self.update_path_color_preview()
 
         self.last_video_file_directory = os.path.expanduser('~')
         self.last_output_file_directory = os.path.expanduser('~')
@@ -96,12 +108,14 @@ class PUBGISMainWindow(QMainWindow):
                                        self.death_time,
                                        self.output_file_edit,
                                        self.video_file_edit,
-                                       self.tabWidget],
+                                       self.tabWidget,
+                                       self.thickness_spinbox],
                         'during': [self.cancel_button]}
 
         self.enable_selection_buttons()
 
         self.show()
+        self.update_path_color_preview()
 
     # pylint: disable=line-too-long
     # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
@@ -195,8 +209,22 @@ class PUBGISMainWindow(QMainWindow):
         self.update_path_color_preview()
 
     def update_path_color_preview(self):
-        style = "background-color:rgb({},{},{})".format(*self.path_color(space=Space.RGB))
-        self.path_color_preview.setStyleSheet(style)
+        img = np.copy(self.path_preview_image)
+        for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
+            cv2.line(img,
+                     start,
+                     end,
+                     color=self.path_color(),
+                     thickness=self.thickness_spinbox.value(),
+                     lineType=cv2.LINE_AA)
+        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        height, width, _ = img2.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        # noinspection PyCallByClass
+        self.path_pixmap.setPixmap(QPixmap.fromImage(qimg))
+        self.fit_in_view(self.path_preview_view,
+                         self.path_preview_view.scene().itemsBoundingRect())
 
     def update_map_preview(self, minimap):
         self.preview_lock.acquire()
@@ -257,7 +285,8 @@ class PUBGISMainWindow(QMainWindow):
             match_thread = PUBGISWorkerThread(self,
                                               minimap_iterator=map_iter,
                                               output_file=self.output_file_edit.text(),
-                                              path_color=self.path_color)
+                                              path_color=self.path_color,
+                                              path_thickness=self.thickness_spinbox.value())
             match_thread.percent_update.connect(self.update_pbar_value)
             match_thread.percent_max_update.connect(self.update_pbar_max)
             match_thread.minimap_update.connect(self.update_map_preview)

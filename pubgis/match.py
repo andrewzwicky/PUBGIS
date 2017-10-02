@@ -37,6 +37,7 @@ MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
 WHITE = Color(mpl_colors.to_rgb("White"))
 
 DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
+DEFAULT_PATH_THICKNESS = 2
 
 
 # when indexing an image the format is image[y,x]
@@ -47,11 +48,13 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  minimap_iterator=None,
                  path_color=DEFAULT_PATH_COLOR,
+                 path_thickness=DEFAULT_PATH_THICKNESS,
                  debug=False):
         self.minimap_iter = minimap_iterator
         self.debug = debug
 
         self.path_color = path_color
+        self.path_thickness = path_thickness
         self.all_coords = []
 
         full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
@@ -273,7 +276,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                              self.all_coords[-1],
                              coords,
                              color=self.path_color(),
-                             thickness=PATH_WIDTH,
+                             thickness=self.path_thickness,
                              lineType=cv2.LINE_AA)
 
                 self.all_coords.append(coords)
@@ -297,5 +300,5 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
             mpl_color = self.path_color(space=Space.RGB,
                                         scaling=Scaling.PERC,
                                         alpha=True)
-            output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=PATH_WIDTH)
+            output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=self.path_thickness)
             fig.savefig(output_file)

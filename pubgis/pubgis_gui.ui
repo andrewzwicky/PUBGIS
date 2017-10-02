@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>530</width>
-    <height>769</height>
+    <height>872</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -87,6 +87,16 @@
         <item>
          <widget class="QWidget" name="widget_3" native="true">
           <layout class="QGridLayout" name="gridLayout_3">
+           <item row="1" column="7">
+            <widget class="QPushButton" name="video_file_browse_button">
+             <property name="text">
+              <string>Browse</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3" colspan="4">
+            <widget class="QLineEdit" name="video_file_edit"/>
+           </item>
            <item row="2" column="3">
             <widget class="QTimeEdit" name="landing_time">
              <property name="displayFormat">
@@ -110,20 +120,10 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="7">
-            <widget class="QPushButton" name="video_file_browse_button">
+           <item row="1" column="2">
+            <widget class="QLabel" name="video_file_label">
              <property name="text">
-              <string>Browse</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="3" colspan="4">
-            <widget class="QLineEdit" name="video_file_edit"/>
-           </item>
-           <item row="2" column="2">
-            <widget class="QLabel" name="image_label_2">
-             <property name="text">
-              <string>Landing Time</string>
+              <string>Video</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -140,10 +140,10 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="2">
-            <widget class="QLabel" name="video_file_label">
+           <item row="2" column="2">
+            <widget class="QLabel" name="image_label_2">
              <property name="text">
-              <string>Video</string>
+              <string>Landing Time</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -232,83 +232,126 @@
     <item>
      <widget class="QWidget" name="widget_2" native="true">
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="3" column="2">
-        <widget class="QLabel" name="path_color_label">
-         <property name="text">
-          <string>Path Color</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
+       <item row="3" column="3">
+        <widget class="QWidget" name="widget_5" native="true">
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="4" column="1">
+           <widget class="QComboBox" name="time_step">
+            <item>
+             <property name="text">
+              <string>0.25</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>0.5</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>1</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>2</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>5</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="image_label_4">
+            <property name="text">
+             <string>Time Step</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Path Thickness</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QPushButton" name="color_select_button">
+            <property name="text">
+             <string>Change Path Color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="thickness_spinbox">
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::UpDownArrows</enum>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>2</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
-       <item row="3" column="8">
-        <widget class="QPushButton" name="cancel_button">
-         <property name="text">
-          <string>Stop</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="4">
-        <widget class="QPushButton" name="color_select_button">
-         <property name="text">
-          <string>Change Color</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="7">
+       <item row="3" column="6">
         <widget class="QPushButton" name="process_button">
          <property name="text">
           <string>Process</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="3">
-        <widget class="QLabel" name="path_color_preview">
-         <property name="autoFillBackground">
-          <bool>true</bool>
+       <item row="3" column="2">
+        <widget class="QGraphicsView" name="path_preview_view">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <property name="text">
-          <string/>
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="verticalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="interactive">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QComboBox" name="time_step">
-         <item>
-          <property name="text">
-           <string>0.25</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>0.5</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>1</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>2</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>5</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="image_label_4">
+       <item row="3" column="7">
+        <widget class="QPushButton" name="cancel_button">
          <property name="text">
-          <string>Time Step</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          <string>Stop</string>
          </property>
         </widget>
        </item>
