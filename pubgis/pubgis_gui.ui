@@ -226,6 +226,30 @@
        <item row="0" column="2">
         <widget class="QLineEdit" name="output_file_edit"/>
        </item>
+       <item row="1" column="3">
+        <widget class="QPushButton" name="output_directory_browse_button">
+         <property name="text">
+          <string>Browse</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="output_directory_label">
+         <property name="text">
+          <string>Output Directory</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLineEdit" name="output_directory_edit"/>
+       </item>
+       <item row="2" column="1">
+        <widget class="QCheckBox" name="auto_naming_option_checkbox">
+         <property name="text">
+          <string>Auto Naming</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
