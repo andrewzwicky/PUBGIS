@@ -170,9 +170,11 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.last_video_file_directory = os.path.dirname(fname)
         self.video_file_edit.setText(fname)
 
-        if os.path.exists(fname) and self.auto_naming_option_checkbox.checkState() != QtCore.Qt.Checked:
+        if (os.path.exists(fname)
+                and self.auto_naming_option_checkbox.checkState() != QtCore.Qt.Checked):
             self._set_output_file(os.path.join(self.last_output_file_directory,
-                                  os.path.splitext(os.path.split(fname)[1])[0] + '.jpg'))
+                                               os.path.splitext(os.path.split(fname)[1])[0]
+                                               + '.jpg'))
 
     def _select_video_file(self):
         fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
@@ -297,9 +299,9 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
     def process_match(self):
         if self.auto_naming_option_checkbox.checkState() == QtCore.Qt.Checked:
             self._set_output_file(os.path.join(self.last_output_file_directory,
-                                  "pubgis_map."
-                                   + datetime.now().strftime("%m.%d.%Y.%H.%M.%S")
-                                   + ".jpg"))
+                                               "pubgis_map."
+                                               + datetime.now().strftime("%m.%d.%Y.%H.%M.%S")
+                                               + ".jpg"))
         map_iter = None
 
         try:
