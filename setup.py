@@ -2,7 +2,7 @@ from distutils.core import setup
 from setuptools import find_packages
 
 setup(name='PUBGIS',
-      version='0.1.6',
+      version='0.1.7',
       description='PUBG Location Tracker',
       author='Andrew Zwicky',
       author_email='andrew.zwicky@gmail.com',
@@ -11,7 +11,7 @@ setup(name='PUBGIS',
       packages=['pubgis', 'pubgis.minimap_iterators'],
       package_dir={'pubgis': 'pubgis',
                    'pubgis.minimap_iterators': 'pubgis/minimap_iterators'},
-      package_data={'pubgis': ['images/*.jpg'],
+      package_data={'pubgis': ['images/*.jpg', '*.ui'],
                     '': ['LICENSE', 'README.md']},
       python_requires='>=3.6',
       install_requires=['matplotlib>=2.0.2',
