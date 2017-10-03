@@ -153,9 +153,9 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
 
         # noinspection PyCallByClass
         pixmap.setPixmap(QPixmap.fromImage(qimg))
-        PUBGISMainWindow.fit_in_view(view,
-                                     view.scene().itemsBoundingRect(),
-                                     flags=Qt.KeepAspectRatio)
+        PUBGISMainWindow._fit_in_view(view,
+                                      view.scene().itemsBoundingRect(),
+                                      flags=Qt.KeepAspectRatio)
 
     @staticmethod
     def generate_output_file_name():
@@ -168,7 +168,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
     # MIT License
     # override arbitrary and unwanted margins: https://bugreports.qt.io/browse/QTBUG-42331
     @staticmethod
-    def fit_in_view(view, rect, flags=Qt.IgnoreAspectRatio):
+    def _fit_in_view(view, rect, flags=Qt.IgnoreAspectRatio):
         if view.scene() is None or rect.isNull():
             return
         view.last_scene_roi = rect
@@ -309,6 +309,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
 
     def process_match(self):
         map_iter = None
+        output_file = None
 
         try:
             if self.tabWidget.currentIndex() == ProcessMode.VIDEO:
