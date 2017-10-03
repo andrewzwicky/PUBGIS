@@ -1,4 +1,3 @@
-import collections
 import os
 from datetime import datetime
 from enum import IntEnum, Flag, auto
