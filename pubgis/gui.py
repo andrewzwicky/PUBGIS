@@ -1,13 +1,13 @@
-import os
 import collections
+import os
 from datetime import datetime
-from threading import RLock
+from enum import IntEnum, Flag, auto
 
 import cv2
 import mss
 import numpy as np
 from PyQt5 import QtCore, uic
-from PyQt5.QtCore import QThread, QTime, Qt, QRectF
+from PyQt5.QtCore import QThread, QTime, Qt, QRectF, QDir
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
@@ -18,6 +18,16 @@ from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
+
+
+class ProcessMode(IntEnum):
+    VIDEO = 0
+    LIVE = 1
+
+
+class ButtonGroups(Flag):
+    PREPROCESS = auto()
+    PROCESSING = auto()
 
 
 class PUBGISWorkerThread(QThread):
@@ -66,68 +76,91 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
     def __init__(self):
         super().__init__()
         uic.loadUi(os.path.join(os.path.dirname(__file__), "pubgis_gui.ui"), self)
-        self.color_select_button.released.connect(self.select_background_color)
+
+        # connect buttons to functions
+        self.color_select_button.released.connect(self._select_background_color)
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
         self.output_directory_browse_button.clicked.connect(self._select_output_directory)
         self.tabWidget.currentChanged.connect(self._parse_available_monitors)
         self.monitor_combo.currentIndexChanged.connect(self._update_monitor_preview)
-        self.thickness_spinbox.valueChanged.connect(self.update_path_color_preview)
+        self.thickness_spinbox.valueChanged.connect(self._update_path_color_preview)
 
+        # prepare path preview
+        self.path_color = DEFAULT_PATH_COLOR
         self.path_preview_image = cv2.imread(os.path.join(os.path.dirname(__file__),
                                                           "images",
                                                           "path_preview_minimap.jpg"))
-
-        self.map_creation_view.setScene(QGraphicsScene())
-        self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
-
         self.path_preview_view.setScene(QGraphicsScene())
         self.path_pixmap = self.path_preview_view.scene().addPixmap(QPixmap())
 
-        self.path_color = DEFAULT_PATH_COLOR
+        # prepare map preview
+        self.map_creation_view.setScene(QGraphicsScene())
+        self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
 
-        self.last_video_file_directory = os.path.expanduser('~')
-        self.last_output_file_directory = os.path.expanduser('~')
-
-        self._set_output_directory(self.last_output_file_directory)
-
+        # set window name and icon
         self.setWindowTitle("PUBGIS")
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),
                                               "images",
                                               "icons",
                                               "navigation.png")))
 
-        self.preview_lock = RLock()
-        self.progress_bar_lock = RLock()
-        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
+        # initialize default directories
+        self.last_video_file_dir = PUBGISMainWindow._get_starting_directory()
+        self.last_output_file_dir = PUBGISMainWindow._get_starting_directory()
+        self.last_output_live_dir = PUBGISMainWindow._get_starting_directory()
 
-        self.setAcceptDrops(True)
-
-        self.auto_naming_option_checkbox.stateChanged.connect(self.auto_naming_checkbox_clicked)
-
+        self._set_output_directory(self.last_output_file_dir)
         self.control_states = collections.defaultdict(lambda: True)
 
-        self.buttons = {'preprocess': [self.video_file_browse_button,
-                                       self.output_file_browse_button,
-                                       self.output_directory_browse_button,
-                                       self.color_select_button,
-                                       self.process_button,
-                                       self.time_step,
-                                       self.landing_time,
-                                       self.death_time,
-                                       self.output_file_edit,
-                                       self.output_directory_edit,
-                                       self.video_file_edit,
-                                       self.tabWidget,
-                                       self.auto_naming_option_checkbox,
-                                       self.thickness_spinbox],
-                        'during': [self.cancel_button]}
+        # This is the list of buttons and when they should be active.
+        self.buttons = {ButtonGroups.PREPROCESS:
+                            [self.video_file_browse_button,
+                             self.output_file_browse_button,
+                             self.output_directory_browse_button,
+                             self.color_select_button,
+                             self.process_button,
+                             self.time_step,
+                             self.landing_time,
+                             self.death_time,
+                             self.output_file_edit,
+                             self.output_directory_edit,
+                             self.video_file_edit,
+                             self.tabWidget,
+                             self.thickness_spinbox],
+                        ButtonGroups.PROCESSING: [self.cancel_button]}
 
-        self.enable_selection_buttons()
+        self._update_button_state(ButtonGroups.PREPROCESS)
 
         self.show()
-        self.update_path_color_preview()
+        self._update_path_color_preview()
+
+    @staticmethod
+    def _get_starting_directory():
+        user_dir = os.path.expanduser('~')
+        desktop = os.path.join(user_dir, "Desktop")
+        if os.path.exists(desktop):
+            return desktop
+
+        return user_dir
+
+    @staticmethod
+    def _update_view_with_image(view, pixmap, image_array):
+        image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
+        height, width, _ = image.shape
+        bytes_per_line = 3 * width
+        qimg = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
+
+        # noinspection PyCallByClass
+        pixmap.setPixmap(QPixmap.fromImage(qimg))
+        PUBGISMainWindow.fit_in_view(view,
+                                     view.scene().itemsBoundingRect(),
+                                     flags=Qt.KeepAspectRatio)
+
+    @staticmethod
+    def generate_output_file_name():
+        return "pubgis_{}.jpg".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
     # pylint: disable=line-too-long
     # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
@@ -166,37 +199,46 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
             fname = event.mimeData().urls()[0].toLocalFile()
             self._set_video_file(fname)
 
-    def _set_video_file(self, fname):
-        self.last_video_file_directory = os.path.dirname(fname)
-        self.video_file_edit.setText(fname)
+    # VIDEO SECTION
 
-        if (os.path.exists(fname)
-                and self.auto_naming_option_checkbox.checkState() != QtCore.Qt.Checked):
-            self._set_output_file(os.path.join(self.last_output_file_directory,
-                                               os.path.splitext(os.path.split(fname)[1])[0]
-                                               + '.jpg'))
+    def _set_video_file(self, fname):
+        """
+        Given a video file name, set the video_file_edit text to this file name and
+        auto-fill the output file name as well.
+        """
+        if fname:
+            self.last_video_file_dir = os.path.dirname(fname)
+            self.video_file_edit.setText(QDir.toNativeSeparators(fname))
+
+            video_filename, _ = os.path.splitext(os.path.basename(fname))
+
+            self._set_output_file(os.path.join(self.last_output_file_dir,
+                                               f"{video_filename}.jpg"))
 
     def _select_video_file(self):
-        fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_directory,
+        fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_dir,
                                                filter="Videos (*.mp4)")
         self._set_video_file(fname)
 
     def _set_output_file(self, fname):
-        if os.path.exists(os.path.dirname(fname)):
-            self._set_output_directory(os.path.dirname(fname))
-        self.output_file_edit.setText(fname)
+        if fname:
+            self.last_output_file_dir = os.path.dirname(fname)
+            self.output_file_edit.setText(QDir.toNativeSeparators(fname))
 
     def _select_output_file(self):
-        fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_directory,
+        fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_dir,
                                                filter="Images (*.jpg)")
         self._set_output_file(fname)
 
+    # LIVE SECTION
+
     def _set_output_directory(self, dname):
-        self.last_output_file_directory = dname
-        self.output_directory_edit.setText(dname)
+        if dname:
+            self.last_output_live_dir = dname
+            self.output_directory_edit.setText(QDir.toNativeSeparators(dname))
 
     def _select_output_directory(self):
-        dname = QFileDialog.getExistingDirectory(directory=self.last_output_file_directory,
+        dname = QFileDialog.getExistingDirectory(directory=self.last_output_live_dir,
                                                  options=QFileDialog.ShowDirsOnly)
         self._set_output_directory(dname)
 
@@ -214,124 +256,95 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
             self._update_monitor_preview()
 
     def _update_monitor_preview(self):
-        self.preview_lock.acquire()
         with mss.mss() as sct:
             cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+        self._update_view_with_image(self.map_creation_view, self.map_pixmap, cap)
 
-        img2 = cv2.cvtColor(cap, cv2.COLOR_BGR2RGB)
-        height, width, _ = img2.shape
-        bytes_per_line = 3 * width
-        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        # noinspection PyCallByClass
-        self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.fit_in_view(self.map_creation_view,
-                         self.map_creation_view.scene().itemsBoundingRect(),
-                         flags=Qt.KeepAspectRatio)
-        self.preview_lock.release()
+    # UNIVERSAL, APPLIES TO ALL SECTIONS
 
-    def select_background_color(self):
+    def _select_background_color(self):
         color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
         self.path_color = Color(picker_rgb, scaling=Scaling.UINT8, alpha=alpha)
-        self.update_path_color_preview()
+        self._update_path_color_preview()
 
-    def update_path_color_preview(self):
-        img = np.copy(self.path_preview_image)
+    def _update_path_color_preview(self):
+        path_image = np.copy(self.path_preview_image)
         for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
-            cv2.line(img,
+            cv2.line(path_image,
                      start,
                      end,
                      color=self.path_color(),
                      thickness=self.thickness_spinbox.value(),
                      lineType=cv2.LINE_AA)
-        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        height, width, _ = img2.shape
-        bytes_per_line = 3 * width
-        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        # noinspection PyCallByClass
-        self.path_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.fit_in_view(self.path_preview_view,
-                         self.path_preview_view.scene().itemsBoundingRect())
+        self._update_view_with_image(self.path_preview_view, self.path_pixmap, path_image)
 
-    def update_map_preview(self, minimap):
-        self.preview_lock.acquire()
-        img2 = cv2.cvtColor(minimap, cv2.COLOR_BGR2RGB)
-        height, width, _ = img2.shape
-        bytes_per_line = 3 * width
-        qimg = QImage(img2.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        # noinspection PyCallByClass
-        self.map_pixmap.setPixmap(QPixmap.fromImage(qimg))
-        self.fit_in_view(self.map_creation_view, self.map_creation_view.scene().itemsBoundingRect())
-        self.preview_lock.release()
+    def _update_map_preview(self, minimap):
+        self._update_view_with_image(self.map_creation_view, self.map_pixmap, minimap)
 
-    def update_pbar_max(self, maximum):
-        self.progress_bar_lock.acquire()
-        self.progress_bar.setMaximum(maximum)
-        self.progress_bar_lock.release()
+    # This has a default argument so that it can be slotted to a signal
+    # like the .finished signal and that will reset the buttons.
+    def _update_button_state(self, active_groups=ButtonGroups.PREPROCESS):
+        for group, controls in self.buttons.items():
+            for control in controls:
+                control.setEnabled(bool(group & active_groups))
 
-    def update_pbar_value(self, progress):
-        self.progress_bar_lock.acquire()
-        self.progress_bar.setValue(progress)
-        self.progress_bar_lock.release()
+    def _validate_inputs(self, mode):
+        if mode == ProcessMode.VIDEO:
+            # video file exists
+            # output folder exists, writable
+            if not os.path.exists(self.video_file_edit.text()):
+                QMessageBox.information(self, "Error", "video file not found")
+                return False
 
-    def disable_selection_buttons(self):
-        for control in self.buttons['preprocess']:
-            self.control_states[control] = control.isEnabled()
-            control.setEnabled(False)
-        for control in self.buttons['during']:
-            control.setEnabled(True)
+            if not os.path.exists(os.path.dirname(self.output_file_edit.text())):
+                QMessageBox.information(self, "Error", "output directory not writeable")
+                return False
 
-    def enable_selection_buttons(self):
-        for control in self.buttons['preprocess']:
-            control.setEnabled(self.control_states[control])
-        for control in self.buttons['during']:
-            control.setEnabled(False)
+        if mode == ProcessMode.LIVE:
+            if not os.path.exists(self.output_directory_edit.text()):
+                QMessageBox.information(self, "Error", "output directory not writeable")
+                return False
 
-    def auto_naming_checkbox_clicked(self, state):
-        self.output_file_edit.clear()
-        if state == QtCore.Qt.Checked:
-            self.output_file_edit.setDisabled(True)
-            self.output_file_browse_button.setDisabled(True)
-        else:
-            self.output_file_edit.setEnabled(True)
-            self.output_file_browse_button.setEnabled(True)
+        return True
 
     def process_match(self):
-        if self.auto_naming_option_checkbox.checkState() == QtCore.Qt.Checked:
-            self._set_output_file(os.path.join(self.last_output_file_directory,
-                                               "pubgis_map."
-                                               + datetime.now().strftime("%m.%d.%Y.%H.%M.%S")
-                                               + ".jpg"))
         map_iter = None
 
         try:
-            if self.tabWidget.currentIndex() == 0:
-                if self.video_file_edit.text() != "":
+            if self.tabWidget.currentIndex() == ProcessMode.VIDEO:
+                if self._validate_inputs(ProcessMode.VIDEO):
                     zero = QTime(0, 0, 0)
                     map_iter = VideoIterator(video_file=self.video_file_edit.text(),
                                              landing_time=zero.secsTo(self.landing_time.time()),
                                              death_time=zero.secsTo(self.death_time.time()),
                                              step_interval=float(self.time_step.currentText()))
+                    output_file = self.output_file_edit.text()
 
-            if self.tabWidget.currentIndex() == 1:
-                map_iter = LiveFeed(time_step=float(self.time_step.currentText()),
-                                    monitor=self.monitor_combo.currentIndex() + 1)
+            elif self.tabWidget.currentIndex() == ProcessMode.LIVE:
+                if self._validate_inputs(ProcessMode.LIVE):
+                    map_iter = LiveFeed(time_step=float(self.time_step.currentText()),
+                                        monitor=self.monitor_combo.currentIndex() + 1)
+
+                    output_file = os.path.join(self.output_directory_edit.text(),
+                                               self.generate_output_file_name())
+            else:
+                raise ValueError
+
+            if map_iter:
+                match_thread = PUBGISWorkerThread(self,
+                                                  minimap_iterator=map_iter,
+                                                  output_file=output_file,
+                                                  path_color=self.path_color,
+                                                  path_thickness=self.thickness_spinbox.value())
+
+                self._update_button_state(ButtonGroups.PROCESSING)
+                match_thread.percent_update.connect(self.progress_bar.setValue)
+                match_thread.percent_max_update.connect(self.progress_bar.setMaximum)
+                match_thread.minimap_update.connect(self._update_map_preview)
+                match_thread.finished.connect(self._update_button_state)
+                self.cancel_button.released.connect(match_thread.requestInterruption)
+                match_thread.start()
+
         except ResolutionNotSupportedException:
-            res_message = QMessageBox()
-            res_message.setText("This resolution is not supported")
-            res_message.exec()
-
-        if map_iter:
-            self.disable_selection_buttons()
-
-            match_thread = PUBGISWorkerThread(self,
-                                              minimap_iterator=map_iter,
-                                              output_file=self.output_file_edit.text(),
-                                              path_color=self.path_color,
-                                              path_thickness=self.thickness_spinbox.value())
-            match_thread.percent_update.connect(self.update_pbar_value)
-            match_thread.percent_max_update.connect(self.update_pbar_max)
-            match_thread.minimap_update.connect(self.update_map_preview)
-            match_thread.finished.connect(self.enable_selection_buttons)
-            self.cancel_button.released.connect(match_thread.requestInterruption)
-            match_thread.start()
+            QMessageBox.information(self, "Error", "Resolution not supported")

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>530</width>
-    <height>872</height>
+    <height>855</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -15,6 +15,9 @@
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
   </property>
   <property name="windowTitle">
    <string>PUBGIS_GUI</string>
@@ -69,6 +72,9 @@
       <property name="value">
        <number>0</number>
       </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -87,22 +93,18 @@
         <item>
          <widget class="QWidget" name="widget_3" native="true">
           <layout class="QGridLayout" name="gridLayout_3">
-           <item row="1" column="7">
-            <widget class="QPushButton" name="video_file_browse_button">
+           <item row="1" column="2">
+            <widget class="QLabel" name="video_file_label">
              <property name="text">
-              <string>Browse</string>
+              <string>Video</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
            <item row="1" column="3" colspan="4">
             <widget class="QLineEdit" name="video_file_edit"/>
-           </item>
-           <item row="2" column="3">
-            <widget class="QTimeEdit" name="landing_time">
-             <property name="displayFormat">
-              <string>mm:ss</string>
-             </property>
-            </widget>
            </item>
            <item row="2" column="5">
             <widget class="QTimeEdit" name="death_time">
@@ -120,13 +122,17 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="2">
-            <widget class="QLabel" name="video_file_label">
+           <item row="1" column="7">
+            <widget class="QPushButton" name="video_file_browse_button">
              <property name="text">
-              <string>Video</string>
+              <string>Browse</string>
              </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="QTimeEdit" name="landing_time">
+             <property name="displayFormat">
+              <string>mm:ss</string>
              </property>
             </widget>
            </item>
@@ -150,6 +156,26 @@
              </property>
             </widget>
            </item>
+           <item row="4" column="7">
+            <widget class="QPushButton" name="output_file_browse_button">
+             <property name="text">
+              <string>Browse</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2">
+            <widget class="QLabel" name="output_file_label">
+             <property name="text">
+              <string>Output File</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="3" colspan="4">
+            <widget class="QLineEdit" name="output_file_edit"/>
+           </item>
           </layout>
          </widget>
         </item>
@@ -162,25 +188,38 @@
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QWidget" name="widget_4" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
-           <item>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="1" column="0">
+            <widget class="QLabel" name="output_directory_label">
+             <property name="text">
+              <string>Output Directory</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
             <widget class="QLabel" name="monitors_label">
              <property name="text">
               <string>Monitors</string>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="monitor_combo">
-             <property name="minimumSize">
-              <size>
-               <width>150</width>
-               <height>0</height>
-              </size>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="1" column="3">
+            <widget class="QPushButton" name="output_directory_browse_button">
+             <property name="maximumSize">
+              <size>
+               <width>75</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Browse</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3" colspan="2">
             <spacer name="horizontalSpacer">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -193,6 +232,32 @@
              </property>
             </spacer>
            </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="monitor_combo">
+             <property name="minimumSize">
+              <size>
+               <width>150</width>
+               <height>0</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QLineEdit" name="output_directory_edit"/>
+           </item>
           </layout>
          </widget>
         </item>
@@ -201,61 +266,39 @@
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="widget" native="true">
-      <layout class="QGridLayout" name="gridLayout">
-       <property name="sizeConstraint">
-        <enum>QLayout::SetDefaultConstraint</enum>
-       </property>
-       <property name="leftMargin">
-        <number>9</number>
-       </property>
-       <item row="0" column="3">
-        <widget class="QPushButton" name="output_file_browse_button">
-         <property name="text">
-          <string>Browse</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="output_file_label">
-         <property name="text">
-          <string>Output File</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLineEdit" name="output_file_edit"/>
-       </item>
-       <item row="1" column="3">
-        <widget class="QPushButton" name="output_directory_browse_button">
-         <property name="text">
-          <string>Browse</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="output_directory_label">
-         <property name="text">
-          <string>Output Directory</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QLineEdit" name="output_directory_edit"/>
-       </item>
-       <item row="2" column="1">
-        <widget class="QCheckBox" name="auto_naming_option_checkbox">
-         <property name="text">
-          <string>Auto Naming</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
      <widget class="QWidget" name="widget_2" native="true">
       <layout class="QGridLayout" name="gridLayout_2">
+       <item row="3" column="2">
+        <widget class="QGraphicsView" name="path_preview_view">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>120</height>
+          </size>
+         </property>
+         <property name="verticalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="interactive">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
        <item row="3" column="3">
         <widget class="QWidget" name="widget_5" native="true">
          <layout class="QGridLayout" name="gridLayout_4">
@@ -334,49 +377,24 @@
          </layout>
         </widget>
        </item>
-       <item row="3" column="6">
-        <widget class="QPushButton" name="process_button">
-         <property name="text">
-          <string>Process</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2">
-        <widget class="QGraphicsView" name="path_preview_view">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>120</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>120</width>
-           <height>120</height>
-          </size>
-         </property>
-         <property name="verticalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
-         </property>
-         <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
-         </property>
-         <property name="interactive">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="7">
-        <widget class="QPushButton" name="cancel_button">
-         <property name="text">
-          <string>Stop</string>
-         </property>
+       <item row="3" column="4">
+        <widget class="QWidget" name="widget" native="true">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QPushButton" name="process_button">
+            <property name="text">
+             <string>Process</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="cancel_button">
+            <property name="text">
+             <string>Stop</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>

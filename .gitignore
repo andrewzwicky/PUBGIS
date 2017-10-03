@@ -45,3 +45,4 @@ tests/prof/
 pubgis/debug*
 tests/map_coverage.png
 tests/summary_plot.png
+*.autosave
