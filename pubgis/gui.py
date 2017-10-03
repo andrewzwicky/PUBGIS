@@ -112,7 +112,6 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.last_output_live_dir = PUBGISMainWindow._get_starting_directory()
 
         self._set_output_directory(self.last_output_file_dir)
-        self.control_states = collections.defaultdict(lambda: True)
 
         # This is the list of buttons and when they should be active.
         self.buttons = {ButtonGroups.PREPROCESS:
