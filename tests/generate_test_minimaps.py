@@ -19,7 +19,7 @@ def generate_test_minimaps(video_file):
 
     for i, (_, minimap) in enumerate(video_iter):
         raw_minimap = np.copy(minimap)
-        _, coords, _, _ = match.find_map_section(minimap, debug=True)
+        _, coords, _, _ = match.find_scaled_player_position(minimap, debug=True)
         found_x, found_y = coords
         key = cv2.waitKey(-1)
 

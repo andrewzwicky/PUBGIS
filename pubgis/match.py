@@ -6,7 +6,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from pubgis.color import Color, Space, Scaling
-from pubgis.match_result import MatchResult
 from pubgis.support import find_path_bounds, unscale_coords, coordinate_sum, coordinate_offset, \
     create_slice
 
@@ -53,8 +52,8 @@ class PUBGISMatch:
         self.minimap_iter = minimap_iterator
         self.debug = debug
 
-        self.full_coords = []
-        self.scaled_coords = []
+        self.full_positions = []
+        self.scaled_positions = []
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
@@ -105,7 +104,7 @@ class PUBGISMatch:
         cv2.rectangle(debug_zoomed,
                       coordinate_offset(match_coords, context_thickness // 2),
                       coordinate_offset(match_coords, self.minimap_iter.size - context_thickness),
-                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
+                      MATCH_COLOR() if match_found else NO_MATCH_COLOR(),
                       thickness=context_thickness)
 
         cv2.imshow("context", debug_zoomed)
@@ -121,7 +120,7 @@ class PUBGISMatch:
                       (match_ind_thickness // 2, match_ind_thickness // 2),
                       (self.minimap_iter.size - match_ind_thickness,
                        self.minimap_iter.size - match_ind_thickness),
-                      MATCH_COLOR() if match_found == MatchResult.SUCCESSFUL else NO_MATCH_COLOR(),
+                      MATCH_COLOR() if match_found else NO_MATCH_COLOR(),
                       thickness=match_ind_thickness)
 
         return minimap
@@ -144,10 +143,10 @@ class PUBGISMatch:
         cv2.waitKey(10)
 
     def get_scaled_match_context(self):
-        if self.scaled_coords:
+        if self.scaled_positions:
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
-                [self.scaled_coords[-1]],
+                [self.scaled_positions[-1]],
                 crop_border=0,
                 min_output_size=self.minimap_iter.size * 3)
             # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
@@ -158,12 +157,27 @@ class PUBGISMatch:
 
         return context_coords, context_slice
 
-    def find_map_section(self, minimap):
+    def find_scaled_player_position(self, minimap):
         """
         Attempt to match the supplied minimap to a section of the larger full map.
 
         The actual template matching is done by opencv, but there is additional checking that is
-        done to ensure that the supplied minimap is actually
+        done to ensure that the supplied minimap is actually.
+
+        This method contains several sets of coordinates.  Everything done inside this method is
+        done on the scaled coordinate system, which uses the scaled map, based on the input
+        resolution.
+
+        The context refers to the reduced area that matching will take place in.  Reducing the
+        search area significantly reduces the amount of time that matching takes.
+
+        context_coords are the coordinates of the top-left corner of the context area.
+        match_coords are the coordinates of the matched minimap within the context.
+        scaled_coords are the coordinates of the matched minimap within the scaled map.
+        scaled_map_pos is just the coordinates for the center of the matched minimap, relative to
+            the scaled map.
+
+        To obtain the coordinates relative to the full map, the coordinates are unscaled later.
         """
         context_coords, context_slice = self.get_scaled_match_context()
         match = cv2.matchTemplate(self.gray_map[context_slice],
@@ -172,7 +186,7 @@ class PUBGISMatch:
 
         # When using TM_CCOEFF_NORMED, the minimum of the output is the best match
         _, result, _, match_coords = cv2.minMaxLoc(match)
-        world_coords = coordinate_sum(match_coords, context_coords)
+        scaled_coords = coordinate_sum(match_coords, context_coords)
 
         color_diff = Color.calculate_color_diff(minimap, *self.masks)
 
@@ -193,30 +207,30 @@ class PUBGISMatch:
                          zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
 
         if any(within_bounds):
-            match_found = MatchResult.SUCCESSFUL
-            scaled_coords = coordinate_offset(world_coords, self.minimap_iter.size // 2)
+            match_found = True
+            scaled_map_pos = coordinate_offset(scaled_coords, self.minimap_iter.size // 2)
 
         else:
-            match_found = MatchResult.OUT_OF_RANGE
-            scaled_coords = None
+            match_found = False
+            scaled_map_pos = None
 
         if self.debug:
             self.debug_context(match_found, match_coords, context_slice)
             annotated_minimap = self.annotate_minimap(minimap, match_found, color_diff, result)
-            self.debug_minimap(annotated_minimap, world_coords)
+            self.debug_minimap(annotated_minimap, scaled_coords)
 
-        return match_found, scaled_coords, color_diff, result
+        return scaled_map_pos, color_diff, result
 
     def process_match(self):
         for percent, minimap in self.minimap_iter:
-            _, scaled_coords, _, _ = self.find_map_section(minimap)
-            if scaled_coords:
-                self.scaled_coords.append(scaled_coords)
-                full_coords = unscale_coords(scaled_coords, self.scale)
-                self.full_coords.append(full_coords)
+            scaled_position, _, _ = self.find_scaled_player_position(minimap)
+            if scaled_position:
+                self.scaled_positions.append(scaled_position)
+                full_position = unscale_coords(scaled_position, self.scale)
+                self.full_positions.append(full_position)
             else:
-                full_coords = None
-            yield percent, full_coords
+                full_position = None
+            yield percent, full_position
 
     def create_output(self,
                       output_file,

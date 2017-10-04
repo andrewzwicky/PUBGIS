@@ -8,7 +8,7 @@ import pytest
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon, Rectangle
 
-from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS
+from pubgis.match import PUBGISMatch, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS
 from pubgis.minimap_iterators.images import ImageIterator
 
 plt.switch_backend('Agg')
@@ -76,9 +76,9 @@ def map_coverage_axes(good_match_fixture):
 @pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
 def test_bad_images(test_image, bad_match_fixture, template_match_plot_axes):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
-    match_found, (_, _), color_diff, result = bad_match_fixture.find_map_section(img)
+    scaled_pos, color_diff, result = bad_match_fixture.find_scaled_player_position(img)
     template_match_plot_axes.append((color_diff, result, 'r'))
-    assert match_found != MatchResult.SUCCESSFUL
+    assert scaled_pos is None
 
 
 # noinspection PyShadowingNames
@@ -86,7 +86,7 @@ def test_bad_images(test_image, bad_match_fixture, template_match_plot_axes):
 def test_good_images(test_image, good_match_fixture, template_match_plot_axes, map_coverage_axes):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
     img_height, img_width = img.shape[:2]
-    match_found, (f_x, f_y), color_diff, result = good_match_fixture.find_map_section(img)
+    scaled_pos, color_diff, result = good_match_fixture.find_scaled_player_position(img)
     template_match_plot_axes.append((color_diff, result, 'g'))
     map_coverage_axes.add_patch(Rectangle((f_x - (img_width // 2), f_y - (img_height // 2)),
                                           img_width,
@@ -100,6 +100,5 @@ def test_good_images(test_image, good_match_fixture, template_match_plot_axes, m
     else:
         (e_x, e_y) = (None, None)
 
-    assert (match_found, f_x, f_y) == (MatchResult.SUCCESSFUL,
-                                       pytest.approx(e_x, abs=ALLOWED_VARIATION),
-                                       pytest.approx(e_y, abs=ALLOWED_VARIATION))
+    assert scaled_pos == (pytest.approx(e_x, abs=ALLOWED_VARIATION),
+                          pytest.approx(e_y, abs=ALLOWED_VARIATION))

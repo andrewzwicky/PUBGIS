@@ -5,7 +5,7 @@ from os.path import join, dirname
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.match import PUBGISMatch, MatchResult
+from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
 
 plt.switch_backend('Agg')
@@ -23,5 +23,5 @@ def test_different_resolutions(test_resolution_folder):
     match = PUBGISMatch(minimap_iterator=mini_iter)
 
     for _, img in mini_iter:
-        match_found, _, _, _ = match.find_map_section(img)
-        assert match_found == MatchResult.SUCCESSFUL
+        scaled_pos, _, _ = match.find_scaled_player_position(img)
+        assert scaled_pos is not None
