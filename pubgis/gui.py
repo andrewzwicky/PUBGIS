@@ -11,7 +11,8 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
 from pubgis.color import Color, Scaling
-from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
+from pubgis.match import PUBGISMatch
+from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
@@ -111,7 +112,7 @@ class PUBGISMainWindow(QMainWindow):
         self.thickness_spinbox.valueChanged.connect(self._update_path_color_preview)
 
         # prepare path preview
-        self.path_color = DEFAULT_PATH_COLOR
+        self.path_color = PATH_COLOR
         self.path_preview_image = cv2.imread(os.path.join(os.path.dirname(__file__),
                                                           "images",
                                                           "path_preview_minimap.jpg"))
@@ -156,6 +157,7 @@ class PUBGISMainWindow(QMainWindow):
         self._update_button_state(ButtonGroups.PREPROCESS)
 
         self.show()
+        self.thickness_spinbox.setValue(PATH_THICKNESS)
         self._update_path_color_preview()
 
     @staticmethod

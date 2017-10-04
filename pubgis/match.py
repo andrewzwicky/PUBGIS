@@ -5,7 +5,7 @@ import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
-from pubgis.color import Color, Space, Scaling
+from pubgis.color import Color
 from pubgis.support import find_path_bounds, unscale_coords, coordinate_sum, coordinate_offset, \
     create_slice
 
@@ -33,9 +33,6 @@ SMALL_FONT = 0.3
 NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
 MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
 WHITE = Color(mpl_colors.to_rgb("White"))
-
-DEFAULT_PATH_COLOR = Color(mpl_colors.to_rgb("Red"), alpha=0.7)
-DEFAULT_PATH_THICKNESS = 2
 
 FULL_SCALE_MINIMAP = 407
 
@@ -226,24 +223,3 @@ class PUBGISMatch:
             self.scaled_positions.append(scaled_position)
             full_position = unscale_coords(scaled_position, self.scale)
             yield percent, full_position
-
-    def create_output(self,
-                      output_file,
-                      path_color=DEFAULT_PATH_COLOR,
-                      path_thickness=DEFAULT_PATH_THICKNESS):
-        if output_file:
-            fig, output_axis = plt.subplots(figsize=(20, 20))
-            fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-            output_axis.axes.xaxis.set_visible(False)
-            output_axis.axes.yaxis.set_visible(False)
-            output_axis.imshow(cv2.cvtColor(self.map, cv2.COLOR_BGR2RGB))
-            min_x, min_y, size = PUBGISMatch.find_path_bounds(self.gray_map.shape[0],
-                                                              self.all_coords)
-            output_axis.axes.set_xlim(min_x, min_x + size)
-            output_axis.axes.set_ylim(min_y + size, min_y)
-
-            mpl_color = path_color(space=Space.RGB,
-                                   scaling=Scaling.PERC,
-                                   alpha=True)
-            output_axis.plot(*zip(*self.all_coords), color=mpl_color, linewidth=path_thickness)
-            fig.savefig(output_file)
