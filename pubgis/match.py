@@ -50,31 +50,29 @@ class PUBGISMatch:
         self.minimap_iter = minimap_iterator
         self.debug = debug
 
-        self.all_coords = []
+        self.full_coords = []
+        self.scaled_coords = []
 
         self.scale = self.minimap_iter.size / FULL_SCALE_MINIMAP
-        self.gray_map = cv2.cvtColor(cv2.resize(PUBGISMatch.full_map,
-                                                (0, 0),
-                                                fx=self.scale,
-                                                fy=self.scale),
-                                     cv2.COLOR_BGR2GRAY)
+        scaled_map = cv2.resize(PUBGISMatch.full_map, (0, 0), fx=self.scale, fy=self.scale)
+        self.gray_map = cv2.cvtColor(scaled_map, cv2.COLOR_BGR2GRAY)
 
-        _, self.indicator_mask = cv2.threshold(self.create_mask(self.minimap_iter.size),
-                                               10,
-                                               255,
-                                               cv2.THRESH_BINARY)
-        _, self.indicator_area_mask = cv2.threshold(
-            self.create_area_mask(self.minimap_iter.size),
-            10,
-            255,
-            cv2.THRESH_BINARY)
+        self.masks = self.create_masks(self.minimap_iter.size)
+
+    @staticmethod
+    def create_masks(size):
+        indicator_mask = PUBGISMatch.create_mask(size)
+        area_mask = PUBGISMatch.create_area_mask(size)
+
+        return indicator_mask, area_mask
 
     @staticmethod
     def create_mask(size):
         mask = np.zeros((size, size, 1), np.uint8)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 255, thickness=2)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 255, thickness=1)
-        return mask
+        _, output_mask = cv2.threshold(mask, 10, 255, cv2.THRESH_BINARY)
+        return output_mask
 
     @staticmethod
     def create_area_mask(size):
@@ -87,7 +85,8 @@ class PUBGISMatch:
                       thickness=-1)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 0, thickness=2)
         cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 0, thickness=1)
-        return mask
+        _, output_mask = cv2.threshold(mask, 10, 255, cv2.THRESH_BINARY)
+        return output_mask
 
     def debug_context(self, match_found, match_coords, context_slice):
         """
@@ -143,10 +142,10 @@ class PUBGISMatch:
         cv2.waitKey(10)
 
     def get_context(self):
-        if self.all_coords:
+        if self.scaled_coords:
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
-                [self.all_coords[-1]],
+                [self.scaled_coords[-1]],
                 crop_border=0,
                 min_output_size=self.minimap_iter.size * 3)
             # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
@@ -173,9 +172,7 @@ class PUBGISMatch:
         _, result, _, match_coords = cv2.minMaxLoc(match)
         world_coords = coordinate_sum(match_coords, context_coords)
 
-        color_diff = Color.calculate_color_diff(minimap,
-                                                self.indicator_mask,
-                                                self.indicator_area_mask)
+        color_diff = Color.calculate_color_diff(minimap, *self.masks)
 
         # Determining whether a particular minimap should actually be reported as a match
         # is determined by the following:
@@ -196,24 +193,25 @@ class PUBGISMatch:
         if any(within_bounds):
             match_found = MatchResult.SUCCESSFUL
             scaled_coords = coordinate_offset(world_coords, self.minimap_iter.size // 2)
-            full_coords = unscale_coords(scaled_coords, self.scale)
 
         else:
             match_found = MatchResult.OUT_OF_RANGE
-            full_coords = None
+            scaled_coords = None
 
         if self.debug:
             self.debug_context(match_found, match_coords, context_slice)
             annotated_minimap = self.annotate_minimap(minimap, match_found, color_diff, result)
             self.debug_minimap(annotated_minimap, world_coords)
 
-        return match_found, full_coords, color_diff, result
+        return match_found, scaled_coords, color_diff, result
 
     def process_match(self):
         for percent, minimap in self.minimap_iter:
-            _, full_coords, _, _ = self.find_map_section(minimap)
-            if full_coords:
-                self.all_coords.append(full_coords)
+            _, scaled_coords, _, _ = self.find_map_section(minimap)
+            if scaled_coords:
+                self.scaled_coords.append(scaled_coords)
+                full_coords = unscale_coords(scaled_coords, self.scale)
+                self.full_coords.append(full_coords)
             yield percent, full_coords
 
     def create_output(self,
