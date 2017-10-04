@@ -14,6 +14,7 @@ plt.switch_backend('Agg')
 
 IMAGES = join(dirname(__file__), "images")
 
+#TODO: outdated numbers, (pixels), based on 1920x1080 resolution.  Should be res-independent
 MAX_SPEED = 130  # km/h, motorcycle
 PIXELS_PER_100M = 64
 PIXELS_PER_KM = PIXELS_PER_100M * 10

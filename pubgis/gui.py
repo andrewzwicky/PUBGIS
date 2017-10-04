@@ -216,51 +216,51 @@ class PUBGISMainWindow(QMainWindow):
     # name must match because we're overriding QMainWindow method
     def dropEvent(self, event):  # pylint: disable=invalid-name
         if event.mimeData().hasUrls:
-            fname = event.mimeData().urls()[0].toLocalFile()
-            self._set_video_file(fname)
+            file_name = event.mimeData().urls()[0].toLocalFile()
+            self._set_video_file(file_name)
 
     # VIDEO SECTION
 
-    def _set_video_file(self, fname):
+    def _set_video_file(self, file_name):
         """
         Given a video file name, set the video_file_edit text to this file name and
         auto-fill the output file name as well.
         """
-        if fname:
-            self.last_video_file_dir = os.path.dirname(fname)
-            self.video_file_edit.setText(QDir.toNativeSeparators(fname))
+        if file_name:
+            self.last_video_file_dir = os.path.dirname(file_name)
+            self.video_file_edit.setText(QDir.toNativeSeparators(file_name))
 
-            video_filename, _ = os.path.splitext(os.path.basename(fname))
+            video_filename, _ = os.path.splitext(os.path.basename(file_name))
 
             self._set_output_file(os.path.join(self.last_output_file_dir,
                                                f"{video_filename}.jpg"))
 
     def _select_video_file(self):
-        fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_dir,
-                                               filter="Videos (*.mp4)")
-        self._set_video_file(fname)
+        file_name, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_dir,
+                                                   filter="Videos (*.mp4)")
+        self._set_video_file(file_name)
 
-    def _set_output_file(self, fname):
-        if fname:
-            self.last_output_file_dir = os.path.dirname(fname)
-            self.output_file_edit.setText(QDir.toNativeSeparators(fname))
+    def _set_output_file(self, file_name):
+        if file_name:
+            self.last_output_file_dir = os.path.dirname(file_name)
+            self.output_file_edit.setText(QDir.toNativeSeparators(file_name))
 
     def _select_output_file(self):
-        fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_dir,
-                                               filter="Images (*.jpg)")
-        self._set_output_file(fname)
+        file_name, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_dir,
+                                                   filter="Images (*.jpg)")
+        self._set_output_file(file_name)
 
     # LIVE SECTION
 
-    def _set_output_directory(self, dname):
-        if dname:
-            self.last_output_live_dir = dname
-            self.output_directory_edit.setText(QDir.toNativeSeparators(dname))
+    def _set_output_directory(self, dir_name):
+        if dir_name:
+            self.last_output_live_dir = dir_name
+            self.output_directory_edit.setText(QDir.toNativeSeparators(dir_name))
 
     def _select_output_directory(self):
-        dname = QFileDialog.getExistingDirectory(directory=self.last_output_live_dir,
-                                                 options=QFileDialog.ShowDirsOnly)
-        self._set_output_directory(dname)
+        dir_name = QFileDialog.getExistingDirectory(directory=self.last_output_live_dir,
+                                                    options=QFileDialog.ShowDirsOnly)
+        self._set_output_directory(dir_name)
 
     def _parse_available_monitors(self, mon_combo_index):
         if mon_combo_index == 1 and self.monitor_combo.count() == 0:
@@ -277,6 +277,9 @@ class PUBGISMainWindow(QMainWindow):
 
     def _update_monitor_preview(self):
         with mss.mss() as sct:
+            # Monitor 0 is all of the monitors glued together.  This was skipped when the monitors
+            # were added to the monitor_combo, so we must add 1 to the index when previewing
+            # to make sure the right monitor is displayed.
             cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
         self._update_view_with_image(self.map_creation_view, cap)
 
