@@ -15,6 +15,7 @@ from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
+from pubgis.support import find_path_bounds, create_slice, blend_transparent
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -34,28 +35,49 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
 
-    def __init__(self,  # pylint: disable=too-many-arguments
-                 parent, minimap_iterator, output_file, path_color, path_thickness):
+    def __init__(self, parent, minimap_iterator, output_file):
         super(PUBGISWorkerThread, self).__init__(parent)
+        self.parent = parent
+        self.path_overlay = np.zeros((PUBGISMatch.full_map.shape[0],
+                                      PUBGISMatch.full_map.shape[0],
+                                      4), np.uint8)
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
-        self.path_color = path_color
-        self.path_thickness = path_thickness
 
     def run(self):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
-                            path_color=self.path_color,
-                            path_thickness=self.path_thickness)
+        match = PUBGISMatch(minimap_iterator=self.minimap_iterator)
 
-        self.minimap_update.emit(match.map)
+        self.minimap_update.emit(PUBGISMatch.full_map)
 
-        for percent, progress_minimap in match.process_match():
+        for percent, full_coords in match.process_match():
             if percent is not None:
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
+
+            if full_coords is not None:
+                cv2.line(self.path_overlay,
+                         match.all_coords[-1],
+                         full_coords,
+                         color=self.parent.path_color(alpha=True),
+                         thickness=self.parent.thickness_spinbox.value(),
+                         lineType=cv2.LINE_AA)
+
+            bounds_coords, bounds_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
+                                                          match.all_coords)
+
+            bounds_slice = create_slice(bounds_coords, bounds_size)
+
+            cv2.imshow("path_overlay",
+                       cv2.resize(self.path_overlay[bounds_slice], (0, 0), fx=0.3, fy=0.3))
+            cv2.imshow("map",
+                       cv2.resize(PUBGISMatch.full_map[bounds_slice], (0, 0), fx=0.3, fy=0.3))
+            cv2.waitKey(10)
+
+            progress_minimap = blend_transparent(PUBGISMatch.full_map[bounds_slice],
+                                                 self.path_overlay[bounds_slice])
             self.minimap_update.emit(progress_minimap)
 
             if self.isInterruptionRequested():
@@ -65,10 +87,12 @@ class PUBGISWorkerThread(QThread):
             self.percent_max_update.emit(100)
 
         self.percent_update.emit(100)
-        match.create_output(self.output_file)
+        # match.create_output(self.output_file,
+        #                     path_color=self.parent.path_color,
+        #                     path_thickness=self.parent.thickness_spinbox.value())
 
 
-class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attributes
+class PUBGISMainWindow(QMainWindow):
     changed_percent = QtCore.pyqtSignal(int)
     update_minimap = QtCore.pyqtSignal(QImage)
 
@@ -77,7 +101,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         uic.loadUi(os.path.join(os.path.dirname(__file__), "pubgis_gui.ui"), self)
 
         # connect buttons to functions
-        self.color_select_button.released.connect(self._select_background_color)
+        self.color_select_button.released.connect(self._select_path_color)
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
@@ -92,11 +116,11 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
                                                           "images",
                                                           "path_preview_minimap.jpg"))
         self.path_preview_view.setScene(QGraphicsScene())
-        self.path_pixmap = self.path_preview_view.scene().addPixmap(QPixmap())
+        self.path_preview_view.scene().addPixmap(QPixmap())
 
         # prepare map preview
         self.map_creation_view.setScene(QGraphicsScene())
-        self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
+        self.map_creation_view.scene().addPixmap(QPixmap())
 
         # set window name and icon
         self.setWindowTitle("PUBGIS")
@@ -144,14 +168,14 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         return user_dir
 
     @staticmethod
-    def _update_view_with_image(view, pixmap, image_array):
+    def _update_view_with_image(view, image_array):
         image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
         height, width, _ = image.shape
         bytes_per_line = 3 * width
         qimg = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
 
         # noinspection PyCallByClass
-        pixmap.setPixmap(QPixmap.fromImage(qimg))
+        view.scene().items()[0].setPixmap(QPixmap.fromImage(qimg))
         PUBGISMainWindow._fit_in_view(view,
                                       view.scene().itemsBoundingRect(),
                                       flags=Qt.KeepAspectRatio)
@@ -256,11 +280,11 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
     def _update_monitor_preview(self):
         with mss.mss() as sct:
             cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
-        self._update_view_with_image(self.map_creation_view, self.map_pixmap, cap)
+        self._update_view_with_image(self.map_creation_view, cap)
 
     # UNIVERSAL, APPLIES TO ALL SECTIONS
 
-    def _select_background_color(self):
+    def _select_path_color(self):
         color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
         self.path_color = Color(picker_rgb, scaling=Scaling.UINT8, alpha=alpha)
@@ -275,10 +299,10 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
                      color=self.path_color(),
                      thickness=self.thickness_spinbox.value(),
                      lineType=cv2.LINE_AA)
-        self._update_view_with_image(self.path_preview_view, self.path_pixmap, path_image)
+        self._update_view_with_image(self.path_preview_view, path_image)
 
     def _update_map_preview(self, minimap):
-        self._update_view_with_image(self.map_creation_view, self.map_pixmap, minimap)
+        self._update_view_with_image(self.map_creation_view, minimap)
 
     # This has a default argument so that it can be slotted to a signal
     # like the .finished signal and that will reset the buttons.
@@ -333,9 +357,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
             if map_iter:
                 match_thread = PUBGISWorkerThread(self,
                                                   minimap_iterator=map_iter,
-                                                  output_file=output_file,
-                                                  path_color=self.path_color,
-                                                  path_thickness=self.thickness_spinbox.value())
+                                                  output_file=output_file)
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)
