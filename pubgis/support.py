@@ -23,6 +23,10 @@ def find_path_bounds(map_size,  # pylint: disable=too-many-locals
 
     :return: (x, y, height, width)
     """
+    # If no frames have been processed yet, the full map should be displayed to show that
+    # processing has begun.
+    bounds = (0, 0), map_size
+
     if coords:
         x_list, y_list = zip(*coords)
 
@@ -57,11 +61,9 @@ def find_path_bounds(map_size,  # pylint: disable=too-many-locals
         x_corner = map_size - output_size if x_corner + output_size > map_size else x_corner
         y_corner = map_size - output_size if y_corner + output_size > map_size else y_corner
 
-        return (int(x_corner), int(y_corner)), int(output_size)
+        bounds = (int(x_corner), int(y_corner)), int(output_size)
 
-    # If no frames have been processed yet, the full map should be displayed to show that
-    # processing has begun.
-    return 0, 0, map_size
+    return bounds
 
 
 def unscale_coords(scaled_coords, scale):
