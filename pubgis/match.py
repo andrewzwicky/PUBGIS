@@ -14,7 +14,7 @@ plt.switch_backend('Agg')
 
 IMAGES = join(dirname(__file__), "images")
 
-#TODO: outdated numbers, (pixels), based on 1920x1080 resolution.  Should be res-independent
+# TODO: outdated numbers, (pixels), based on 1920x1080 resolution.  Should be res-independent
 MAX_SPEED = 130  # km/h, motorcycle
 PIXELS_PER_100M = 64
 PIXELS_PER_KM = PIXELS_PER_100M * 10
@@ -143,7 +143,7 @@ class PUBGISMatch:
         cv2.imshow("debug", np.concatenate((annotated_minimap, matched_minimap), axis=1))
         cv2.waitKey(10)
 
-    def get_context(self):
+    def get_scaled_match_context(self):
         if self.scaled_coords:
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
@@ -165,7 +165,7 @@ class PUBGISMatch:
         The actual template matching is done by opencv, but there is additional checking that is
         done to ensure that the supplied minimap is actually
         """
-        context_coords, context_slice = self.get_context()
+        context_coords, context_slice = self.get_scaled_match_context()
         match = cv2.matchTemplate(self.gray_map[context_slice],
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
