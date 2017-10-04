@@ -39,20 +39,26 @@ DEFAULT_PATH_THICKNESS = 2
 
 FULL_SCALE_MINIMAP = 407
 
+IND_OUTER_CIRCLE_RATIO = 0.05555
+IND_INNER_CIRCLE_RATIO = 0.01587
+AREA_MASK_AREA_RATIO = 0.29
+
 
 class PUBGISMatch:
-    # full map will be the same for everything, and return coordinates will be relative to this map
+    # The full map is the same for all matches processed, regardless of resolution.
     full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
 
-    def __init__(self,
-                 minimap_iterator=None,
-                 debug=False):
+    def __init__(self, minimap_iterator=None, debug=False):
         self.minimap_iter = minimap_iterator
         self.debug = debug
 
         self.full_coords = []
         self.scaled_coords = []
 
+        # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
+        # features on the minimap and this map are the same resolution.  This is important for
+        # the template matching, and is done on an instance basis because it may change for
+        # each match.
         self.scale = self.minimap_iter.size / FULL_SCALE_MINIMAP
         scaled_map = cv2.resize(PUBGISMatch.full_map, (0, 0), fx=self.scale, fy=self.scale)
         self.gray_map = cv2.cvtColor(scaled_map, cv2.COLOR_BGR2GRAY)
@@ -61,32 +67,27 @@ class PUBGISMatch:
 
     @staticmethod
     def create_masks(size):
-        indicator_mask = PUBGISMatch.create_mask(size)
-        area_mask = PUBGISMatch.create_area_mask(size)
+        center = size // 2
 
-        return indicator_mask, area_mask
+        mask_base = np.zeros((size, size, 1), np.uint8)
 
-    @staticmethod
-    def create_mask(size):
-        mask = np.zeros((size, size, 1), np.uint8)
-        cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 255, thickness=2)
-        cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 255, thickness=1)
-        _, output_mask = cv2.threshold(mask, 10, 255, cv2.THRESH_BINARY)
-        return output_mask
+        ind_base = np.copy(mask_base)
+        cv2.circle(ind_base, (center, center), int(size * IND_OUTER_CIRCLE_RATIO), 255, thickness=2)
+        cv2.circle(ind_base, (center, center), int(size * IND_INNER_CIRCLE_RATIO), 255, thickness=1)
+        _, indicator_mask = cv2.threshold(ind_base, 10, 255, cv2.THRESH_BINARY)
 
-    @staticmethod
-    def create_area_mask(size):
-        mask = np.zeros((size, size, 1), np.uint8)
-        width = int(size * .29)
-        cv2.rectangle(mask,
-                      (size // 2 - width // 2, size // 2 - width // 2),
-                      (size // 2 + width // 2, size // 2 + width // 2),
+        area_base = np.copy(mask_base)
+        area_size = int(size * AREA_MASK_AREA_RATIO) // 2
+        cv2.rectangle(area_base,
+                      (center - area_size, center - area_size),
+                      (center + area_size, center + area_size),
                       255,
                       thickness=-1)
-        cv2.circle(mask, (size // 2, size // 2), int(size * 0.05555), 0, thickness=2)
-        cv2.circle(mask, (size // 2, size // 2), int(size * 0.01587), 0, thickness=1)
-        _, output_mask = cv2.threshold(mask, 10, 255, cv2.THRESH_BINARY)
-        return output_mask
+        cv2.circle(area_base, (center, center), int(size * IND_OUTER_CIRCLE_RATIO), 0, thickness=2)
+        cv2.circle(area_base, (center, center), int(size * IND_INNER_CIRCLE_RATIO), 0, thickness=1)
+        _, area_mask = cv2.threshold(area_base, 10, 255, cv2.THRESH_BINARY)
+
+        return indicator_mask, area_mask
 
     def debug_context(self, match_found, match_coords, context_slice):
         """
@@ -184,7 +185,7 @@ class PUBGISMatch:
         #     the colors.  When the inventory is open for example, there should be very little
         #     difference in the colors.
         #
-        # There are two different regions used that correspond to experimentally determined
+        # There are three different regions used that correspond to experimentally determined
         # regions, found during testing to effectively differentiate the areas.
 
         within_bounds = [color_diff > c_thresh and result > temp_thresh for c_thresh, temp_thresh in
@@ -212,6 +213,8 @@ class PUBGISMatch:
                 self.scaled_coords.append(scaled_coords)
                 full_coords = unscale_coords(scaled_coords, self.scale)
                 self.full_coords.append(full_coords)
+            else:
+                full_coords = None
             yield percent, full_coords
 
     def create_output(self,
