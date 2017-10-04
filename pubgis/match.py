@@ -52,7 +52,6 @@ class PUBGISMatch:
         self.minimap_iter = minimap_iterator
         self.debug = debug
 
-        self.full_positions = []
         self.scaled_positions = []
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
@@ -82,7 +81,7 @@ class PUBGISMatch:
                       (center - area_size, center - area_size),
                       (center + area_size, center + area_size),
                       255,
-                      thickness=-1)
+                      thickness=cv2.FILLED)
         cv2.circle(area_base, (center, center), int(size * IND_OUTER_CIRCLE_RATIO), 0, thickness=2)
         cv2.circle(area_base, (center, center), int(size * IND_INNER_CIRCLE_RATIO), 0, thickness=1)
         _, area_mask = cv2.threshold(area_base, 10, 255, cv2.THRESH_BINARY)
@@ -224,12 +223,8 @@ class PUBGISMatch:
     def process_match(self):
         for percent, minimap in self.minimap_iter:
             scaled_position, _, _ = self.find_scaled_player_position(minimap)
-            if scaled_position:
-                self.scaled_positions.append(scaled_position)
-                full_position = unscale_coords(scaled_position, self.scale)
-                self.full_positions.append(full_position)
-            else:
-                full_position = None
+            self.scaled_positions.append(scaled_position)
+            full_position = unscale_coords(scaled_position, self.scale)
             yield percent, full_position
 
     def create_output(self,

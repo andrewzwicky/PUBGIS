@@ -61,6 +61,8 @@ def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=
 
 
 def unscale_coords(scaled_coords, scale):
+    if scaled_coords is None:
+        return None
     return tuple(int(coord / scale) for coord in scaled_coords)
 
 
