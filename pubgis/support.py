@@ -4,13 +4,10 @@ import cv2
 import numpy as np
 
 CROP_BORDER = 30
-MIN_PROGRESS_MAP_SIZE = 600
+MIN_BOUNDS_SIZE = 600
 
 
-def find_path_bounds(map_size,  # pylint: disable=too-many-locals
-                     coords,
-                     crop_border=CROP_BORDER,
-                     min_output_size=MIN_PROGRESS_MAP_SIZE):
+def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=MIN_BOUNDS_SIZE):
     """
     This function should provide a bounding box that contains the current coordinates of the
     path for display, and does not exceed the bounds of the map.
@@ -22,10 +19,6 @@ def find_path_bounds(map_size,  # pylint: disable=too-many-locals
 
     :return: (x, y, height, width)
     """
-    # If no frames have been processed yet, the full map should be displayed to show that
-    # processing has begun.
-    bounds = (0, 0), map_size
-
     if coords:
         x_list, y_list = zip(*coords)
 
@@ -60,9 +53,11 @@ def find_path_bounds(map_size,  # pylint: disable=too-many-locals
         x_corner = map_size - output_size if x_corner + output_size > map_size else x_corner
         y_corner = map_size - output_size if y_corner + output_size > map_size else y_corner
 
-        bounds = (int(x_corner), int(y_corner)), int(output_size)
+        return (int(x_corner), int(y_corner)), int(output_size)
 
-    return bounds
+    # If no frames have been processed yet, the full map should be displayed to show that
+    # processing has begun.
+    return (0, 0), map_size
 
 
 def unscale_coords(scaled_coords, scale):

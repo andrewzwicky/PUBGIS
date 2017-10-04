@@ -4,8 +4,8 @@ import os
 import cv2
 import numpy as np
 
-from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.match import PUBGISMatch
+from pubgis.minimap_iterators.video import VideoIterator
 
 J = 106
 K = 107

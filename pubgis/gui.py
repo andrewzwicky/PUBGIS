@@ -184,9 +184,7 @@ class PUBGISMainWindow(QMainWindow):
     def generate_output_file_name():
         return "pubgis_{}.jpg".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-    # pylint: disable=line-too-long
-    # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
-    # pylint: enable=line-too-long
+    # https://github.com/nevion/pyqimageview/blob/master/qimageview/widget.py#L275-L291
     # Copyright (c) 2014 Jason Newton <nevion@gmail.com>
     # MIT License
     # override arbitrary and unwanted margins: https://bugreports.qt.io/browse/QTBUG-42331
@@ -320,12 +318,12 @@ class PUBGISMainWindow(QMainWindow):
                 return False
 
             if not os.path.exists(os.path.dirname(self.output_file_edit.text())):
-                QMessageBox.information(self, "Error", "output directory not writeable")
+                QMessageBox.information(self, "Error", "output directory doesn't exist")
                 return False
 
         if mode == ProcessMode.LIVE:
             if not os.path.exists(self.output_directory_edit.text()):
-                QMessageBox.information(self, "Error", "output directory not writeable")
+                QMessageBox.information(self, "Error", "output directory doesn't exist")
                 return False
 
         return True

@@ -1,15 +1,11 @@
-# pylint: disable=redefined-outer-name
 import os
 import re
-from math import sqrt
 from os.path import join, dirname
 
-import cv2
-from matplotlib.patches import Polygon, Rectangle
 import pytest
 from matplotlib import pyplot as plt
 
-from pubgis.match import PUBGISMatch, MatchResult, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS
+from pubgis.match import PUBGISMatch, MatchResult
 from pubgis.minimap_iterators.images import ImageIterator
 
 plt.switch_backend('Agg')
