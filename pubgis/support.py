@@ -1,8 +1,7 @@
 from itertools import repeat
-import numpy as np
-import cv2
-from itertools import filterfalse
 
+import cv2
+import numpy as np
 
 CROP_BORDER = 30
 MIN_PROGRESS_MAP_SIZE = 600
