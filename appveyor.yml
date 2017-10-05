@@ -43,9 +43,6 @@ artifacts:
   - path: dist/PUBGIS*.tar.gz
     name: "pypi sdist"
 
-  - path: tests/*.png
-    name: "test results"
-
 deploy:
   description: PUBGIS-$(tag)
   provider: GitHub
