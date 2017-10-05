@@ -35,7 +35,7 @@ class ButtonGroups(Flag):
 class PUBGISWorkerThread(QThread):
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
-    minimap_update = QtCore.pyqtSignal(np.ndarray, object)
+    minimap_update = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, parent, minimap_iterator, output_file):
         super(PUBGISWorkerThread, self).__init__(parent)
@@ -52,7 +52,7 @@ class PUBGISWorkerThread(QThread):
 
         match = PUBGISMatch(self.minimap_iterator, debug=False)
 
-        self.minimap_update.emit(self.preview_map, None)
+        self.minimap_update.emit(self.preview_map)
 
         for percent, full_position in match.process_match():
             if percent is not None:
@@ -69,10 +69,16 @@ class PUBGISWorkerThread(QThread):
             preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
                                                             self.full_positions)
 
-            alpha = self.parent.path_color.alpha
-            blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+            preview_slice = create_slice(preview_coords, preview_size)
 
-            self.minimap_update.emit(blended, QRectF(*preview_coords, preview_size, preview_size))
+            alpha = self.parent.path_color.alpha
+            blended = cv2.addWeighted(self.base_map_alpha[preview_slice],
+                                      1 - alpha,
+                                      self.preview_map[preview_slice],
+                                      alpha,
+                                      0)
+
+            self.minimap_update.emit(blended)
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -164,7 +170,7 @@ class PUBGISMainWindow(QMainWindow):
         return user_dir
 
     @staticmethod
-    def _update_view_with_image(view, image_array, rect=None):
+    def _update_view_with_image(view, image_array):
         image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
         height, width, _ = image.shape
         bytes_per_line = 3 * width
@@ -172,8 +178,9 @@ class PUBGISMainWindow(QMainWindow):
 
         # noinspection PyCallByClass
         view.scene().items()[0].setPixmap(QPixmap.fromImage(qimg))
-        update_rect = rect if rect else view.scene().itemsBoundingRect()
-        PUBGISMainWindow._fit_in_view(view, update_rect, flags=Qt.KeepAspectRatio)
+        PUBGISMainWindow._fit_in_view(view,
+                                      view.scene().itemsBoundingRect(),
+                                      flags=Qt.KeepAspectRatio)
 
     @staticmethod
     def generate_output_file_name():
@@ -302,8 +309,8 @@ class PUBGISMainWindow(QMainWindow):
 
         self._update_view_with_image(self.path_preview_view, blended)
 
-    def _update_map_preview(self, minimap, rect):
-        self._update_view_with_image(self.map_creation_view, minimap, rect=rect)
+    def _update_map_preview(self, minimap):
+        self._update_view_with_image(self.map_creation_view, minimap)
 
     # This has a default argument so that it can be slotted to a signal
     # like the .finished signal and that will reset the buttons.
