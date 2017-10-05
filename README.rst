@@ -27,10 +27,10 @@ Examples
    :height: 400
 
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_2.jpg
-   :scale: 400
+   :height: 400
    
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_3.jpg
-   :scale: 400
+   :height: 400
 
 Usage
 -----
