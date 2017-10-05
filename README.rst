@@ -23,27 +23,28 @@ PUBGIS is a self-contained executable. Download the latest version
 Examples
 --------
 
-.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path.jpg
+.. |ex1| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path.jpg
    :height: 400
+   :align: top
+.. |ex2| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_2.jpg
+   :height: 400
+   :align: top
+.. |ex3| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_3.jpg
+   :height: 400
+   :align: top
 
-.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_2.jpg
-   :height: 400
-   
-.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_3.jpg
-   :height: 400
+
++---------+---------+---------+
+| |ex1|   |   |ex2| |   |ex3| |
++---------+---------+---------+
 
 Usage
 -----
 
 When PUBGIS is started, you'll see this:
 
-.. raw:: html
-
-   <p align="center">
-
-.. raw:: html
-
-   </p>
+.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_setup.jpg
+   :scale: 45 %
 
 1. Select a video file (only tested with .mp4 currently)
 2. Adjust the output file if needed.
