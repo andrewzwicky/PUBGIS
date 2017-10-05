@@ -40,13 +40,11 @@ class PUBGISWorkerThread(QThread):
     def __init__(self, parent, minimap_iterator, output_file):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.parent = parent
-        self.path_overlay = np.zeros((PUBGISMatch.full_map.shape[0],
-                                      PUBGISMatch.full_map.shape[0],
-                                      4), np.uint8)
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
         self.full_positions = []
-        self.preview_map = np.copy(PUBGISMatch.full_map)
+        self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
+        self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
 
     def run(self):
         self.percent_max_update.emit(0)
@@ -71,8 +69,10 @@ class PUBGISWorkerThread(QThread):
             preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
                                                             self.full_positions)
 
-            self.minimap_update.emit(self.preview_map,
-                                     QRectF(*preview_coords, preview_size, preview_size))
+            alpha = self.parent.path_color.alpha
+            blended = cv2.addWeighted(self.base_map_alpha, 1-alpha, self.preview_map, alpha, 0)
+
+            self.minimap_update.emit(blended, QRectF(*preview_coords, preview_size, preview_size))
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
