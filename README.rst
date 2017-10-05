@@ -13,7 +13,6 @@ you want more details about how PUBGIS works, check out the
 
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/minimap_callout_readme.jpg
    :scale: 80 %
-   :align: top
 
 Installation
 ------------
