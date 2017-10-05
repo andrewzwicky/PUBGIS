@@ -45,6 +45,7 @@ When PUBGIS is started, you'll see this:
 
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_setup.jpg
    :scale: 45 %
+   :align: center
 
 1. Select a video file (only tested with .mp4 currently)
 2. Adjust the output file if needed.
