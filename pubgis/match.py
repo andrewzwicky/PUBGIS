@@ -32,7 +32,7 @@ FULL_SCALE_MINIMAP = 407
 # Experimentally determined as well
 IND_OUTER_CIRCLE_RATIO = 0.05555
 IND_INNER_CIRCLE_RATIO = 0.01587
-AREA_MASK_AREA_RATIO = 0.29
+AREA_MASK_AREA_RATIO = 0.145
 
 CONTEXT_SCALE = 3
 
@@ -85,24 +85,19 @@ class PUBGISMatch:
         The area_mask is the inverse of the indicator mask, limited to a small area right around the
         indicator, this is used to get the mean color in the surrounding area.
         """
-        center = size // 2
+        center = (size // 2, size // 2)
 
         mask_base = np.zeros((size, size, 1), np.uint8)
 
         ind_base = np.copy(mask_base)
-        cv2.circle(ind_base, (center, center), int(size * IND_OUTER_CIRCLE_RATIO), 255, thickness=2)
-        cv2.circle(ind_base, (center, center), int(size * IND_INNER_CIRCLE_RATIO), 255, thickness=1)
+        cv2.circle(ind_base, center, int(size * IND_OUTER_CIRCLE_RATIO), 255, thickness=2)
+        cv2.circle(ind_base, center, int(size * IND_INNER_CIRCLE_RATIO), 255, thickness=1)
         _, indicator_mask = cv2.threshold(ind_base, 10, 255, cv2.THRESH_BINARY)
 
         area_base = np.copy(mask_base)
-        area_size = int(size * AREA_MASK_AREA_RATIO) // 2
-        cv2.rectangle(area_base,
-                      (center - area_size, center - area_size),
-                      (center + area_size, center + area_size),
-                      255,
-                      thickness=cv2.FILLED)
-        cv2.circle(area_base, (center, center), int(size * IND_OUTER_CIRCLE_RATIO), 0, thickness=2)
-        cv2.circle(area_base, (center, center), int(size * IND_INNER_CIRCLE_RATIO), 0, thickness=1)
+        cv2.circle(area_base, center, int(size * AREA_MASK_AREA_RATIO), 255, thickness=cv2.FILLED)
+        cv2.circle(area_base, center, int(size * IND_OUTER_CIRCLE_RATIO), 0, thickness=2)
+        cv2.circle(area_base, center, int(size * IND_INNER_CIRCLE_RATIO), 0, thickness=1)
         _, area_mask = cv2.threshold(area_base, 10, 255, cv2.THRESH_BINARY)
 
         return indicator_mask, area_mask
