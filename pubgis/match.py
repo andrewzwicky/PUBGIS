@@ -9,18 +9,13 @@ from pubgis.support import find_path_bounds, unscale_coords, coordinate_sum, coo
 
 IMAGES = join(dirname(__file__), "images")
 
-# TODO: outdated numbers, (pixels), based on 1920x1080 resolution.  Should be res-independent
-MAX_SPEED = 130  # km/h, motorcycle
-PIXELS_PER_100M = 64
-PIXELS_PER_KM = PIXELS_PER_100M * 10
-MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
-MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
-
-# calibrated based on test cases
+# These lists of thresholds are the criteria used to determine if a template match output has
+# actually matched a minimap, or if the supplied minimap was invalid (inventory, alt-tab, etc.)
+#
+# These were discovered experimentally by running many sets of images through the algorithm and
+# examining the output.
 COLOR_DIFF_THRESHS = [30, 70, 150]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
-
-PATH_WIDTH = 4
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 BIG_FONT = 0.6
@@ -30,8 +25,11 @@ NO_MATCH_COLOR = Color((1, 0, 0))  # RED
 MATCH_COLOR = Color((0, 1, 0))  # LIME
 WHITE = Color((1, 1, 1))  # WHITE
 
+# If the minimap were scaled up to be the same resolution as the full map,
+# it would take up FULL_SCALE_MINIMAP pixels.
 FULL_SCALE_MINIMAP = 407
 
+# Experimentally determined as well
 IND_OUTER_CIRCLE_RATIO = 0.05555
 IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.29
@@ -40,7 +38,17 @@ CONTEXT_SCALE = 3
 
 
 class PUBGISMatch:
-    # The full map is the same for all matches processed, regardless of resolution.
+    """
+    PUBGISMatch is responsible for processing a series of minimap images and outputting the
+    position of the player at each of the minimaps (if possible).
+
+    The output positions are based on the full_map which is the highest resolution map.  This
+    same map is used as the reference for output positions, regardless of input resolution.
+
+    On a high level, this class first attempts to match given minimaps against the entire map.
+    Once a position has successfully been found, subsequent minimaps are only searched for in a
+    smaller area, around the last position.  This speeds up searching significantly.
+    """
     full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
 
     def __init__(self, minimap_iterator, debug=False):
@@ -50,13 +58,14 @@ class PUBGISMatch:
 
         self.debug = debug
 
-        # scaled_positions are used to determine the context
+        # last_scaled_position is stored so later iterations can use this to
+        # narrow the search space for template matching.
         self.last_scaled_position = None
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
         # the template matching, and is done on an instance basis because it may change for
-        # each match.
+        # each instance of PUBGISMatch.
         self.scale = self.minimap_iter.size / FULL_SCALE_MINIMAP
         scaled_map = cv2.resize(PUBGISMatch.full_map, (0, 0), fx=self.scale, fy=self.scale)
         self.gray_map = cv2.cvtColor(scaled_map, cv2.COLOR_BGR2GRAY)
@@ -65,6 +74,17 @@ class PUBGISMatch:
 
     @staticmethod
     def create_masks(size):
+        """
+        These masks are used to calculate the color difference between where the player indicator
+        should be and the area around it.  The masks are based on ratios, so should scale
+        to different input resolutions.
+
+        The indicator_mask is 2 concentric circles that mask everything except the outer and inner
+        rings of the player indicator.
+
+        The area_mask is the inverse of the indicator mask, limited to a small area right around the
+        indicator, this is used to get the mean color in the surrounding area.
+        """
         center = size // 2
 
         mask_base = np.zeros((size, size, 1), np.uint8)
@@ -87,13 +107,13 @@ class PUBGISMatch:
 
         return indicator_mask, area_mask
 
-    def debug_context(self, match_found, match_coords, context_slice):
+    def __debug_context(self, match_found, match_coords, context_slice):
         """
-        Display a map showing the context where the matching happened.  It will also display where
-        minimap was matched.
+        Display the context that was used for this iteration of template matching, as well as
+        where the minimap was matched.
 
         If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
-        otherwise the surrounding rectangle will be NO_MATCH_COLOR
+        otherwise the surrounding rectangle will be NO_MATCH_COLOR.
         """
         context_thickness = 6
         context_display_size = 800
@@ -115,7 +135,15 @@ class PUBGISMatch:
         cv2.imshow("context", debug_zoomed)
         cv2.waitKey(10)
 
-    def annotate_minimap(self, minimap, match_found, color_diff, match_val):
+    def __annotate_minimap(self, minimap, match_found, color_diff, match_val):
+        """
+        Produce an annotated minimap that shows the parameters of the match, and whether a match
+        was successfully found.  The parameters are drawn directly on the map in-place, which is
+        then returned.
+
+        If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
+        otherwise the surrounding rectangle will be NO_MATCH_COLOR
+        """
         match_ind_thickness = 4
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
@@ -130,15 +158,10 @@ class PUBGISMatch:
 
         return minimap
 
-    def debug_minimap(self, annotated_minimap, world_coords):
+    def __debug_minimap(self, annotated_minimap, world_coords):
         """
-        Create a modified minimap with match information for display during debugging.
-
-        The map displays the result of the template match, and the color difference between
-        the player indicator and the area around it.
-
-        If the supplied minimap was matched, it will be surrounded by a MATCH_COLOR rectangle,
-        otherwise the surrounding rectangle will be NO_MATCH_COLOR
+        Concatenate the annotated minimap, with the matched section of the same size from the
+        scaled map.  This is useful for debugging potential incorrect matches.
         """
         matched_minimap = self.gray_map[create_slice(world_coords, self.minimap_iter.size)]
         matched_minimap = cv2.cvtColor(matched_minimap, cv2.COLOR_GRAY2BGR)
@@ -147,16 +170,23 @@ class PUBGISMatch:
         cv2.waitKey(10)
 
     def get_scaled_context(self):
+        """
+        Determine the context that the template matching should search.
+
+        Getting the context right is important because reducing the search space speeds up the
+        matching greatly, but if it's too restrictive, it can cause the matching to begin to fail.
+        """
         context_coords = (0, 0)
         context_slice = slice(None)
 
         if self.last_scaled_position:
+            # Use find_path_bounds to ensure context doesn't trigger any out of bounds errors
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
                 [self.last_scaled_position],
                 crop_border=0,
                 min_size=self.minimap_iter.size * CONTEXT_SCALE)
-            # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
+            # TODO: context must be dependent on recently missed frames
             context_slice = create_slice(context_coords, context_size)
 
         return context_coords, context_slice
@@ -183,12 +213,15 @@ class PUBGISMatch:
 
         To obtain the coordinates relative to the full map, the coordinates are unscaled later.
         """
+
+        # First, get the context and perform the match on that part of the grayscale scaled map.
         context_coords, context_slice = self.get_scaled_context()
         match = cv2.matchTemplate(self.gray_map[context_slice],
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
 
-        # When using TM_CCOEFF_NORMED, the minimum of the output is the best match
+        # match is an array, the same shape as the context.  Next, we must find the minimum value
+        # in the array because we're using the TM_CCOEFF_NORMED matching method.
         _, result, _, match_coords = cv2.minMaxLoc(match)
         scaled_coords = coordinate_sum(match_coords, context_coords)
 
@@ -206,6 +239,8 @@ class PUBGISMatch:
         #
         # There are three different regions used that correspond to experimentally determined
         # regions, found during testing to effectively differentiate the areas.
+        # As long as this iteration's combination of color difference and match_value fall above
+        # both thresholds for each pair of thresholds, we consider that a match.
 
         within_bounds = [color_diff > c_thresh and result > temp_thresh for c_thresh, temp_thresh in
                          zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
@@ -219,13 +254,20 @@ class PUBGISMatch:
             scaled_map_pos = None
 
         if self.debug:
-            self.debug_context(match_found, match_coords, context_slice)
-            annotated_minimap = self.annotate_minimap(minimap, match_found, color_diff, result)
-            self.debug_minimap(annotated_minimap, scaled_coords)
+            self.__debug_context(match_found, match_coords, context_slice)
+            annotated_minimap = self.__annotate_minimap(minimap, match_found, color_diff, result)
+            self.__debug_minimap(annotated_minimap, scaled_coords)
 
         return scaled_map_pos, color_diff, result
 
     def process_match(self):
+        """
+        Process the match by calling find_scaled_player_position on each minimap that is generated.
+
+        last_scaled_position is stored, but the unscaled full map coordinates the ones that are
+        yielded.  This means that the same game played on different resolutions should provide
+        comparable results.
+        """
         for percent, minimap in self.minimap_iter:
             scaled_position, _, _ = self.find_scaled_player_position(minimap)
             if scaled_position:
