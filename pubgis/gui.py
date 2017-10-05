@@ -12,14 +12,12 @@ from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDial
 
 from pubgis.color import Color, Scaling
 from pubgis.match import PUBGISMatch
-from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
-from pubgis.support import find_path_bounds, create_slice, blend_transparent
-from pubgis.plotting import plot_coordinate_line
-
-from typing import Union
+from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
+from pubgis.plotting import plot_coordinate_line, create_output
+from pubgis.support import find_path_bounds, create_slice
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -83,9 +81,12 @@ class PUBGISWorkerThread(QThread):
             self.percent_max_update.emit(100)
 
         self.percent_update.emit(100)
-        # match.create_output(self.output_file,
-        #                     path_color=self.parent.path_color,
-        #                     path_thickness=self.parent.thickness_spinbox.value())
+
+        create_output(PUBGISMatch.full_map,
+                      self.full_positions,
+                      self.output_file,
+                      color=self.parent.path_color,
+                      thickness=self.parent.thickness_spinbox.value())
 
 
 class PUBGISMainWindow(QMainWindow):

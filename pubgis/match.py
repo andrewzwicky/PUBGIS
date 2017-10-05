@@ -158,7 +158,7 @@ class PUBGISMatch:
                 self.gray_map.shape[0],
                 [self.last_scaled_position],
                 crop_border=0,
-                min_output_size=self.minimap_iter.size * CONTEXT_SCALE)
+                min_size=self.minimap_iter.size * CONTEXT_SCALE)
             # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
             context_slice = create_slice(context_coords, context_size)
 

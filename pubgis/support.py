@@ -4,10 +4,13 @@ import cv2
 import numpy as np
 
 CROP_BORDER = 30
-MIN_BOUNDS_SIZE = 600
+MIN_SIZE = 600
 
 
-def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=MIN_BOUNDS_SIZE):
+def find_path_bounds(map_size,  # pylint: disable=too-many-locals
+                     coords,
+                     crop_border=CROP_BORDER,
+                     min_size=MIN_SIZE):
     """
     This function should provide a bounding box that contains the current coordinates of the
     path for display, and does not exceed the bounds of the map.
@@ -39,10 +42,10 @@ def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=
             y_path_width = max_y - min_y
 
             # The size of the final output will be a square, so we need to find out the largest
-            # of the possible sizes for the final output.  MIN_PROGRESS_MAP_SIZE is the lower bound
+            # of the possible sizes for the final output.  MIN_BOUNDS_SIZE is the lower bound
             # for how small the output map can be.  The final output bounds also can't be larger
             # than the entire map.
-            output_size = min(max(min_output_size, x_path_width, y_path_width), map_size)
+            output_size = min(max(min_size, x_path_width, y_path_width), map_size)
 
             # Each side is now padded to take up additional room in the smaller direction.
             # If a particular direction was chosen to the be the output size, the padding in that
@@ -51,8 +54,8 @@ def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=
             y_corner = min_y - (output_size - y_path_width) // 2
 
             # Bounds checks for the corners to make sure all of the bounds is within the map limits.
-            x_corner = 0 if x_corner < 0 else x_corner
-            y_corner = 0 if y_corner < 0 else y_corner
+            x_corner = max(0, x_corner)
+            y_corner = max(0, y_corner)
             x_corner = map_size - output_size if x_corner + output_size > map_size else x_corner
             y_corner = map_size - output_size if y_corner + output_size > map_size else y_corner
 
