@@ -11,10 +11,13 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
 from pubgis.color import Color, Scaling
-from pubgis.match import PUBGISMatch, DEFAULT_PATH_COLOR
+from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
+from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
+from pubgis.plotting import plot_coordinate_line, create_output_opencv
+from pubgis.support import find_path_bounds, create_slice
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -32,31 +35,44 @@ class ButtonGroups(Flag):
 class PUBGISWorkerThread(QThread):
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
-    minimap_update = QtCore.pyqtSignal(np.ndarray)
+    minimap_update = QtCore.pyqtSignal(np.ndarray, object)
 
-    def __init__(self,  # pylint: disable=too-many-arguments
-                 parent, minimap_iterator, output_file, path_color, path_thickness):
+    def __init__(self, parent, minimap_iterator, output_file):
         super(PUBGISWorkerThread, self).__init__(parent)
+        self.parent = parent
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
-        self.path_color = path_color
-        self.path_thickness = path_thickness
+        self.full_positions = []
+        self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
+        self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
 
     def run(self):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(minimap_iterator=self.minimap_iterator,
-                            path_color=self.path_color,
-                            path_thickness=self.path_thickness)
+        match = PUBGISMatch(self.minimap_iterator, debug=False)
 
-        self.minimap_update.emit(match.map)
+        self.minimap_update.emit(self.preview_map, None)
 
-        for percent, progress_minimap in match.process_match():
+        for percent, full_position in match.process_match():
             if percent is not None:
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
-            self.minimap_update.emit(progress_minimap)
+
+            plot_coordinate_line(self.preview_map,
+                                 self.full_positions,
+                                 full_position,
+                                 self.parent.path_color(),
+                                 self.parent.thickness_spinbox.value())
+
+            self.full_positions.append(full_position)
+            preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
+                                                            self.full_positions)
+
+            alpha = self.parent.path_color.alpha
+            blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+
+            self.minimap_update.emit(blended, QRectF(*preview_coords, preview_size, preview_size))
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -65,10 +81,15 @@ class PUBGISWorkerThread(QThread):
             self.percent_max_update.emit(100)
 
         self.percent_update.emit(100)
-        match.create_output(self.output_file)
+
+        alpha = self.parent.path_color.alpha
+        blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+        create_output_opencv(blended,
+                             self.full_positions,
+                             self.output_file)
 
 
-class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attributes
+class PUBGISMainWindow(QMainWindow):
     changed_percent = QtCore.pyqtSignal(int)
     update_minimap = QtCore.pyqtSignal(QImage)
 
@@ -77,7 +98,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         uic.loadUi(os.path.join(os.path.dirname(__file__), "pubgis_gui.ui"), self)
 
         # connect buttons to functions
-        self.color_select_button.released.connect(self._select_background_color)
+        self.color_select_button.released.connect(self._select_path_color)
         self.process_button.released.connect(self.process_match)
         self.video_file_browse_button.clicked.connect(self._select_video_file)
         self.output_file_browse_button.clicked.connect(self._select_output_file)
@@ -87,16 +108,14 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self.thickness_spinbox.valueChanged.connect(self._update_path_color_preview)
 
         # prepare path preview
-        self.path_color = DEFAULT_PATH_COLOR
-        self.path_preview_image = cv2.imread(os.path.join(os.path.dirname(__file__),
-                                                          "images",
-                                                          "path_preview_minimap.jpg"))
+        self.path_color = PATH_COLOR
+
         self.path_preview_view.setScene(QGraphicsScene())
-        self.path_pixmap = self.path_preview_view.scene().addPixmap(QPixmap())
+        self.path_preview_view.scene().addPixmap(QPixmap())
 
         # prepare map preview
         self.map_creation_view.setScene(QGraphicsScene())
-        self.map_pixmap = self.map_creation_view.scene().addPixmap(QPixmap())
+        self.map_creation_view.scene().addPixmap(QPixmap())
 
         # set window name and icon
         self.setWindowTitle("PUBGIS")
@@ -132,6 +151,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         self._update_button_state(ButtonGroups.PREPROCESS)
 
         self.show()
+        self.thickness_spinbox.setValue(PATH_THICKNESS)
         self._update_path_color_preview()
 
     @staticmethod
@@ -144,25 +164,22 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
         return user_dir
 
     @staticmethod
-    def _update_view_with_image(view, pixmap, image_array):
+    def _update_view_with_image(view, image_array, rect=None):
         image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
         height, width, _ = image.shape
         bytes_per_line = 3 * width
         qimg = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
 
         # noinspection PyCallByClass
-        pixmap.setPixmap(QPixmap.fromImage(qimg))
-        PUBGISMainWindow._fit_in_view(view,
-                                      view.scene().itemsBoundingRect(),
-                                      flags=Qt.KeepAspectRatio)
+        view.scene().items()[0].setPixmap(QPixmap.fromImage(qimg))
+        update_rect = rect if rect else view.scene().itemsBoundingRect()
+        PUBGISMainWindow._fit_in_view(view, update_rect, flags=Qt.KeepAspectRatio)
 
     @staticmethod
     def generate_output_file_name():
         return "pubgis_{}.jpg".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-    # pylint: disable=line-too-long
-    # https://github.com/nevion/pyqimageview/blob/0f0e2966d2a2a089ec80b5bf777a773443df7f9e/qimageview/widget.py#L275-L291
-    # pylint: enable=line-too-long
+    # https://github.com/nevion/pyqimageview/blob/master/qimageview/widget.py#L275-L291
     # Copyright (c) 2014 Jason Newton <nevion@gmail.com>
     # MIT License
     # override arbitrary and unwanted margins: https://bugreports.qt.io/browse/QTBUG-42331
@@ -194,51 +211,51 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
     # name must match because we're overriding QMainWindow method
     def dropEvent(self, event):  # pylint: disable=invalid-name
         if event.mimeData().hasUrls:
-            fname = event.mimeData().urls()[0].toLocalFile()
-            self._set_video_file(fname)
+            file_name = event.mimeData().urls()[0].toLocalFile()
+            self._set_video_file(file_name)
 
     # VIDEO SECTION
 
-    def _set_video_file(self, fname):
+    def _set_video_file(self, file_name):
         """
         Given a video file name, set the video_file_edit text to this file name and
         auto-fill the output file name as well.
         """
-        if fname:
-            self.last_video_file_dir = os.path.dirname(fname)
-            self.video_file_edit.setText(QDir.toNativeSeparators(fname))
+        if file_name:
+            self.last_video_file_dir = os.path.dirname(file_name)
+            self.video_file_edit.setText(QDir.toNativeSeparators(file_name))
 
-            video_filename, _ = os.path.splitext(os.path.basename(fname))
+            video_filename, _ = os.path.splitext(os.path.basename(file_name))
 
             self._set_output_file(os.path.join(self.last_output_file_dir,
                                                f"{video_filename}.jpg"))
 
     def _select_video_file(self):
-        fname, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_dir,
-                                               filter="Videos (*.mp4)")
-        self._set_video_file(fname)
+        file_name, _ = QFileDialog.getOpenFileName(directory=self.last_video_file_dir,
+                                                   filter="Videos (*.mp4)")
+        self._set_video_file(file_name)
 
-    def _set_output_file(self, fname):
-        if fname:
-            self.last_output_file_dir = os.path.dirname(fname)
-            self.output_file_edit.setText(QDir.toNativeSeparators(fname))
+    def _set_output_file(self, file_name):
+        if file_name:
+            self.last_output_file_dir = os.path.dirname(file_name)
+            self.output_file_edit.setText(QDir.toNativeSeparators(file_name))
 
     def _select_output_file(self):
-        fname, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_dir,
-                                               filter="Images (*.jpg)")
-        self._set_output_file(fname)
+        file_name, _ = QFileDialog.getSaveFileName(directory=self.last_output_file_dir,
+                                                   filter="Images (*.jpg)")
+        self._set_output_file(file_name)
 
     # LIVE SECTION
 
-    def _set_output_directory(self, dname):
-        if dname:
-            self.last_output_live_dir = dname
-            self.output_directory_edit.setText(QDir.toNativeSeparators(dname))
+    def _set_output_directory(self, dir_name):
+        if dir_name:
+            self.last_output_live_dir = dir_name
+            self.output_directory_edit.setText(QDir.toNativeSeparators(dir_name))
 
     def _select_output_directory(self):
-        dname = QFileDialog.getExistingDirectory(directory=self.last_output_live_dir,
-                                                 options=QFileDialog.ShowDirsOnly)
-        self._set_output_directory(dname)
+        dir_name = QFileDialog.getExistingDirectory(directory=self.last_output_live_dir,
+                                                    options=QFileDialog.ShowDirsOnly)
+        self._set_output_directory(dir_name)
 
     def _parse_available_monitors(self, mon_combo_index):
         if mon_combo_index == 1 and self.monitor_combo.count() == 0:
@@ -255,30 +272,38 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
 
     def _update_monitor_preview(self):
         with mss.mss() as sct:
+            # Monitor 0 is all of the monitors glued together.  This was skipped when the monitors
+            # were added to the monitor_combo, so we must add 1 to the index when previewing
+            # to make sure the right monitor is displayed.
             cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
-        self._update_view_with_image(self.map_creation_view, self.map_pixmap, cap)
+        self._update_view_with_image(self.map_creation_view, cap)
 
     # UNIVERSAL, APPLIES TO ALL SECTIONS
 
-    def _select_background_color(self):
+    def _select_path_color(self):
         color_dialog = QColorDialog(QColor(*self.path_color(alpha=True)))
         *picker_rgb, alpha = color_dialog.getColor(options=QColorDialog.ShowAlphaChannel).getRgb()
         self.path_color = Color(picker_rgb, scaling=Scaling.UINT8, alpha=alpha)
         self._update_path_color_preview()
 
     def _update_path_color_preview(self):
-        path_image = np.copy(self.path_preview_image)
-        for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
-            cv2.line(path_image,
-                     start,
-                     end,
-                     color=self.path_color(),
-                     thickness=self.thickness_spinbox.value(),
-                     lineType=cv2.LINE_AA)
-        self._update_view_with_image(self.path_preview_view, self.path_pixmap, path_image)
+        path_image_base = np.copy(PUBGISMatch.full_map[create_slice((2943, 2913), 240)])
+        path_image = np.copy(PUBGISMatch.full_map[create_slice((2943, 2913), 240)])
 
-    def _update_map_preview(self, minimap):
-        self._update_view_with_image(self.map_creation_view, self.map_pixmap, minimap)
+        for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
+            plot_coordinate_line(path_image,
+                                 [start],
+                                 end,
+                                 self.path_color(),
+                                 self.thickness_spinbox.value())
+
+        alpha = self.path_color.alpha
+        blended = cv2.addWeighted(path_image_base, 1 - alpha, path_image, alpha, 0)
+
+        self._update_view_with_image(self.path_preview_view, blended)
+
+    def _update_map_preview(self, minimap, rect):
+        self._update_view_with_image(self.map_creation_view, minimap, rect=rect)
 
     # This has a default argument so that it can be slotted to a signal
     # like the .finished signal and that will reset the buttons.
@@ -296,12 +321,12 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
                 return False
 
             if not os.path.exists(os.path.dirname(self.output_file_edit.text())):
-                QMessageBox.information(self, "Error", "output directory not writeable")
+                QMessageBox.information(self, "Error", "output directory doesn't exist")
                 return False
 
         if mode == ProcessMode.LIVE:
             if not os.path.exists(self.output_directory_edit.text()):
-                QMessageBox.information(self, "Error", "output directory not writeable")
+                QMessageBox.information(self, "Error", "output directory doesn't exist")
                 return False
 
         return True
@@ -331,11 +356,7 @@ class PUBGISMainWindow(QMainWindow):  # pylint: disable=too-many-instance-attrib
                 raise ValueError
 
             if map_iter:
-                match_thread = PUBGISWorkerThread(self,
-                                                  minimap_iterator=map_iter,
-                                                  output_file=output_file,
-                                                  path_color=self.path_color,
-                                                  path_thickness=self.thickness_spinbox.value())
+                match_thread = PUBGISWorkerThread(self, map_iter, output_file=output_file)
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)
