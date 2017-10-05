@@ -1,5 +1,6 @@
 from enum import IntFlag
 from math import sqrt
+import matplotlib.colors as mpl_colors
 
 import cv2
 
@@ -33,6 +34,10 @@ class Color:
             raise ValueError
 
         self.red, self.green, self.blue, self.alpha = input_colors
+
+    @ classmethod
+    def fromstring(cls, color_string):
+        return cls(mpl_colors.to_rgb(color_string))
 
     def __call__(self, scaling=Scaling.UINT8, space=Space.BGR, alpha=False):
         colors = (self.red, self.green, self.blue)

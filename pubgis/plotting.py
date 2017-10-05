@@ -1,3 +1,4 @@
+import cv2
 import matplotlib.colors as mpl_colors
 from matplotlib import pyplot as plt
 
@@ -23,3 +24,15 @@ def create_output(input_map, input_coords, output_file, color=PATH_COLOR, thickn
     mpl_color = color(space=Space.RGB, scaling=Scaling.PERC, alpha=True)
     output_axis.plot(*zip(*input_coords), color=mpl_color, linewidth=thickness)
     fig.savefig(output_file)
+
+
+def plot_coordinate_line(input_map, prev_positions, position, color, thickness):
+    if position is not None:
+        last_valid_pos = next((pos for pos in prev_positions[::-1] if pos is not None), None)
+        if last_valid_pos is not None:
+            cv2.line(input_map,
+                     last_valid_pos,
+                     position,
+                     color=color,
+                     thickness=thickness,
+                     lineType=cv2.LINE_AA)

@@ -19,8 +19,10 @@ def find_path_bounds(map_size, coords, crop_border=CROP_BORDER, min_output_size=
 
     :return: (x, y, height, width)
     """
-    if coords:
-        x_list, y_list = zip(*coords)
+    filtered_coords = [coord for coord in coords if coord is not None]
+
+    if filtered_coords:
+        x_list, y_list = zip(*filtered_coords)
 
         # First, the area of interest should be defined.  This is the area that absolutely
         # needs to be displayed because it has all the coordinates in it.  It's OK for out of

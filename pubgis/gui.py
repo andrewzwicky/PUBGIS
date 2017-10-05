@@ -17,6 +17,9 @@ from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.support import find_path_bounds, create_slice, blend_transparent
+from pubgis.plotting import plot_coordinate_line
+
+from typing import Union
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -34,7 +37,7 @@ class ButtonGroups(Flag):
 class PUBGISWorkerThread(QThread):
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
-    minimap_update = QtCore.pyqtSignal(np.ndarray)
+    minimap_update = QtCore.pyqtSignal(np.ndarray, object)
 
     def __init__(self, parent, minimap_iterator, output_file):
         super(PUBGISWorkerThread, self).__init__(parent)
@@ -44,42 +47,34 @@ class PUBGISWorkerThread(QThread):
                                       4), np.uint8)
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
+        self.full_positions = []
+        self.preview_map = np.copy(PUBGISMatch.full_map)
 
     def run(self):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(minimap_iterator=self.minimap_iterator)
+        match = PUBGISMatch(self.minimap_iterator, debug=False)
 
-        self.minimap_update.emit(PUBGISMatch.full_map)
+        self.minimap_update.emit(self.preview_map, None)
 
-        for percent, full_coords in match.process_match():
+        for percent, full_position in match.process_match():
             if percent is not None:
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
 
-            if full_coords is not None:
-                cv2.line(self.path_overlay,
-                         match.all_coords[-1],
-                         full_coords,
-                         color=self.parent.path_color(alpha=True),
-                         thickness=self.parent.thickness_spinbox.value(),
-                         lineType=cv2.LINE_AA)
+            plot_coordinate_line(self.preview_map,
+                                 self.full_positions,
+                                 full_position,
+                                 self.parent.path_color(),
+                                 self.parent.thickness_spinbox.value())
 
-            bounds_coords, bounds_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
-                                                          match.all_coords)
+            self.full_positions.append(full_position)
+            preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
+                                                            self.full_positions)
 
-            bounds_slice = create_slice(bounds_coords, bounds_size)
-
-            cv2.imshow("path_overlay",
-                       cv2.resize(self.path_overlay[bounds_slice], (0, 0), fx=0.3, fy=0.3))
-            cv2.imshow("map",
-                       cv2.resize(PUBGISMatch.full_map[bounds_slice], (0, 0), fx=0.3, fy=0.3))
-            cv2.waitKey(10)
-
-            progress_minimap = blend_transparent(PUBGISMatch.full_map[bounds_slice],
-                                                 self.path_overlay[bounds_slice])
-            self.minimap_update.emit(progress_minimap)
+            self.minimap_update.emit(self.preview_map,
+                                     QRectF(*preview_coords, preview_size, preview_size))
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -113,9 +108,7 @@ class PUBGISMainWindow(QMainWindow):
 
         # prepare path preview
         self.path_color = PATH_COLOR
-        self.path_preview_image = cv2.imread(os.path.join(os.path.dirname(__file__),
-                                                          "images",
-                                                          "path_preview_minimap.jpg"))
+
         self.path_preview_view.setScene(QGraphicsScene())
         self.path_preview_view.scene().addPixmap(QPixmap())
 
@@ -170,7 +163,7 @@ class PUBGISMainWindow(QMainWindow):
         return user_dir
 
     @staticmethod
-    def _update_view_with_image(view, image_array):
+    def _update_view_with_image(view, image_array, rect=None):
         image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
         height, width, _ = image.shape
         bytes_per_line = 3 * width
@@ -178,9 +171,8 @@ class PUBGISMainWindow(QMainWindow):
 
         # noinspection PyCallByClass
         view.scene().items()[0].setPixmap(QPixmap.fromImage(qimg))
-        PUBGISMainWindow._fit_in_view(view,
-                                      view.scene().itemsBoundingRect(),
-                                      flags=Qt.KeepAspectRatio)
+        update_rect = rect if rect else view.scene().itemsBoundingRect()
+        PUBGISMainWindow._fit_in_view(view, update_rect, flags=Qt.KeepAspectRatio)
 
     @staticmethod
     def generate_output_file_name():
@@ -294,18 +286,19 @@ class PUBGISMainWindow(QMainWindow):
         self._update_path_color_preview()
 
     def _update_path_color_preview(self):
-        path_image = np.copy(self.path_preview_image)
+        path_image = np.copy(PUBGISMatch.full_map[create_slice((2943, 2913), 240)])
+
         for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
-            cv2.line(path_image,
-                     start,
-                     end,
-                     color=self.path_color(),
-                     thickness=self.thickness_spinbox.value(),
-                     lineType=cv2.LINE_AA)
+            plot_coordinate_line(path_image,
+                                 [start],
+                                 end,
+                                 self.path_color(),
+                                 self.thickness_spinbox.value())
+
         self._update_view_with_image(self.path_preview_view, path_image)
 
-    def _update_map_preview(self, minimap):
-        self._update_view_with_image(self.map_creation_view, minimap)
+    def _update_map_preview(self, minimap, rect):
+        self._update_view_with_image(self.map_creation_view, minimap, rect=rect)
 
     # This has a default argument so that it can be slotted to a signal
     # like the .finished signal and that will reset the buttons.
@@ -358,9 +351,7 @@ class PUBGISMainWindow(QMainWindow):
                 raise ValueError
 
             if map_iter:
-                match_thread = PUBGISWorkerThread(self,
-                                                  minimap_iterator=map_iter,
-                                                  output_file=output_file)
+                match_thread = PUBGISWorkerThread(self, map_iter, output_file=output_file)
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)

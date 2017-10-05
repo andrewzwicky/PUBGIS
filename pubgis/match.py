@@ -1,7 +1,6 @@
 from os.path import join, dirname
 
 import cv2
-import matplotlib.colors as mpl_colors
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -30,9 +29,9 @@ FONT = cv2.FONT_HERSHEY_SIMPLEX
 BIG_FONT = 0.6
 SMALL_FONT = 0.3
 
-NO_MATCH_COLOR = Color(mpl_colors.to_rgb("Red"))
-MATCH_COLOR = Color(mpl_colors.to_rgb("Lime"))
-WHITE = Color(mpl_colors.to_rgb("White"))
+NO_MATCH_COLOR = Color.fromstring("Red")
+MATCH_COLOR = Color.fromstring("Lime")
+WHITE = Color.fromstring("White")
 
 FULL_SCALE_MINIMAP = 407
 
@@ -40,16 +39,22 @@ IND_OUTER_CIRCLE_RATIO = 0.05555
 IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.29
 
+CONTEXT_SCALE = 3
+
 
 class PUBGISMatch:
     # The full map is the same for all matches processed, regardless of resolution.
     full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
 
-    def __init__(self, minimap_iterator=None, debug=False):
+    def __init__(self, minimap_iterator, debug=False):
         self.minimap_iter = minimap_iterator
+
+        assert self.minimap_iter.size
+
         self.debug = debug
 
-        self.scaled_positions = []
+        # scaled_positions are used to determine the context
+        self.last_scaled_position = None
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
@@ -94,14 +99,21 @@ class PUBGISMatch:
         otherwise the surrounding rectangle will be NO_MATCH_COLOR
         """
         context_thickness = 6
+        context_display_size = 800
 
         debug_zoomed = np.copy(self.gray_map[context_slice])
+        debug_zoomed = cv2.cvtColor(debug_zoomed, cv2.COLOR_GRAY2BGR)
 
         cv2.rectangle(debug_zoomed,
                       coordinate_offset(match_coords, context_thickness // 2),
                       coordinate_offset(match_coords, self.minimap_iter.size - context_thickness),
                       MATCH_COLOR() if match_found else NO_MATCH_COLOR(),
                       thickness=context_thickness)
+
+        debug_zoomed = cv2.resize(debug_zoomed,
+                                  (0, 0),
+                                  fx=context_display_size/debug_zoomed.shape[0],
+                                  fy=context_display_size / debug_zoomed.shape[0])
 
         cv2.imshow("context", debug_zoomed)
         cv2.waitKey(10)
@@ -121,9 +133,7 @@ class PUBGISMatch:
 
         return minimap
 
-    def debug_minimap(self,
-                      annotated_minimap,
-                      world_coords):
+    def debug_minimap(self, annotated_minimap, world_coords):
         """
         Create a modified minimap with match information for display during debugging.
 
@@ -134,22 +144,23 @@ class PUBGISMatch:
         otherwise the surrounding rectangle will be NO_MATCH_COLOR
         """
         matched_minimap = self.gray_map[create_slice(world_coords, self.minimap_iter.size)]
+        matched_minimap = cv2.cvtColor(matched_minimap, cv2.COLOR_GRAY2BGR)
 
         cv2.imshow("debug", np.concatenate((annotated_minimap, matched_minimap), axis=1))
         cv2.waitKey(10)
 
-    def get_scaled_match_context(self):
-        if self.scaled_positions:
+    def get_scaled_context(self):
+        context_coords = (0, 0)
+        context_slice = slice(None)
+
+        if self.last_scaled_position:
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
-                [self.scaled_positions[-1]],
+                [self.last_scaled_position],
                 crop_border=0,
-                min_output_size=self.minimap_iter.size * 3)
+                min_output_size=self.minimap_iter.size * CONTEXT_SCALE)
             # TODO: better method for determining minimap sizing (i.e. consecutive missed frames)
             context_slice = create_slice(context_coords, context_size)
-        else:
-            context_coords = (0, 0)
-            context_slice = slice(None)
 
         return context_coords, context_slice
 
@@ -175,7 +186,7 @@ class PUBGISMatch:
 
         To obtain the coordinates relative to the full map, the coordinates are unscaled later.
         """
-        context_coords, context_slice = self.get_scaled_match_context()
+        context_coords, context_slice = self.get_scaled_context()
         match = cv2.matchTemplate(self.gray_map[context_slice],
                                   cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                   cv2.TM_CCOEFF_NORMED)
@@ -220,6 +231,7 @@ class PUBGISMatch:
     def process_match(self):
         for percent, minimap in self.minimap_iter:
             scaled_position, _, _ = self.find_scaled_player_position(minimap)
-            self.scaled_positions.append(scaled_position)
+            if scaled_position:
+                self.last_scaled_position = scaled_position
             full_position = unscale_coords(scaled_position, self.scale)
             yield percent, full_position

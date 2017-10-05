@@ -24,13 +24,13 @@ GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
 @pytest.fixture(scope='module')
 def bad_match_fixture():
     bad_iter = ImageIterator(BAD_IMAGES_FOLDER, just_minimaps=True)
-    return PUBGISMatch(minimap_iterator=bad_iter)
+    return PUBGISMatch(bad_iter)
 
 
 @pytest.fixture(scope='module')
 def good_match_fixture():
     good_iter = ImageIterator(GOOD_IMAGES_FOLDER, just_minimaps=True)
-    return PUBGISMatch(minimap_iterator=good_iter)
+    return PUBGISMatch(good_iter)
 
 
 @pytest.fixture(scope='module')
