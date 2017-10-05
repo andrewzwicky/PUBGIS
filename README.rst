@@ -23,13 +23,14 @@ PUBGIS is a self-contained executable. Download the latest version
 Examples
 --------
 
-.. raw:: html
+.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path.jpg
+   :height: 400
 
-   <p align="center">
-
-.. raw:: html
-
-   </p>
+.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_2.jpg
+   :scale: 400
+   
+.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_3.jpg
+   :scale: 400
 
 Usage
 -----
