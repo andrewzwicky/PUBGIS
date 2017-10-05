@@ -16,7 +16,7 @@ from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
-from pubgis.plotting import plot_coordinate_line, create_output, create_output_opencv
+from pubgis.plotting import plot_coordinate_line, create_output_opencv
 from pubgis.support import find_path_bounds, create_slice
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
