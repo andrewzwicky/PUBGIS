@@ -23,7 +23,7 @@ install:
   - "%PYTHON%\\python --version"
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
-  - "%PIP% install twine pytest pyinstaller wheel pylint"
+  - "%PIP% install twine pytest pyinstaller wheel pylint pytest-xdist"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PIP% install ."
 
@@ -33,7 +33,7 @@ build_script:
 
 test_script:
   - "pylint pubgis"
-  - "pytest -v"
+  - "pytest -v -n auto"
 
 artifacts:
   - path: dist/PUBGIS.exe
