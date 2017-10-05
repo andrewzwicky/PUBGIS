@@ -2,13 +2,10 @@ from os.path import join, dirname
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 from pubgis.color import Color
 from pubgis.support import find_path_bounds, unscale_coords, coordinate_sum, coordinate_offset, \
     create_slice
-
-plt.switch_backend('Agg')
 
 IMAGES = join(dirname(__file__), "images")
 
@@ -29,9 +26,9 @@ FONT = cv2.FONT_HERSHEY_SIMPLEX
 BIG_FONT = 0.6
 SMALL_FONT = 0.3
 
-NO_MATCH_COLOR = Color.fromstring("Red")
-MATCH_COLOR = Color.fromstring("Lime")
-WHITE = Color.fromstring("White")
+NO_MATCH_COLOR = Color((1, 0, 0))  # RED
+MATCH_COLOR = Color((0, 1, 0))  # LIME
+WHITE = Color((1, 1, 1))  # WHITE
 
 FULL_SCALE_MINIMAP = 407
 
@@ -112,7 +109,7 @@ class PUBGISMatch:
 
         debug_zoomed = cv2.resize(debug_zoomed,
                                   (0, 0),
-                                  fx=context_display_size/debug_zoomed.shape[0],
+                                  fx=context_display_size / debug_zoomed.shape[0],
                                   fy=context_display_size / debug_zoomed.shape[0])
 
         cv2.imshow("context", debug_zoomed)

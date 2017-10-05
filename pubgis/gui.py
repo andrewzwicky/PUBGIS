@@ -16,7 +16,7 @@ from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
-from pubgis.plotting import plot_coordinate_line, create_output
+from pubgis.plotting import plot_coordinate_line, create_output, create_output_opencv
 from pubgis.support import find_path_bounds, create_slice
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
@@ -70,7 +70,7 @@ class PUBGISWorkerThread(QThread):
                                                             self.full_positions)
 
             alpha = self.parent.path_color.alpha
-            blended = cv2.addWeighted(self.base_map_alpha, 1-alpha, self.preview_map, alpha, 0)
+            blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
 
             self.minimap_update.emit(blended, QRectF(*preview_coords, preview_size, preview_size))
 
@@ -82,11 +82,11 @@ class PUBGISWorkerThread(QThread):
 
         self.percent_update.emit(100)
 
-        create_output(PUBGISMatch.full_map,
-                      self.full_positions,
-                      self.output_file,
-                      color=self.parent.path_color,
-                      thickness=self.parent.thickness_spinbox.value())
+        alpha = self.parent.path_color.alpha
+        blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+        create_output_opencv(blended,
+                             self.full_positions,
+                             self.output_file)
 
 
 class PUBGISMainWindow(QMainWindow):
@@ -287,6 +287,7 @@ class PUBGISMainWindow(QMainWindow):
         self._update_path_color_preview()
 
     def _update_path_color_preview(self):
+        path_image_base = np.copy(PUBGISMatch.full_map[create_slice((2943, 2913), 240)])
         path_image = np.copy(PUBGISMatch.full_map[create_slice((2943, 2913), 240)])
 
         for start, end in zip(PATH_PREVIEW_POINTS[:-1], PATH_PREVIEW_POINTS[1:]):
@@ -296,7 +297,10 @@ class PUBGISMainWindow(QMainWindow):
                                  self.path_color(),
                                  self.thickness_spinbox.value())
 
-        self._update_view_with_image(self.path_preview_view, path_image)
+        alpha = self.path_color.alpha
+        blended = cv2.addWeighted(path_image_base, 1 - alpha, path_image, alpha, 0)
+
+        self._update_view_with_image(self.path_preview_view, blended)
 
     def _update_map_preview(self, minimap, rect):
         self._update_view_with_image(self.map_creation_view, minimap, rect=rect)

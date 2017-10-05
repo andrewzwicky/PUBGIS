@@ -5,12 +5,9 @@ from os.path import join, dirname
 
 import cv2
 import pytest
-from matplotlib import pyplot as plt
 
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
-
-plt.switch_backend('Agg')
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
