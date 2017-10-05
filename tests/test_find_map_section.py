@@ -6,9 +6,8 @@ from os.path import join, dirname
 import cv2
 import pytest
 from matplotlib import pyplot as plt
-from matplotlib.patches import Polygon, Rectangle
 
-from pubgis.match import PUBGISMatch, COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS
+from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
 
 plt.switch_backend('Agg')
@@ -35,7 +34,7 @@ def good_match_fixture():
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(BAD_IMAGES_FOLDER))
-def test_bad_images(test_image, bad_match_fixture, template_match_plot_axes):
+def test_bad_images(test_image, bad_match_fixture):
     img = cv2.imread(os.path.join(BAD_IMAGES_FOLDER, test_image))
     scaled_pos, color_diff, result = bad_match_fixture.find_scaled_player_position(img)
     assert scaled_pos is None
@@ -43,11 +42,10 @@ def test_bad_images(test_image, bad_match_fixture, template_match_plot_axes):
 
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_image", os.listdir(GOOD_IMAGES_FOLDER))
-def test_good_images(test_image, good_match_fixture, template_match_plot_axes, map_coverage_axes):
+def test_good_images(test_image, good_match_fixture):
     img = cv2.imread(os.path.join(GOOD_IMAGES_FOLDER, test_image))
     scaled_pos, color_diff, result = good_match_fixture.find_scaled_player_position(img)
     coords_match = GOOD_TEST_COORDS_RE.match(test_image)
     (e_x, e_y) = tuple(map(int, coords_match.groups()))
-
     assert scaled_pos == (pytest.approx(e_x, abs=ALLOWED_VARIATION),
                           pytest.approx(e_y, abs=ALLOWED_VARIATION))
