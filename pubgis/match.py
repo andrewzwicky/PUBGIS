@@ -17,9 +17,13 @@ IMAGES = join(dirname(__file__), "images")
 COLOR_DIFF_THRESHS = [30, 70, 150]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
+MAX_SPEED = 160  # km/h, motorcycle, conservative estimate
+PIXELS_PER_KM = 1024
+MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
+MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
+
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-BIG_FONT = 0.6
-SMALL_FONT = 0.3
+FONT_SIZE = 0.6
 
 NO_MATCH_COLOR = Color((1, 0, 0))  # RED
 MATCH_COLOR = Color((0, 1, 0))  # LIME
@@ -33,8 +37,6 @@ FULL_SCALE_MINIMAP = 407
 IND_OUTER_CIRCLE_RATIO = 0.05555
 IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.145
-
-CONTEXT_SCALE = 3
 
 
 class PUBGISMatch:
@@ -61,6 +63,7 @@ class PUBGISMatch:
         # last_scaled_position is stored so later iterations can use this to
         # narrow the search space for template matching.
         self.last_scaled_position = None
+        self.missed_frames = 0
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
@@ -141,8 +144,9 @@ class PUBGISMatch:
         """
         match_ind_thickness = 4
 
-        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, BIG_FONT, WHITE())
-        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, BIG_FONT, WHITE())
+        cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, FONT_SIZE, WHITE())
+        cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, FONT_SIZE, WHITE())
+        cv2.putText(minimap, f"{self.missed_frames:.2f}", (25, 95), FONT, FONT_SIZE, WHITE())
 
         cv2.rectangle(minimap,
                       (match_ind_thickness // 2, match_ind_thickness // 2),
@@ -165,23 +169,18 @@ class PUBGISMatch:
         cv2.waitKey(10)
 
     def get_scaled_context(self):
-        """
-        Determine the context that the template matching should search.
+        context_scale = 2
+        context_adjust = self.missed_frames * int(self.scale * MAX_PIXELS_PER_SEC)
 
-        Getting the context right is important because reducing the search space speeds up the
-        matching greatly, but if it's too restrictive, it can cause the matching to begin to fail.
-        """
         context_coords = (0, 0)
         context_slice = slice(None)
 
         if self.last_scaled_position:
-            # Use find_path_bounds to ensure context doesn't trigger any out of bounds errors
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
                 [self.last_scaled_position],
                 crop_border=0,
-                min_size=self.minimap_iter.size * CONTEXT_SCALE)
-            # TODO: context must be dependent on recently missed frames
+                min_size=(self.minimap_iter.size * context_scale) + 2 * context_adjust)
             context_slice = create_slice(context_coords, context_size)
 
         return context_coords, context_slice
@@ -243,10 +242,12 @@ class PUBGISMatch:
         if any(within_bounds):
             match_found = True
             scaled_map_pos = coordinate_offset(scaled_coords, self.minimap_iter.size // 2)
+            self.missed_frames = 0
 
         else:
             match_found = False
             scaled_map_pos = None
+            self.missed_frames += 1
 
         if self.debug:
             self.__debug_context(match_found, match_coords, context_slice)
