@@ -394,6 +394,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="disable_preview_checkbox">
+            <property name="text">
+             <string>Disable Preview</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

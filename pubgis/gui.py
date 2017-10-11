@@ -37,7 +37,7 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
 
-    def __init__(self, parent, minimap_iterator, output_file):
+    def __init__(self, parent, minimap_iterator, output_file, preview_enable):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.parent = parent
         self.minimap_iterator = minimap_iterator
@@ -45,6 +45,7 @@ class PUBGISWorkerThread(QThread):
         self.full_positions = []
         self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
+        self.preview_enable = preview_enable
 
     def run(self):
         self.percent_max_update.emit(0)
@@ -59,26 +60,30 @@ class PUBGISWorkerThread(QThread):
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
 
-            plot_coordinate_line(self.preview_map,
-                                 self.full_positions,
-                                 full_position,
-                                 self.parent.path_color(),
-                                 self.parent.thickness_spinbox.value())
+            if self.preview_enable:
+                plot_coordinate_line(self.preview_map,
+                                     self.full_positions,
+                                     full_position,
+                                     self.parent.path_color(),
+                                     self.parent.thickness_spinbox.value())
 
-            self.full_positions.append(full_position)
-            preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
-                                                            self.full_positions)
+                self.full_positions.append(full_position)
 
-            preview_slice = create_slice(preview_coords, preview_size)
+                preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
+                                                                self.full_positions)
 
-            alpha = self.parent.path_color.alpha
-            blended = cv2.addWeighted(self.base_map_alpha[preview_slice],
-                                      1 - alpha,
-                                      self.preview_map[preview_slice],
-                                      alpha,
-                                      0)
+                preview_slice = create_slice(preview_coords, preview_size)
 
-            self.minimap_update.emit(blended)
+                alpha = self.parent.path_color.alpha
+                blended = cv2.addWeighted(self.base_map_alpha[preview_slice],
+                                          1 - alpha,
+                                          self.preview_map[preview_slice],
+                                          alpha,
+                                          0)
+
+                self.minimap_update.emit(blended)
+            else:
+                self.full_positions.append(full_position)
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -89,10 +94,25 @@ class PUBGISWorkerThread(QThread):
         self.percent_update.emit(100)
 
         alpha = self.parent.path_color.alpha
-        blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
-        create_output_opencv(blended,
-                             self.full_positions,
-                             self.output_file)
+
+        if self.preview_enable:
+            blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+            create_output_opencv(blended,
+                                 self.full_positions,
+                                 self.output_file)
+        else:
+            for i, position in enumerate(self.full_positions[1:], start=1):
+                plot_coordinate_line(self.preview_map,
+                                     self.full_positions[:i],
+                                     position,
+                                     self.parent.path_color(),
+                                     self.parent.thickness_spinbox.value())
+
+            blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
+            create_output_opencv(blended,
+                                 self.full_positions,
+                                 self.output_file)
+
 
 
 class PUBGISMainWindow(QMainWindow):
@@ -363,7 +383,10 @@ class PUBGISMainWindow(QMainWindow):
                 raise ValueError
 
             if map_iter:
-                match_thread = PUBGISWorkerThread(self, map_iter, output_file=output_file)
+                match_thread = PUBGISWorkerThread(self,
+                                                  map_iter,
+                                                  output_file,
+                                                  not self.disable_preview_checkbox.isChecked())
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)
