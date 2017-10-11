@@ -1,8 +1,12 @@
 from distutils.core import setup
 from setuptools import find_packages
+import os
+
+with open(os.path.join('pubgis', 'VERSION')) as version_file:
+    version = version_file.read().strip()
 
 setup(name='PUBGIS',
-      version='0.2.1',
+      version=version,
       description='PUBG Location Tracker',
       author='Andrew Zwicky',
       author_email='andrew.zwicky@gmail.com',
@@ -11,7 +15,7 @@ setup(name='PUBGIS',
       packages=['pubgis', 'pubgis.minimap_iterators'],
       package_dir={'pubgis': 'pubgis',
                    'pubgis.minimap_iterators': 'pubgis/minimap_iterators'},
-      package_data={'pubgis': ['images/*.jpg', '*.ui'],
+      package_data={'pubgis': ['images/*.jpg', '*.ui', 'VERSION'],
                     '': ['LICENSE', 'README.md']},
       python_requires='>=3.6',
       install_requires=['numpy>=1.13.0+mkl',

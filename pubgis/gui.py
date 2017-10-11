@@ -10,6 +10,7 @@ from PyQt5.QtCore import QThread, QTime, Qt, QRectF, QDir
 from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
+from pubgis import __version__
 from pubgis.color import Color, Scaling
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
@@ -144,7 +145,7 @@ class PUBGISMainWindow(QMainWindow):
         self.map_creation_view.scene().addPixmap(QPixmap())
 
         # set window name and icon
-        self.setWindowTitle("PUBGIS")
+        self.setWindowTitle("PUBGIS (v{})".format(__version__))
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),
                                               "images",
                                               "icons",
