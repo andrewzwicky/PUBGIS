@@ -1,8 +1,8 @@
 from distutils.core import setup
 from setuptools import find_packages
-import os
+from os.path import join, dirname
 
-with open(os.path.join('pubgis', 'VERSION')) as version_file:
+with open(join(dirname(__file__), 'pubgis', 'VERSION')) as version_file:
     version = version_file.read().strip()
 
 setup(name='PUBGIS',
