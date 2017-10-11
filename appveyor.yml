@@ -27,7 +27,6 @@ install:
   - "%PIP% install twine pytest pyinstaller wheel pylint pytest-xdist"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "%PIP% install ."
-  - "%PYTHON$\\python -m pubgis --version"
 
 
 build_script:
