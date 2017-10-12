@@ -17,10 +17,7 @@ IMAGES = join(dirname(__file__), "images")
 COLOR_DIFF_THRESHS = [30, 70, 150]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
-MAX_SPEED = 160  # km/h, motorcycle, conservative estimate
-PIXELS_PER_KM = 1024
-MAX_PIXELS_PER_H = MAX_SPEED * PIXELS_PER_KM
-MAX_PIXELS_PER_SEC = MAX_PIXELS_PER_H / 3600
+MAX_PIXELS_PER_SEC = 160  # plane
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SIZE = 0.6
@@ -172,10 +169,26 @@ class PUBGISMatch:
         context_coords = (0, 0)
         context_slice = slice(None)
 
+        # the context calculation is present to reduce the search space
+        # when the last position was known.
         if self.last_scaled_position:
+            # First, we get the maximum number of unscaled pixels that is expected we could travel
+            # This doesn't cover weird edge cases like being flung across the map or something like
+            # that.  Sorry.
+            # This must also be per time_step as well so that we don't scale the map too quickly
             max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PIXELS_PER_SEC
             max_scaled_pixels_per_step = max_unscaled_pixels_per_step * self.scale
+
+            # Then the mximum distance able to be traveled in any 1 direction is
+            # the number of frames multiplied by the max travel distance.
+            # The reason that 1 is added to missed_frames, is that if we haven't missed the
+            # last frame, we still need to account for one frame of travel.
             max_reachable_dist = (self.missed_frames + 1) * int(max_scaled_pixels_per_step)
+
+            # multiply by 2 to get the width of the search space
+            max_reachable_dist *= 2
+
+            # Add a buffer around the edge so that there is at least 1/2 the minimap around the edge
             max_reachable_dist += self.minimap_iter.size
 
             context_coords, context_size = find_path_bounds(

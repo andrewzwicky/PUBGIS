@@ -12,6 +12,7 @@ from pubgis.minimap_iterators.images import ImageIterator
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
 MAX_COLOR_DIFF = int(sqrt(255 ** 2 + 255 ** 2 + 255 ** 2))  # diff between white and black
+MOCK_TIME_STEP = 1
 
 BAD_IMAGES_FOLDER = join(dirname(__file__), "bad")
 GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
@@ -19,13 +20,13 @@ GOOD_IMAGES_FOLDER = join(dirname(__file__), "good")
 
 @pytest.fixture(scope='module')
 def bad_match_fixture():
-    bad_iter = ImageIterator(BAD_IMAGES_FOLDER, just_minimaps=True)
+    bad_iter = ImageIterator(BAD_IMAGES_FOLDER, MOCK_TIME_STEP, just_minimaps=True)
     return PUBGISMatch(bad_iter)
 
 
 @pytest.fixture(scope='module')
 def good_match_fixture():
-    good_iter = ImageIterator(GOOD_IMAGES_FOLDER, just_minimaps=True)
+    good_iter = ImageIterator(GOOD_IMAGES_FOLDER, MOCK_TIME_STEP, just_minimaps=True)
     return PUBGISMatch(good_iter)
 
 
