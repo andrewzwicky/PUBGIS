@@ -19,6 +19,7 @@ from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
 from pubgis.plotting import plot_coordinate_line, create_output_opencv
 from pubgis.support import find_path_bounds, create_slice
+from pubgis.pubgis_json.json_functions import output_json
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -38,7 +39,7 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
 
-    def __init__(self, parent, minimap_iterator, output_file, preview_enable):
+    def __init__(self, parent, minimap_iterator, output_file, preview_enable, output_json):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.parent = parent
         self.minimap_iterator = minimap_iterator
@@ -47,6 +48,7 @@ class PUBGISWorkerThread(QThread):
         self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.preview_enable = preview_enable
+        self.output_json = output_json
 
     def run(self):
         self.percent_max_update.emit(0)
@@ -114,6 +116,10 @@ class PUBGISWorkerThread(QThread):
                                  self.full_positions,
                                  self.output_file)
 
+        if self.output_json:
+            pre, ext = os.path.splitext(self.output_file)
+            json_file = pre + ".json"
+            output_json(json_file, "test", self.full_positions)
 
 
 class PUBGISMainWindow(QMainWindow):
@@ -388,7 +394,8 @@ class PUBGISMainWindow(QMainWindow):
                 match_thread = PUBGISWorkerThread(self,
                                                   map_iter,
                                                   output_file,
-                                                  not self.disable_preview_checkbox.isChecked())
+                                                  not self.disable_preview_checkbox.isChecked(),
+                                                  self.output_json_checkbox.isChecked())
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)
