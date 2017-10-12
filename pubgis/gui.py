@@ -172,7 +172,8 @@ class PUBGISMainWindow(QMainWindow):
                              self.output_directory_edit,
                              self.video_file_edit,
                              self.tabWidget,
-                             self.thickness_spinbox],
+                             self.thickness_spinbox,
+                             self.disable_preview_checkbox],
                         ButtonGroups.PROCESSING: [self.cancel_button]}
 
         self._update_button_state(ButtonGroups.PREPROCESS)
