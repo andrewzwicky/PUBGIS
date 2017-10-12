@@ -36,18 +36,17 @@ class VideoIterator(GenericIterator):
     def __next__(self):
         self.check_for_stop()
 
-        with self._lock:
-            grabbed, frame = self.cap.read()
-            self.frames_processed += 1
+        grabbed, frame = self.cap.read()
+        self.frames_processed += 1
 
-            if grabbed and self.frames_processed < self.frames_to_process:
-                minimap = frame[self.frame_index]
-                percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
+        if grabbed and self.frames_processed < self.frames_to_process:
+            minimap = frame[self.frame_index]
+            percent = min((self.frames_processed / self.frames_to_process) * 100, 100)
 
-                for _ in range(self.step_frames):
-                    self.cap.grab()
-                self.frames_processed += self.step_frames
+            for _ in range(self.step_frames):
+                self.cap.grab()
+            self.frames_processed += self.step_frames
 
-                return percent, minimap
-            else:
-                raise StopIteration
+            return percent, minimap
+        else:
+            raise StopIteration

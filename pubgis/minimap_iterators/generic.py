@@ -1,5 +1,3 @@
-from threading import RLock
-
 SUPPORTED_RESOLUTIONS = {(1280, 720): (532, 1087, 167),
                          (1366, 768): (568, 1158, 178),
                          (1600, 900): (665, 1358, 209),
