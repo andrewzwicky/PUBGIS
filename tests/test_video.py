@@ -18,7 +18,7 @@ VIDEO_CASES = [(join(TEST_VIDEOS_FOLDER, 'test_video.mp4'),
 
 
 @pytest.mark.parametrize("test_video, expected_positions", VIDEO_CASES)
-def test_different_resolutions(test_video, expected_positions):
+def test_video_file(test_video, expected_positions):
     video_iter = VideoIterator(test_video, time_step=0.25)
     match = PUBGISMatch(video_iter, debug=False)
 
