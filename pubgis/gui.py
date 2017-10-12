@@ -370,7 +370,7 @@ class PUBGISMainWindow(QMainWindow):
                     map_iter = VideoIterator(video_file=self.video_file_edit.text(),
                                              landing_time=zero.secsTo(self.landing_time.time()),
                                              death_time=zero.secsTo(self.death_time.time()),
-                                             step_interval=float(self.time_step.currentText()))
+                                             time_step=float(self.time_step.currentText()))
                     output_file = self.output_file_edit.text()
 
             elif self.tabWidget.currentIndex() == ProcessMode.LIVE:

@@ -169,18 +169,20 @@ class PUBGISMatch:
         cv2.waitKey(10)
 
     def get_scaled_context(self):
-        context_scale = 2
-        context_adjust = self.missed_frames * int(self.scale * MAX_PIXELS_PER_SEC)
-
         context_coords = (0, 0)
         context_slice = slice(None)
 
         if self.last_scaled_position:
+            max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PIXELS_PER_SEC
+            max_scaled_pixels_per_step = max_unscaled_pixels_per_step * self.scale
+            max_reachable_dist = (self.missed_frames + 1) * int(max_scaled_pixels_per_step)
+            max_reachable_dist += self.minimap_iter.size
+
             context_coords, context_size = find_path_bounds(
                 self.gray_map.shape[0],
                 [self.last_scaled_position],
                 crop_border=0,
-                min_size=(self.minimap_iter.size * context_scale) + 2 * context_adjust)
+                min_size=max_reachable_dist)
             context_slice = create_slice(context_coords, context_size)
 
         return context_coords, context_slice

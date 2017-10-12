@@ -13,12 +13,11 @@ SUPPORTED_RESOLUTIONS = {(1280, 720): (532, 1087, 167),
 class GenericIterator:
     def __init__(self):
         self.stop_requested = False
-        self._lock = RLock()
         self.size = None
+        self.time_step = None
 
     def stop(self):
-        with self._lock:
-            self.stop_requested = True
+        self.stop_requested = True
 
     def check_for_stop(self):
         if self.stop_requested:

@@ -6,14 +6,14 @@ from pubgis.minimap_iterators.generic import GenericIterator
 
 
 class ImageIterator(GenericIterator):
-    def __init__(self, folder, just_minimaps=False):
+    def __init__(self, folder, time_step, just_minimaps=False):
         super().__init__()
         images = [os.path.join(folder, img) for img in os.listdir(folder)]
         self.total = len(images)
         self.images = iter(images)
         self.count = 0
         self.just_minimaps = just_minimaps
-
+        self.time_step = time_step
         first_image = cv2.imread(images[0])
 
         if self.just_minimaps:
@@ -28,7 +28,6 @@ class ImageIterator(GenericIterator):
     def __next__(self):
         self.check_for_stop()
 
-        with self._lock:
-            img_path = next(self.images)
-            self.count += 1
-            return self.count * 100 / self.total, cv2.imread(img_path)[self.frame_index]
+        img_path = next(self.images)
+        self.count += 1
+        return self.count * 100 / self.total, cv2.imread(img_path)[self.frame_index]

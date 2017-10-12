@@ -9,8 +9,8 @@ class VideoIterator(GenericIterator):
     def __init__(self,
                  video_file=None,
                  landing_time=0,
-                 step_interval=DEFAULT_STEP_INTERVAL,
-                 death_time=None,):
+                 time_step=DEFAULT_STEP_INTERVAL,
+                 death_time=None, ):
         super().__init__()
         self.cap = cv2.VideoCapture(video_file)
         self.frame_index = self.get_minimap_bounds(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
@@ -18,7 +18,8 @@ class VideoIterator(GenericIterator):
 
         fps = int(self.cap.get(cv2.CAP_PROP_FPS))
         self.landing_frame = int(landing_time * fps)
-        self.step_frames = max(int(step_interval * fps), 1) - 1
+        self.time_step = time_step
+        self.step_frames = max(int(time_step * fps), 1) - 1
         # TODO: assert death time > landing_time
         if death_time:
             death_frame = int(death_time * fps)

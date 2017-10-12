@@ -9,6 +9,7 @@ from pubgis.minimap_iterators.images import ImageIterator
 
 GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
 ALLOWED_VARIATION = 2  # pixels
+MOCK_TIME_STEP = 1
 
 RESOLUTION_IMAGES_FOLDER = join(dirname(__file__), "resolution_tests")
 
@@ -16,7 +17,8 @@ RESOLUTION_IMAGES_FOLDER = join(dirname(__file__), "resolution_tests")
 # noinspection PyShadowingNames
 @pytest.mark.parametrize("test_resolution_folder", os.listdir(RESOLUTION_IMAGES_FOLDER))
 def test_different_resolutions(test_resolution_folder):
-    mini_iter = ImageIterator(os.path.join(RESOLUTION_IMAGES_FOLDER, test_resolution_folder))
+    mini_iter = ImageIterator(os.path.join(RESOLUTION_IMAGES_FOLDER, test_resolution_folder),
+                              MOCK_TIME_STEP)
     match = PUBGISMatch(mini_iter)
 
     for _, img in mini_iter:
