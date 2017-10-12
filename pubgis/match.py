@@ -17,8 +17,8 @@ IMAGES = join(dirname(__file__), "images")
 COLOR_DIFF_THRESHS = [30, 70, 150]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
-MAX_PIXELS_PER_SEC = 160  # plane
-MAX_WATER_PIXELS_PER_SEC = 120  # boat
+MAX_PLANE_PIX_PER_SEC = 160  # plane
+MAX_WATER_PIX_PER_SEC = 120  # boat
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SIZE = 0.6
@@ -39,7 +39,7 @@ IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.145
 
 
-class PUBGISMatch:
+class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
     """
     PUBGISMatch is responsible for processing a series of minimap images and outputting the
     position of the player at each of the minimaps (if possible).
@@ -215,9 +215,9 @@ class PUBGISMatch:
             # that.  Sorry.
             # This must also be per time_step as well so that we don't scale the map too quickly
             if last_on_land:
-                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PIXELS_PER_SEC
+                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PLANE_PIX_PER_SEC
             else:
-                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_WATER_PIXELS_PER_SEC
+                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_WATER_PIX_PER_SEC
             max_scaled_pixels_per_step = max_unscaled_pixels_per_step * self.scale
 
             # Then the mximum distance able to be traveled in any 1 direction is
