@@ -3,9 +3,9 @@ from os.path import join, dirname
 import cv2
 import numpy as np
 
-from pubgis.color import Color
-from pubgis.support import find_path_bounds, unscale_coords, coordinate_sum, coordinate_offset, \
-    create_slice
+from pubgis.color import Color, Scaling
+from pubgis.support import find_path_bounds, unscale_coords, scale_coords, coordinate_sum, \
+    coordinate_offset, create_slice
 
 IMAGES = join(dirname(__file__), "images")
 
@@ -18,12 +18,15 @@ COLOR_DIFF_THRESHS = [30, 70, 150]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
 MAX_PIXELS_PER_SEC = 160  # plane
+MAX_WATER_PIXELS_PER_SEC = 120  # boat
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SIZE = 0.6
 
 NO_MATCH_COLOR = Color((1, 0, 0))  # RED
 MATCH_COLOR = Color((0, 1, 0))  # LIME
+LAND = Color((0, 255, 0), scaling=Scaling.UINT8)  # HUNTER GREEN
+WATER = Color((0, 0, 255), scaling=Scaling.UINT8)  # BLUE
 WHITE = Color((1, 1, 1))  # WHITE
 
 # If the minimap were scaled up to be the same resolution as the full map,
@@ -49,6 +52,9 @@ class PUBGISMatch:
     smaller area, around the last position.  This speeds up searching significantly.
     """
     full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
+    _, land_mask = cv2.threshold(cv2.imread(join(IMAGES, "land_mask.jpg"), cv2.IMREAD_GRAYSCALE),
+                                 10, 255, cv2.THRESH_BINARY)
+    land_mask_scale = len(land_mask) / len(full_map)
 
     def __init__(self, minimap_iterator, debug=False):
         self.minimap_iter = minimap_iterator
@@ -61,6 +67,7 @@ class PUBGISMatch:
         # narrow the search space for template matching.
         self.last_scaled_position = None
         self.missed_frames = 0
+        self.initial_match_found = False
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
@@ -130,6 +137,35 @@ class PUBGISMatch:
         cv2.imshow("context", debug_zoomed)
         cv2.waitKey(10)
 
+    def __coords_on_land(self, scaled_map_pos):
+        if scaled_map_pos:
+            land_mask_coords = scale_coords(unscale_coords(scaled_map_pos, self.scale),
+                                            self.land_mask_scale)
+            return bool(self.land_mask[land_mask_coords[1], land_mask_coords[0]])
+
+        return None
+
+    def __debug_land(self, scaled_map_pos):
+        context_display_size = 800
+
+        land_debug = np.copy(self.land_mask)
+
+        if scaled_map_pos:
+            land_mask_coords = scale_coords(unscale_coords(scaled_map_pos, self.scale),
+                                            self.land_mask_scale)
+            on_land = bool(land_debug[land_mask_coords[1], land_mask_coords[0]])
+
+            land_debug = cv2.cvtColor(land_debug, cv2.COLOR_GRAY2BGR)
+            cv2.circle(land_debug, land_mask_coords, 10, LAND() if on_land else WATER(), cv2.FILLED)
+
+        land_debug = cv2.resize(land_debug,
+                                (0, 0),
+                                fx=context_display_size / land_debug.shape[0],
+                                fy=context_display_size / land_debug.shape[0])
+
+        cv2.imshow("land", land_debug)
+        cv2.waitKey(10)
+
     def __annotate_minimap(self, minimap, match_found, color_diff, match_val):
         """
         Produce an annotated minimap that shows the parameters of the match, and whether a match
@@ -172,11 +208,16 @@ class PUBGISMatch:
         # the context calculation is present to reduce the search space
         # when the last position was known.
         if self.last_scaled_position:
+            last_on_land = self.__coords_on_land(self.last_scaled_position)
+
             # First, we get the maximum number of unscaled pixels that is expected we could travel
             # This doesn't cover weird edge cases like being flung across the map or something like
             # that.  Sorry.
             # This must also be per time_step as well so that we don't scale the map too quickly
-            max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PIXELS_PER_SEC
+            if last_on_land:
+                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PIXELS_PER_SEC
+            else:
+                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_WATER_PIXELS_PER_SEC
             max_scaled_pixels_per_step = max_unscaled_pixels_per_step * self.scale
 
             # Then the mximum distance able to be traveled in any 1 direction is
@@ -255,9 +296,18 @@ class PUBGISMatch:
                          zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
 
         if any(within_bounds):
-            match_found = True
             scaled_map_pos = coordinate_offset(scaled_coords, self.minimap_iter.size // 2)
-            self.missed_frames = 0
+
+            if not self.initial_match_found and self.__coords_on_land(scaled_map_pos):
+                self.initial_match_found = True
+
+            if self.initial_match_found:
+                match_found = True
+                self.missed_frames = 0
+            else:
+                match_found = False
+                scaled_map_pos = None
+                self.missed_frames += 1
 
         else:
             match_found = False
@@ -266,6 +316,7 @@ class PUBGISMatch:
 
         if self.debug:
             self.__debug_context(match_found, match_coords, context_slice)
+            self.__debug_land(scaled_map_pos)
             annotated_minimap = self.__annotate_minimap(minimap, match_found, color_diff, result)
             self.__debug_minimap(annotated_minimap, scaled_coords)
 

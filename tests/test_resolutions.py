@@ -20,6 +20,7 @@ def test_different_resolutions(test_resolution_folder):
     mini_iter = ImageIterator(os.path.join(RESOLUTION_IMAGES_FOLDER, test_resolution_folder),
                               MOCK_TIME_STEP)
     match = PUBGISMatch(mini_iter)
+    match.initial_match_found = True
 
     for _, img in mini_iter:
         scaled_pos, _, _ = match.find_scaled_player_position(img)

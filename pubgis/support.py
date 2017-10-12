@@ -72,6 +72,11 @@ def unscale_coords(scaled_coords, scale):
     return tuple(int(coord / scale) for coord in scaled_coords)
 
 
+def scale_coords(unscaled_coords, scale):
+    if unscaled_coords is None:
+        return None
+    return tuple(int(coord * scale) for coord in unscaled_coords)
+
 def coordinate_sum(coords_a, coords_b):
     return tuple(a + b for a, b in zip(coords_a, coords_b))
 
