@@ -401,6 +401,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="output_json_checkbox">
+            <property name="text">
+             <string>Output JSON</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
