@@ -408,6 +408,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="output_full_map_checkbox">
+            <property name="text">
+             <string>Output Full Map</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

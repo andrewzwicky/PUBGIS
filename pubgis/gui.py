@@ -11,15 +11,16 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
 from pubgis import __version__
+from pubgis.output.output_enum import OutputFlags
 from pubgis.color import Color, Scaling
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
-from pubgis.plotting import PATH_COLOR, PATH_THICKNESS
-from pubgis.plotting import plot_coordinate_line, create_output_opencv
+from pubgis.output.json import output_json
+from pubgis.output.plotting import PATH_COLOR, PATH_THICKNESS
+from pubgis.output.plotting import plot_coordinate_line, create_output_opencv
 from pubgis.support import find_path_bounds, create_slice
-from pubgis.pubgis_json.json_functions import output_json
 
 PATH_PREVIEW_POINTS = [(0, 0), (206, 100), (50, 50), (10, 180)]
 
@@ -39,7 +40,7 @@ class PUBGISWorkerThread(QThread):
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
 
-    def __init__(self, parent, minimap_iterator, output_file, preview_enable, output_json):
+    def __init__(self, parent, minimap_iterator, output_file, output_flags):
         super(PUBGISWorkerThread, self).__init__(parent)
         self.parent = parent
         self.minimap_iterator = minimap_iterator
@@ -47,14 +48,13 @@ class PUBGISWorkerThread(QThread):
         self.full_positions = []
         self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
-        self.preview_enable = preview_enable
-        self.output_json = output_json
+        self.output_flags = output_flags
 
     def run(self):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(self.minimap_iterator, debug=False)
+        match = PUBGISMatch(self.minimap_iterator, debug=True)
 
         self.minimap_update.emit(self.preview_map)
 
@@ -63,15 +63,15 @@ class PUBGISWorkerThread(QThread):
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
 
-            if self.preview_enable:
-                plot_coordinate_line(self.preview_map,
-                                     self.full_positions,
-                                     full_position,
-                                     self.parent.path_color(),
-                                     self.parent.thickness_spinbox.value())
+            plot_coordinate_line(self.preview_map,
+                                 self.full_positions,
+                                 full_position,
+                                 self.parent.path_color(),
+                                 self.parent.thickness_spinbox.value())
 
-                self.full_positions.append(full_position)
+            self.full_positions.append(full_position)
 
+            if self.output_flags & OutputFlags.LIVE_PREVIEW:
                 preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
                                                                 self.full_positions)
 
@@ -85,8 +85,6 @@ class PUBGISWorkerThread(QThread):
                                           0)
 
                 self.minimap_update.emit(blended)
-            else:
-                self.full_positions.append(full_position)
 
             if self.isInterruptionRequested():
                 self.minimap_iterator.stop()
@@ -98,26 +96,20 @@ class PUBGISWorkerThread(QThread):
 
         alpha = self.parent.path_color.alpha
 
-        if self.preview_enable:
+        if self.output_flags & OutputFlags.FULL_MAP:
             blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
             create_output_opencv(blended,
                                  self.full_positions,
-                                 self.output_file)
-        else:
-            for i, position in enumerate(self.full_positions[1:], start=1):
-                plot_coordinate_line(self.preview_map,
-                                     self.full_positions[:i],
-                                     position,
-                                     self.parent.path_color(),
-                                     self.parent.thickness_spinbox.value())
-
+                                 self.output_file,
+                                 full_map=True)
+        elif self.output_flags & OutputFlags.CROPPED_MAP:
             blended = cv2.addWeighted(self.base_map_alpha, 1 - alpha, self.preview_map, alpha, 0)
             create_output_opencv(blended,
                                  self.full_positions,
                                  self.output_file)
 
-        if self.output_json:
-            pre, ext = os.path.splitext(self.output_file)
+        if self.output_flags & OutputFlags.JSON:
+            pre, _ = os.path.splitext(self.output_file)
             json_file = pre + ".json"
             output_json(json_file, "test", self.full_positions)
 
@@ -179,7 +171,9 @@ class PUBGISMainWindow(QMainWindow):
                              self.video_file_edit,
                              self.tabWidget,
                              self.thickness_spinbox,
-                             self.disable_preview_checkbox],
+                             self.disable_preview_checkbox,
+                             self.output_full_map_checkbox,
+                             self.output_json_checkbox],
                         ButtonGroups.PROCESSING: [self.cancel_button]}
 
         self._update_button_state(ButtonGroups.PREPROCESS)
@@ -391,11 +385,23 @@ class PUBGISMainWindow(QMainWindow):
                 raise ValueError
 
             if map_iter:
+                output_flags = OutputFlags.NO_OUTPUT
+                output_flags |= OutputFlags.LIVE_PREVIEW
+                output_flags |= OutputFlags.CROPPED_MAP
+
+                if self.disable_preview_checkbox.isChecked():
+                    output_flags ^= OutputFlags.LIVE_PREVIEW
+
+                if self.output_json_checkbox.isChecked():
+                    output_flags |= OutputFlags.JSON
+
+                if self.output_full_map_checkbox.isChecked():
+                    output_flags |= OutputFlags.FULL_MAP
+
                 match_thread = PUBGISWorkerThread(self,
                                                   map_iter,
                                                   output_file,
-                                                  not self.disable_preview_checkbox.isChecked(),
-                                                  self.output_json_checkbox.isChecked())
+                                                  output_flags)
 
                 self._update_button_state(ButtonGroups.PROCESSING)
                 match_thread.percent_update.connect(self.progress_bar.setValue)

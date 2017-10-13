@@ -1,6 +1,6 @@
 from os.path import join, dirname
 
-from pubgis.pubgis_json.json_functions import output_json, input_json
+from pubgis.output.json import output_json, input_json
 
 JSON_TEST_DIR = join(dirname(__file__), "json")
 
@@ -11,8 +11,8 @@ COORDS = ((3079, 4034), (3095, 4061), (3108, 4082), (3123, 4108), (3140, 4138), 
 
 
 def test_json_write():
-    actual_file = join(JSON_TEST_DIR, 'actual', 'actual_out.json')
-    expected_file = join(JSON_TEST_DIR, 'expected', 'expected_out.json')
+    actual_file = join(JSON_TEST_DIR, 'actual_out.json')
+    expected_file = join(JSON_TEST_DIR, 'expected_out.json')
 
     output_json(actual_file, "username", COORDS)
 
@@ -23,7 +23,7 @@ def test_json_write():
 
 
 def test_json_read():
-    expected_file = join(JSON_TEST_DIR, 'expected', 'expected_out.json')
+    expected_file = join(JSON_TEST_DIR, 'expected_out.json')
 
     name, positions = input_json(expected_file)
 

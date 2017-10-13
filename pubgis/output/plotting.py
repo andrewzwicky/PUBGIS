@@ -7,10 +7,11 @@ PATH_COLOR = Color((1, 0, 0), alpha=0.9) # RED
 PATH_THICKNESS = 5
 
 
-def create_output_opencv(input_map, coords, output_file):
-    filtered_coords = [coord for coord in coords if coord is not None]
-    corner, size = find_path_bounds(input_map.shape[0], filtered_coords)
-    output_slice = create_slice(corner, size)
+def create_output_opencv(input_map, coords, output_file, full_map=False):
+    if full_map:
+        output_slice = slice(None)
+    else:
+        output_slice = create_slice(*find_path_bounds(input_map.shape[0], coords))
     cv2.imwrite(output_file, input_map[output_slice])
 
 
