@@ -24,9 +24,9 @@ install:
   - "%PYTHON%\\python --version"
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
-  - "%PIP% install twine pytest pyinstaller wheel pylint pytest-xdist pytest-profiling"
+  - "%PIP% install twine pyinstaller wheel pylint"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "%PIP% install ."
+  - "%PIP% install -e .[test]"
 
 
 build_script:
