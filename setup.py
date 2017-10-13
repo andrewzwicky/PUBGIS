@@ -1,5 +1,4 @@
 from distutils.core import setup
-from setuptools import find_packages
 from os.path import join, dirname
 
 with open(join(dirname(__file__), 'pubgis', 'VERSION')) as version_file:
@@ -29,7 +28,8 @@ setup(name='PUBGIS',
                         'mss>=3.0.1',
                         'Pillow>=4.2.1',
                         ],
-      tests_require=['pytest>=3.2.2', 'pytest-profiling>=1.2.11', 'pytest-xdist>=1.20.0'],
+      extras_require={
+          'test': ['pytest>=3.2.2', 'pytest-profiling>=1.2.11', 'pytest-xdist>=1.20.0']},
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: X11 Applications :: Qt',
