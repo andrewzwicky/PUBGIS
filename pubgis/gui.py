@@ -11,13 +11,13 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QIcon
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsScene, QColorDialog, QMessageBox
 
 from pubgis import __version__
-from pubgis.output.output_enum import OutputFlags
 from pubgis.color import Color, Scaling
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
 from pubgis.output.json import output_json
+from pubgis.output.output_enum import OutputFlags
 from pubgis.output.plotting import PATH_COLOR, PATH_THICKNESS
 from pubgis.output.plotting import plot_coordinate_line, create_output_opencv
 from pubgis.support import find_path_bounds, create_slice
@@ -157,23 +157,24 @@ class PUBGISMainWindow(QMainWindow):
         self._set_output_directory(self.last_output_file_dir)
 
         # This is the list of buttons and when they should be active.
-        self.buttons = {ButtonGroups.PREPROCESS:
-                            [self.video_file_browse_button,
-                             self.output_file_browse_button,
-                             self.output_directory_browse_button,
-                             self.color_select_button,
-                             self.process_button,
-                             self.time_step,
-                             self.landing_time,
-                             self.death_time,
-                             self.output_file_edit,
-                             self.output_directory_edit,
-                             self.video_file_edit,
-                             self.tabWidget,
-                             self.thickness_spinbox,
-                             self.disable_preview_checkbox,
-                             self.output_full_map_checkbox,
-                             self.output_json_checkbox],
+        configuration_buttons = [self.video_file_browse_button,
+                                 self.output_file_browse_button,
+                                 self.output_directory_browse_button,
+                                 self.color_select_button,
+                                 self.process_button,
+                                 self.time_step,
+                                 self.landing_time,
+                                 self.death_time,
+                                 self.output_file_edit,
+                                 self.output_directory_edit,
+                                 self.video_file_edit,
+                                 self.tabWidget,
+                                 self.thickness_spinbox,
+                                 self.disable_preview_checkbox,
+                                 self.output_full_map_checkbox,
+                                 self.output_json_checkbox]
+
+        self.buttons = {ButtonGroups.PREPROCESS: configuration_buttons,
                         ButtonGroups.PROCESSING: [self.cancel_button]}
 
         self._update_button_state(ButtonGroups.PREPROCESS)
