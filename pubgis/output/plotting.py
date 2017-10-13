@@ -3,7 +3,7 @@ import cv2
 from pubgis.color import Color
 from pubgis.support import find_path_bounds, create_slice
 
-PATH_COLOR = Color((1, 0, 0), alpha=0.9) # RED
+PATH_COLOR = Color((1, 0, 0), alpha=0.9)  # RED
 PATH_THICKNESS = 5
 
 
