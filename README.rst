@@ -20,20 +20,7 @@ PUBGIS is a self-contained executable. Download the latest version
 Examples
 --------
 
-.. |ex1| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path.jpg
-   :height: 400
-   :align: top
-.. |ex2| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_2.jpg
-   :height: 400
-   :align: top
-.. |ex3| image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_path_3.jpg
-   :height: 400
-   :align: top
-
-
-+---------+---------+---------+
-| |ex1|   |   |ex2| |   |ex3| |
-+---------+---------+---------+
+.. image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/composite_example.png
 
 Usage
 -----
@@ -42,13 +29,12 @@ When PUBGIS is started, you'll see this:
 
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_setup.jpg
    :scale: 45 %
-   :align: center
 
 1. Select a video file (only tested with .mp4 currently)
 2. Adjust the output file if needed.
 3. Click Process!
 
-**NOTE:**  PUBGIS currently does not work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking this issue `here <https://github.com/andrewzwicky/PUBGIS/issues/41>`_. Sorry for the inconvenience.
+**NOTE:**  PUBGIS currently does not work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking `Issue#41`_. Sorry for the inconvenience.
 
 **Optional**:
 
@@ -88,6 +74,7 @@ file for details
 .. _PUBG: https://www.playbattlegrounds.com/main.pu
 .. _Implementation: https://github.com/andrewzwicky/PUBGIS/wiki/Implementation
 .. _here: https://github.com/andrewzwicky/PUBGIS/releases/latest
+.. _Issue#41: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Development: https://github.com/andrewzwicky/PUBGIS/wiki/Development
 .. _LICENSE.md: LICENSE.md
 
