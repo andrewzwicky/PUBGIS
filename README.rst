@@ -48,6 +48,8 @@ When PUBGIS is started, you'll see this:
 2. Adjust the output file if needed.
 3. Click Process!
 
+**NOTE:**  PUBGIS currently does not work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking this issue `here <https://github.com/andrewzwicky/PUBGIS/issues/41>`_. Sorry for the inconvenience.
+
 **Optional**:
 
 * If the video contains extra footage *before your parachute landing*, put that time in **landing time**
