@@ -22,6 +22,6 @@ def test_different_resolutions(test_resolution_folder):
     match = PUBGISMatch(mini_iter)
     match.initial_match_found = True
 
-    for _, img in mini_iter:
+    for _, _, img in mini_iter:
         scaled_pos, _, _ = match.find_scaled_player_position(img)
         assert scaled_pos is not None

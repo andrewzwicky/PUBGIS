@@ -330,9 +330,9 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         yielded.  This means that the same game played on different resolutions should provide
         comparable results.
         """
-        for percent, minimap in self.minimap_iter:
+        for percent, timestamp, minimap in self.minimap_iter:
             scaled_position, _, _ = self.find_scaled_player_position(minimap)
             if scaled_position:
                 self.last_scaled_position = scaled_position
             full_position = unscale_coords(scaled_position, self.scale)
-            yield percent, full_position
+            yield percent, timestamp, full_position

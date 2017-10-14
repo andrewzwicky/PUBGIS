@@ -20,7 +20,7 @@ def test_water_mock():
     mini_iter = ImageIterator(MOCK_WATER_VIDEO, MOCK_TIME_STEP, just_minimaps=True)
     match = PUBGISMatch(mini_iter, debug=False)
 
-    for (_, full_position), test_image in zip(match.process_match(), os.listdir(MOCK_WATER_VIDEO)):
+    for (_, _, full_position), test_image in zip(match.process_match(), os.listdir(MOCK_WATER_VIDEO)):
         coords_match = GOOD_TEST_COORDS_RE.match(test_image)
         (e_x, e_y) = tuple(map(int, coords_match.groups()))
         if (e_x, e_y) == (0, 0):
@@ -34,7 +34,7 @@ def test_plane_mock():
     mini_iter = ImageIterator(MOCK_PLANE_VIDEO, MOCK_TIME_STEP, just_minimaps=True)
     match = PUBGISMatch(mini_iter, debug=False)
 
-    for (_, full_position), test_image in zip(match.process_match(), os.listdir(MOCK_PLANE_VIDEO)):
+    for (_, _, full_position), test_image in zip(match.process_match(), os.listdir(MOCK_PLANE_VIDEO)):
         coords_match = GOOD_TEST_COORDS_RE.match(test_image)
         (e_x, e_y) = tuple(map(int, coords_match.groups()))
         if (e_x, e_y) == (0, 0):

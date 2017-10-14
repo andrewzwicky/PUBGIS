@@ -22,6 +22,6 @@ def test_video_file(test_video, expected_positions):
     video_iter = VideoIterator(test_video, time_step=0.25)
     match = PUBGISMatch(video_iter)
 
-    percs, full_positions = zip(*match.process_match())
+    percs, _, full_positions = zip(*match.process_match())
 
     assert full_positions == expected_positions

@@ -29,5 +29,7 @@ class ImageIterator(GenericIterator):
         self.check_for_stop()
 
         img_path = next(self.images)
+        timestamp = self.count * self.time_step
         self.count += 1
-        return self.count * 100 / self.total, cv2.imread(img_path)[self.frame_index]
+
+        return self.count * 100 / self.total, timestamp, cv2.imread(img_path)[self.frame_index]

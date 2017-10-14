@@ -16,13 +16,13 @@ class VideoIterator(GenericIterator):
         self.frame_index = self.get_minimap_bounds(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
                                                    int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
-        fps = int(self.cap.get(cv2.CAP_PROP_FPS))
-        self.landing_frame = int(landing_time * fps)
+        self.fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+        self.landing_frame = int(landing_time * self.fps)
         self.time_step = time_step
-        self.step_frames = max(int(time_step * fps), 1) - 1
+        self.step_frames = max(int(time_step * self.fps), 1) - 1
         # TODO: assert death time > landing_time
         if death_time:
-            death_frame = int(death_time * fps)
+            death_frame = int(death_time * self.fps)
         else:
             death_frame = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frames_processed = 0
@@ -37,6 +37,7 @@ class VideoIterator(GenericIterator):
         self.check_for_stop()
 
         grabbed, frame = self.cap.read()
+        timestamp = self.frames_processed / self.fps
         self.frames_processed += 1
 
         if grabbed and self.frames_processed < self.frames_to_process:
@@ -47,6 +48,6 @@ class VideoIterator(GenericIterator):
                 self.cap.grab()
             self.frames_processed += self.step_frames
 
-            return percent, minimap
+            return percent, timestamp, minimap
         else:
             raise StopIteration

@@ -46,6 +46,7 @@ class PUBGISWorkerThread(QThread):
         self.minimap_iterator = minimap_iterator
         self.output_file = output_file
         self.full_positions = []
+        self.timestamps = []
         self.base_map_alpha = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.preview_map = cv2.cvtColor(PUBGISMatch.full_map, cv2.COLOR_BGR2BGRA)
         self.output_flags = output_flags
@@ -58,7 +59,7 @@ class PUBGISWorkerThread(QThread):
 
         self.minimap_update.emit(self.preview_map)
 
-        for percent, full_position in match.process_match():
+        for percent, timestamp, full_position in match.process_match():
             if percent is not None:
                 self.percent_max_update.emit(100)
                 self.percent_update.emit(percent)
@@ -70,6 +71,7 @@ class PUBGISWorkerThread(QThread):
                                  self.parent.thickness_spinbox.value())
 
             self.full_positions.append(full_position)
+            self.timestamps.append(timestamp)
 
             if self.output_flags & OutputFlags.LIVE_PREVIEW:
                 preview_coords, preview_size = find_path_bounds(PUBGISMatch.full_map.shape[0],
@@ -111,7 +113,7 @@ class PUBGISWorkerThread(QThread):
         if self.output_flags & OutputFlags.JSON:
             pre, _ = os.path.splitext(self.output_file)
             json_file = pre + ".json"
-            output_json(json_file, "test", self.full_positions)
+            output_json(json_file, "test", self.full_positions, self.timestamps)
 
 
 class PUBGISMainWindow(QMainWindow):
