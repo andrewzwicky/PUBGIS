@@ -11,9 +11,6 @@ game (seen below) and matching that to a location on the world map. If
 you want more details about how PUBGIS works, check out the
 `Implementation`_ wiki page
 
-.. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/minimap_callout_readme.jpg
-   :scale: 80 %
-
 Installation
 ------------
 
