@@ -188,6 +188,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
                       MATCH_COLOR() if match_found else NO_MATCH_COLOR(),
                       thickness=match_ind_thickness)
 
+        minimap = cv2.cvtColor(minimap, cv2.COLOR_BGRA2BGR)
+
         return minimap
 
     def __debug_minimap(self, annotated_minimap, world_coords):
