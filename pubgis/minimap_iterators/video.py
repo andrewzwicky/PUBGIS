@@ -5,7 +5,7 @@ from pubgis.minimap_iterators.generic import GenericIterator
 DEFAULT_STEP_INTERVAL = 1
 
 
-class VideoIterator(GenericIterator):
+class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  video_file=None,
                  landing_time=0,

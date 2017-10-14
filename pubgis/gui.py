@@ -35,7 +35,7 @@ class ButtonGroups(Flag):
     PROCESSING = auto()
 
 
-class PUBGISWorkerThread(QThread):
+class PUBGISWorkerThread(QThread): # pylint: disable=too-many-instance-attributes
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
