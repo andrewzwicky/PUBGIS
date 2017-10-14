@@ -23,14 +23,18 @@ class GenericIterator:
 
     def get_minimap_bounds(self, width, height):
         try:
-            x_offset, y_offset, size = SUPPORTED_RESOLUTIONS[(width, height)]
+            y_offset, x_offset, size = SUPPORTED_RESOLUTIONS[(width, height)]
             self.size = size
-            minimap_slice = (slice(x_offset, x_offset + self.size),
-                             slice(y_offset, y_offset + self.size))
-
-            return minimap_slice
+            return y_offset, x_offset, size
         except KeyError:
             raise ResolutionNotSupportedException
+
+    def get_minimap_slice(self, width, height):
+        y_offset, x_offset, size = self.get_minimap_bounds(width, height)
+        minimap_slice = (slice(y_offset, y_offset + size),
+                         slice(x_offset, x_offset + size))
+
+        return minimap_slice
 
 
 class ResolutionNotSupportedException(Exception):

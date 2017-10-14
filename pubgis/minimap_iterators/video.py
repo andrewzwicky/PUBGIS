@@ -13,8 +13,8 @@ class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attri
                  death_time=None, ):
         super().__init__()
         self.cap = cv2.VideoCapture(video_file)
-        self.frame_index = self.get_minimap_bounds(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                                                   int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        self.frame_index = self.get_minimap_slice(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                                                  int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
         self.fps = int(self.cap.get(cv2.CAP_PROP_FPS))
         self.landing_frame = int(landing_time * self.fps)

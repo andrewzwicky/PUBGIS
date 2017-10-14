@@ -20,7 +20,7 @@ class ImageIterator(GenericIterator):
             self.frame_index = slice(None)
             self.size = first_image.shape[0]
         else:
-            self.frame_index = self.get_minimap_bounds(*first_image.shape[0:2][::-1])
+            self.frame_index = self.get_minimap_slice(*first_image.shape[0:2][::-1])
 
     def __iter__(self):
         return self

@@ -15,8 +15,13 @@ class LiveFeed(GenericIterator):
         self.begin_time = None
 
         with mss.mss() as sct:
-            self.frame_index = self.get_minimap_bounds(sct.monitors[self.monitor]['width'],
-                                                       sct.monitors[self.monitor]['height'])
+            y_offset, x_offset, size = self.get_minimap_bounds(sct.monitors[self.monitor]['width'],
+                                                               sct.monitors[self.monitor]['height'])
+
+            self.minimap_bounds = {'top': y_offset + sct.monitors[self.monitor]['top'],
+                                   'left': x_offset + sct.monitors[self.monitor]['left'],
+                                   'width': size,
+                                   'height': size}
 
     def __iter__(self):
         return self
@@ -28,12 +33,11 @@ class LiveFeed(GenericIterator):
             self.last_execution_time = self.begin_time = time.time()
         else:
             # only want to sleep enough time to create the time_step between start of executions
+            # If that time has already been exceeded, don't sleep at all
             time.sleep(max(0, self.time_step - (time.time() - self.last_execution_time)))
             self.last_execution_time = time.time()
 
         with mss.mss() as sct:
-            frame = np.array(sct.grab(sct.monitors[self.monitor]))
-        minimap = frame[self.frame_index][:, :, :3]
-        minimap = minimap.copy()
+            minimap = np.array(sct.grab(self.minimap_bounds))
 
         return None, self.last_execution_time - self.begin_time, minimap
