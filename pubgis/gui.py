@@ -54,7 +54,7 @@ class PUBGISWorkerThread(QThread):
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(self.minimap_iterator, debug=True)
+        match = PUBGISMatch(self.minimap_iterator, debug=False)
 
         self.minimap_update.emit(self.preview_map)
 
