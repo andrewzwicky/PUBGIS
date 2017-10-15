@@ -30,11 +30,12 @@ When PUBGIS is started, you'll see this:
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_setup.jpg
    :scale: 45 %
 
-1. Select a video file (only tested with .mp4 currently)
+1a. Select a video file (only tested with .mp4 currently)
+1b. Click the Live tab to record as you play.
 2. Adjust the output file if needed.
 3. Click Process!
 
-**NOTE:**  PUBGIS currently does not work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking `Issue#41`_. Sorry for the inconvenience.
+**NOTE:**  PUBGIS live recording does not currently work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking `Issue#41`_. Sorry for the inconvenience.
 
 **Optional**:
 
