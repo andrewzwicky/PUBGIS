@@ -27,6 +27,7 @@ setup(name='PUBGIS',
                         'opencv-python>=3.0',
                         'mss>=3.0.1',
                         'Pillow>=4.2.1',
+                        'jsonschema>=2.6.0',
                         ],
       extras_require={
           'test': ['pytest>=3.2.2', 'pytest-profiling>=1.2.11', 'pytest-xdist>=1.20.0']},
