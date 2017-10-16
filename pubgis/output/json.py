@@ -44,11 +44,14 @@ def valididate_pubgis_schema(data):
         return False
 
 
-def output_json(filename, positions, timestamps, name=None, game=None, team=None):
-    data = {'name': name,
+def create_json_data(positions, timestamps, name=None, game=None, team=None):
+    return {'name': name,
             'game': game,
             'team': team,
             'positions': list(zip(timestamps, positions))}
+
+
+def output_json(filename, data):
     if valididate_pubgis_schema(data):
         with open(filename, 'w') as json_output_file:
             json.dump(data, json_output_file)

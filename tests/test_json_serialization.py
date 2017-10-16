@@ -4,7 +4,8 @@ from os.path import join, dirname
 
 import pytest
 
-from pubgis.output.json import output_json, input_json, valididate_pubgis_schema, parse_input_json_data
+from pubgis.output.json import output_json, input_json, valididate_pubgis_schema, \
+    parse_input_json_data, create_json_data
 
 JSON_TEST_DIR = join(dirname(__file__), "json")
 
@@ -27,7 +28,7 @@ def test_json_write():
     actual_file = join(JSON_TEST_DIR, 'actual_out.json')
     expected_file = join(JSON_TEST_DIR, 'expected_out.json')
 
-    output_json(actual_file, COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM)
+    output_json(actual_file, create_json_data(COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM))
 
     expected_read = open(expected_file, 'r').read()
     actual_read = open(actual_file, 'r').read()
@@ -37,15 +38,12 @@ def test_json_write():
 
 def test_json_read():
     expected_file = join(JSON_TEST_DIR, 'expected_out.json')
-
     assert input_json(expected_file) == (USER, COORDS, TIMESTAMPS, GAME, TEAM)
 
 
 def test_json_same():
     actual_file = join(JSON_TEST_DIR, 'actual_out.json')
-
-    output_json(actual_file, COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM)
-
+    output_json(actual_file, create_json_data(COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM))
     assert input_json(actual_file) == (USER, COORDS, TIMESTAMPS, GAME, TEAM)
 
 

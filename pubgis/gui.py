@@ -16,7 +16,7 @@ from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.generic import ResolutionNotSupportedException
 from pubgis.minimap_iterators.live import LiveFeed
 from pubgis.minimap_iterators.video import VideoIterator
-from pubgis.output.json import output_json
+from pubgis.output.json import output_json, create_json_data
 from pubgis.output.output_enum import OutputFlags
 from pubgis.output.plotting import PATH_COLOR, PATH_THICKNESS
 from pubgis.output.plotting import plot_coordinate_line, create_output_opencv
@@ -113,7 +113,8 @@ class PUBGISWorkerThread(QThread): # pylint: disable=too-many-instance-attribute
         if self.output_flags & OutputFlags.JSON:
             pre, _ = os.path.splitext(self.output_file)
             json_file = pre + ".json"
-            output_json(json_file, "test", self.full_positions, self.timestamps)
+            data = create_json_data(self.full_positions, self.timestamps)
+            output_json(json_file, data)
 
 
 class PUBGISMainWindow(QMainWindow):

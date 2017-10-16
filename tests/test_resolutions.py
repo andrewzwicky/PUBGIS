@@ -15,13 +15,11 @@ RESOLUTION_IMAGES_FOLDER = join(dirname(__file__), "resolution_tests")
 
 
 # noinspection PyShadowingNames
-@pytest.mark.parametrize("test_resolution_folder", os.listdir(RESOLUTION_IMAGES_FOLDER))
+@pytest.mark.parametrize("test_resolution_folder", os.scandir(RESOLUTION_IMAGES_FOLDER))
 def test_different_resolutions(test_resolution_folder):
-    mini_iter = ImageIterator(os.path.join(RESOLUTION_IMAGES_FOLDER, test_resolution_folder),
-                              MOCK_TIME_STEP)
+    mini_iter = ImageIterator(test_resolution_folder.path, MOCK_TIME_STEP)
     match = PUBGISMatch(mini_iter)
     match.initial_match_found = True
 
     for _, _, img in mini_iter:
-        scaled_pos, _, _ = match.find_scaled_player_position(img)
-        assert scaled_pos is not None
+        assert match.find_scaled_player_position(img) is not None

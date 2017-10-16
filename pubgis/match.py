@@ -109,7 +109,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         return indicator_mask, area_mask
 
-    def __debug_context(self, match_found, match_coords, context_slice):
+    def __debug_context(self, match_coords, context_slice):
         """
         Display the context that was used for this iteration of template matching, as well as
         where the minimap was matched.
@@ -126,7 +126,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         cv2.rectangle(debug_zoomed,
                       coordinate_offset(match_coords, context_thickness // 2),
                       coordinate_offset(match_coords, self.minimap_iter.size - context_thickness),
-                      MATCH_COLOR() if match_found else NO_MATCH_COLOR(),
+                      WHITE(),
                       thickness=context_thickness)
 
         debug_zoomed = cv2.resize(debug_zoomed,
@@ -139,7 +139,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
     def __coords_on_land(self, scaled_map_pos):
         if scaled_map_pos:
-            land_mask_coords = scale_coords(unscale_coords(scaled_map_pos, self.scale),
+            land_mask_coords = scale_coords(self._unscale_coords(scaled_map_pos),
                                             self.land_mask_scale)
             return bool(self.land_mask[land_mask_coords[1], land_mask_coords[0]])
 
@@ -151,7 +151,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         land_debug = np.copy(self.land_mask)
 
         if scaled_map_pos:
-            land_mask_coords = scale_coords(unscale_coords(scaled_map_pos, self.scale),
+            land_mask_coords = scale_coords(self._unscale_coords(scaled_map_pos),
                                             self.land_mask_scale)
             on_land = bool(land_debug[land_mask_coords[1], land_mask_coords[0]])
 
@@ -243,6 +243,31 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         return context_coords, context_slice
 
+    @staticmethod
+    def _match_was_successful(color_diff, template_match_result):
+        # Determining whether a particular minimap should actually be reported as a match
+        # is determined by the following:
+        # 1. How closely correlated was the match?
+        #     Because we are using normalized matching, this will report a 0-1 value, with 1
+        #     being a perfect match.  The higher the better.
+        # 2. The difference in color between the the player indicator and the area around it.
+        #     When the player indicator is on the screen, we expect to see a large difference in
+        #     the colors.  When the inventory is open for example, there should be very little
+        #     difference in the colors.
+        #
+        # There are three different regions used that correspond to experimentally determined
+        # regions, found during testing to effectively differentiate the areas.
+        # As long as this iteration's combination of color difference and match_value fall above
+        # both thresholds for each pair of thresholds, we consider that a match.
+        match_found = False
+        for color_diff_thresh, template_match_thresh in zip(COLOR_DIFF_THRESHS,
+                                                            TEMPLATE_MATCH_THRESHS):
+            if color_diff > color_diff_thresh and template_match_result > template_match_thresh:
+                match_found = True
+                break
+
+        return match_found
+
     def find_scaled_player_position(self, minimap):
         """
         Attempt to match the supplied minimap to a section of the larger full map.
@@ -259,70 +284,67 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         context_coords are the coordinates of the top-left corner of the context area.
         match_coords are the coordinates of the matched minimap within the context.
-        scaled_coords are the coordinates of the matched minimap within the scaled map.
-        scaled_map_pos is just the coordinates for the center of the matched minimap, relative to
+        scaled_position is just the coordinates for the center of the matched minimap, relative to
             the scaled map.
 
         To obtain the coordinates relative to the full map, the coordinates are unscaled later.
         """
 
-        # First, get the context and perform the match on that part of the grayscale scaled map.
-        context_coords, context_slice = self.get_scaled_context()
-        match = cv2.matchTemplate(self.gray_map[context_slice],
-                                  cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
-                                  cv2.TM_CCOEFF_NORMED)
-
-        # match is an array, the same shape as the context.  Next, we must find the minimum value
-        # in the array because we're using the TM_CCOEFF_NORMED matching method.
-        _, result, _, match_coords = cv2.minMaxLoc(match)
-        scaled_coords = coordinate_sum(match_coords, context_coords)
-
+        scaled_position, template_match_result = self._perform_template_matching(minimap)
         color_diff = Color.calculate_color_diff(minimap, *self.masks)
 
-        # Determining whether a particular minimap should actually be reported as a match
-        # is determined by the following:
-        # 1. How closely correlated was the match?
-        #     Because we are using normalized matching, this will report a 0-1 value, with 1
-        #     being a perfect match.  The higher the better.
-        # 2. The difference in color between the the player indicator and the area around it.
-        #     When the player indicator is on the screen, we expect to see a large difference in
-        #     the colors.  When the inventory is open for example, there should be very little
-        #     difference in the colors.
-        #
-        # There are three different regions used that correspond to experimentally determined
-        # regions, found during testing to effectively differentiate the areas.
-        # As long as this iteration's combination of color difference and match_value fall above
-        # both thresholds for each pair of thresholds, we consider that a match.
+        match_found = self.is_match_valid(color_diff, scaled_position, template_match_result)
 
-        within_bounds = [color_diff > c_thresh and result > temp_thresh for c_thresh, temp_thresh in
-                         zip(COLOR_DIFF_THRESHS, TEMPLATE_MATCH_THRESHS)]
-
-        if any(within_bounds):
-            scaled_map_pos = coordinate_offset(scaled_coords, self.minimap_iter.size // 2)
-
-            if not self.initial_match_found and self.__coords_on_land(scaled_map_pos):
-                self.initial_match_found = True
-
-            if self.initial_match_found:
-                match_found = True
-                self.missed_frames = 0
-            else:
-                match_found = False
-                scaled_map_pos = None
-                self.missed_frames += 1
-
+        if match_found:
+            self.missed_frames = 0
         else:
-            match_found = False
-            scaled_map_pos = None
+            scaled_position = None
             self.missed_frames += 1
 
         if self.debug:
-            self.__debug_context(match_found, match_coords, context_slice)
-            self.__debug_land(scaled_map_pos)
-            annotated_minimap = self.__annotate_minimap(minimap, match_found, color_diff, result)
-            self.__debug_minimap(annotated_minimap, scaled_coords)
+            annotated_minimap = self.__annotate_minimap(minimap, match_found, color_diff,
+                                                        template_match_result)
+            self.__debug_minimap(annotated_minimap, scaled_position)
 
-        return scaled_map_pos, color_diff, result
+        return scaled_position
+
+    def is_match_valid(self, color_diff, scaled_position, template_match_result):
+        match_valid = False
+
+        if self._match_was_successful(color_diff, template_match_result):
+            if self.initial_match_found:
+                match_valid = True
+            else:
+                if self.__coords_on_land(scaled_position):
+                    self.initial_match_found = True
+                    match_valid = True
+
+        return match_valid
+
+    def _perform_template_matching(self, minimap):
+        # First, get the context and perform the match on that part of the grayscale scaled map.
+        context_coords, context_slice = self.get_scaled_context()
+        template_match = cv2.matchTemplate(self.gray_map[context_slice],
+                                           cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
+                                           cv2.TM_CCOEFF_NORMED)
+        # match is an array, the same shape as the context.  Next, we must find the minimum value
+        # in the array because we're using the TM_CCOEFF_NORMED matching method.
+        _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
+        scaled_position = coordinate_sum(match_position, context_coords)
+        scaled_position = coordinate_offset(scaled_position, self.minimap_iter.size // 2)
+
+        if self.debug:
+            self.__debug_context(match_position, context_slice)
+            self.__debug_land(scaled_position)
+
+        return scaled_position, template_match_value
+
+    def _update_last_scaled_position(self, scaled_position):
+        if scaled_position:
+            self.last_scaled_position = scaled_position
+
+    def _unscale_coords(self, scaled_position):
+        return unscale_coords(scaled_position, self.scale)
 
     def process_match(self):
         """
@@ -333,8 +355,7 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         comparable results.
         """
         for percent, timestamp, minimap in self.minimap_iter:
-            scaled_position, _, _ = self.find_scaled_player_position(minimap)
-            if scaled_position:
-                self.last_scaled_position = scaled_position
-            full_position = unscale_coords(scaled_position, self.scale)
-            yield percent, timestamp, full_position
+            scaled_position = self.find_scaled_player_position(minimap)
+            self._update_last_scaled_position(scaled_position)
+            unscaled_position = self._unscale_coords(scaled_position)
+            yield percent, timestamp, unscaled_position
