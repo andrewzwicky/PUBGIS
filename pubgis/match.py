@@ -5,7 +5,7 @@ import numpy as np
 
 from pubgis.color import Color, Scaling
 from pubgis.support import find_path_bounds, unscale_coords, scale_coords, coordinate_sum, \
-    coordinate_offset, create_slice
+    coordinate_offset, create_slice, get_coords_from_slices
 
 IMAGES = join(dirname(__file__), "images")
 
@@ -39,7 +39,7 @@ IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.145
 
 
-class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
+class PUBGISMatch:
     """
     PUBGISMatch is responsible for processing a series of minimap images and outputting the
     position of the player at each of the minimaps (if possible).
@@ -52,22 +52,18 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
     smaller area, around the last position.  This speeds up searching significantly.
     """
     full_map = cv2.imread(join(IMAGES, "full_map.jpg"))
-    _, land_mask = cv2.threshold(cv2.imread(join(IMAGES, "land_mask.jpg"), cv2.IMREAD_GRAYSCALE),
-                                 10, 255, cv2.THRESH_BINARY)
+    land_mask = cv2.threshold(cv2.imread(join(IMAGES, "land_mask.jpg"), cv2.IMREAD_GRAYSCALE),
+                              10, 255, cv2.THRESH_BINARY)[1]
     land_mask_scale = len(land_mask) / len(full_map)
 
     def __init__(self, minimap_iterator, debug=False):
         self.minimap_iter = minimap_iterator
-
-        assert self.minimap_iter.size
-
         self.debug = debug
 
         # last_scaled_position is stored so later iterations can use this to
         # narrow the search space for template matching.
-        self.last_scaled_position = None
+        self.last_known_unscaled_position = None
         self.missed_frames = 0
-        self.initial_match_found = False
 
         # For processing purposes, a scaled grayscale map will be stored.  This map is scaled so
         # features on the minimap and this map are the same resolution.  This is important for
@@ -77,10 +73,152 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         scaled_map = cv2.resize(PUBGISMatch.full_map, (0, 0), fx=self.scale, fy=self.scale)
         self.gray_map = cv2.cvtColor(scaled_map, cv2.COLOR_BGR2GRAY)
 
-        self.masks = self.create_masks(self.minimap_iter.size)
+        self.masks = self._create_masks(self.minimap_iter.size)
+
+    def process_match(self):
+        """
+        Process the match by calling find_scaled_player_position on each minimap that is generated.
+
+        last_scaled_position is stored, but the unscaled full map coordinates the ones that are
+        yielded.  This means that the same game played on different resolutions should provide
+        comparable results.
+        """
+        for percent, timestamp, minimap in self.minimap_iter:
+            unscaled_position = self._find_unscaled_player_position(minimap)
+
+            self._update_missed_frames(unscaled_position)
+            self._update_last_unscaled_position(unscaled_position)
+
+            yield percent, timestamp, unscaled_position
+
+    def _find_unscaled_player_position(self, minimap):
+        scaled_position = self._find_scaled_player_position(minimap)
+        unscaled_position = self._unscale_coords(scaled_position)
+        unscaled_position_valid = self._is_unscaled_position_valid(unscaled_position)
+
+        if not unscaled_position_valid:
+            unscaled_position = None
+
+        return unscaled_position
+
+    def _find_scaled_player_position(self, minimap):
+        scaled_position, template_match_result = self._perform_template_matching(minimap)
+        color_diff = Color.calculate_color_diff(minimap, *self.masks)
+        scaled_position_valid = self._is_scaled_position_valid(color_diff, template_match_result)
+        if not scaled_position_valid:
+            scaled_position = None
+
+        return scaled_position
+
+    def _perform_template_matching(self, minimap):
+        # First, get the context and perform the match on that part of the grayscale scaled map.
+        context_slice = self._get_scaled_context()
+        template_match = cv2.matchTemplate(self.gray_map[context_slice],
+                                           cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
+                                           cv2.TM_CCOEFF_NORMED)
+        # match is an array, the same shape as the context.  Next, we must find the minimum value
+        # in the array because we're using the TM_CCOEFF_NORMED matching method.
+        _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
+        context_coords = get_coords_from_slices(context_slice)
+        scaled_position = coordinate_sum(match_position, context_coords)
+        scaled_position = coordinate_offset(scaled_position, self.minimap_iter.size // 2)
+
+        if self.debug:
+            self.__debug_context(match_position, context_slice)
+            self.__debug_land(scaled_position)
+
+        return scaled_position, template_match_value
+
+    def _get_scaled_context(self):
+        context_slice = slice(None)
+
+        # the context calculation is present to reduce the search space
+        # when the last position was known.
+        if self.last_known_unscaled_position:
+            max_reachable_dist = self._calculate_max_travel_distance()
+
+            context_coords, context_size = find_path_bounds(
+                self.gray_map.shape[0],
+                [self.last_known_unscaled_position],
+                crop_border=0,
+                min_size=max_reachable_dist)
+            context_slice = create_slice(context_coords, context_size)
+
+        return context_slice
+
+    def _calculate_max_travel_distance(self):
+        # First, we get the maximum number of unscaled pixels that is expected we could travel
+        # This doesn't cover weird edge cases like being flung across the map or something like
+        # that.  Sorry.
+        # This must also be per time_step as well so that we don't scale the map too quickly
+        if self._is_position_on_land(self.last_known_unscaled_position):
+            max_pixels_per_sec = MAX_PLANE_PIX_PER_SEC
+        else:
+            max_pixels_per_sec = MAX_WATER_PIX_PER_SEC
+
+        max_scaled_pixels_per_step = self.minimap_iter.time_step * max_pixels_per_sec * self.scale
+        # Then the maximum distance able to be traveled in any 1 direction is
+        # the number of frames multiplied by the max travel distance.
+        # The reason that 1 is added to missed_frames, is that if we haven't missed the
+        # last frame, we still need to account for one frame of travel.
+        max_reachable_dist = (self.missed_frames + 1) * int(max_scaled_pixels_per_step)
+        # multiply by 2 to get the width of the search space
+        max_reachable_dist *= 2
+        # Add a buffer around the edge so that there is at least 1/2 the minimap around the edge
+        max_reachable_dist += self.minimap_iter.size
+
+        return max_reachable_dist
 
     @staticmethod
-    def create_masks(size):
+    def _is_scaled_position_valid(color_diff, template_match_result):
+        # Determining whether a particular minimap should actually be reported as a match
+        # is determined by the following:
+        # 1. How closely correlated was the match?
+        #     Because we are using normalized matching, this will report a 0-1 value, with 1
+        #     being a perfect match.  The higher the better.
+        # 2. The difference in color between the the player indicator and the area around it.
+        #     When the player indicator is on the screen, we expect to see a large difference in
+        #     the colors.  When the inventory is open for example, there should be very little
+        #     difference in the colors.
+        #
+        # There are three different regions used that correspond to experimentally determined
+        # regions, found during testing to effectively differentiate the areas.
+        # As long as this iteration's combination of color difference and match_value fall above
+        # both thresholds for each pair of thresholds, we consider that a match.
+        match_found = False
+        for color_diff_thresh, template_match_thresh in zip(COLOR_DIFF_THRESHS,
+                                                            TEMPLATE_MATCH_THRESHS):
+            if color_diff > color_diff_thresh and template_match_result > template_match_thresh:
+                match_found = True
+                break
+
+        return match_found
+
+    def _is_unscaled_position_valid(self, unscaled_position):
+        return self.last_known_unscaled_position is not None or \
+               self._is_position_on_land(unscaled_position)
+
+    def _is_position_on_land(self, unscaled_position):
+        on_land = False
+
+        if unscaled_position:
+            land_mask_coords = scale_coords(unscaled_position, self.land_mask_scale)
+            on_land = bool(self.land_mask[land_mask_coords[1], land_mask_coords[0]])
+
+        return on_land
+
+    def _update_missed_frames(self, unscaled_position):
+        if unscaled_position:
+            self.missed_frames += 1
+        else:
+            self.missed_frames = 0
+
+    def _update_last_unscaled_position(self, unscaled_position):
+        if unscaled_position:
+            self.last_known_unscaled_position = unscaled_position
+
+    @staticmethod
+    def _create_masks(size):
         """
         These masks are used to calculate the color difference between where the player indicator
         should be and the area around it.  The masks are based on ratios, so should scale
@@ -109,7 +247,10 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         return indicator_mask, area_mask
 
-    def __debug_context(self, match_coords, context_slice):
+    def _unscale_coords(self, scaled_position):
+        return unscale_coords(scaled_position, self.scale)
+
+    def __debug_context(self, match_position, context_slice):
         """
         Display the context that was used for this iteration of template matching, as well as
         where the minimap was matched.
@@ -124,8 +265,8 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         debug_zoomed = cv2.cvtColor(debug_zoomed, cv2.COLOR_GRAY2BGR)
 
         cv2.rectangle(debug_zoomed,
-                      coordinate_offset(match_coords, context_thickness // 2),
-                      coordinate_offset(match_coords, self.minimap_iter.size - context_thickness),
+                      coordinate_offset(match_position, context_thickness // 2),
+                      coordinate_offset(match_position, self.minimap_iter.size - context_thickness),
                       WHITE(),
                       thickness=context_thickness)
 
@@ -137,31 +278,16 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
         cv2.imshow("context", debug_zoomed)
         cv2.waitKey(10)
 
-    def __coords_on_land(self, scaled_map_pos):
-        if scaled_map_pos:
-            land_mask_coords = scale_coords(self._unscale_coords(scaled_map_pos),
-                                            self.land_mask_scale)
-            return bool(self.land_mask[land_mask_coords[1], land_mask_coords[0]])
-
-        return None
-
-    def __debug_land(self, scaled_map_pos):
-        context_display_size = 800
+    def __debug_land(self, scaled_position):
 
         land_debug = np.copy(self.land_mask)
 
-        if scaled_map_pos:
-            land_mask_coords = scale_coords(self._unscale_coords(scaled_map_pos),
-                                            self.land_mask_scale)
-            on_land = bool(land_debug[land_mask_coords[1], land_mask_coords[0]])
-
+        if scaled_position:
+            unscaled_position = self._unscale_coords(scaled_position)
+            on_land = self._is_position_on_land(unscaled_position)
             land_debug = cv2.cvtColor(land_debug, cv2.COLOR_GRAY2BGR)
+            land_mask_coords = scale_coords(unscaled_position, self.land_mask_scale)
             cv2.circle(land_debug, land_mask_coords, 10, LAND() if on_land else WATER(), cv2.FILLED)
-
-        land_debug = cv2.resize(land_debug,
-                                (0, 0),
-                                fx=context_display_size / land_debug.shape[0],
-                                fy=context_display_size / land_debug.shape[0])
 
         cv2.imshow("land", land_debug)
         cv2.waitKey(10)
@@ -202,160 +328,3 @@ class PUBGISMatch:  # pylint: disable=too-many-instance-attributes
 
         cv2.imshow("debug", np.concatenate((annotated_minimap, matched_minimap), axis=1))
         cv2.waitKey(10)
-
-    def get_scaled_context(self):
-        context_coords = (0, 0)
-        context_slice = slice(None)
-
-        # the context calculation is present to reduce the search space
-        # when the last position was known.
-        if self.last_scaled_position:
-            last_on_land = self.__coords_on_land(self.last_scaled_position)
-
-            # First, we get the maximum number of unscaled pixels that is expected we could travel
-            # This doesn't cover weird edge cases like being flung across the map or something like
-            # that.  Sorry.
-            # This must also be per time_step as well so that we don't scale the map too quickly
-            if last_on_land:
-                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_PLANE_PIX_PER_SEC
-            else:
-                max_unscaled_pixels_per_step = self.minimap_iter.time_step * MAX_WATER_PIX_PER_SEC
-            max_scaled_pixels_per_step = max_unscaled_pixels_per_step * self.scale
-
-            # Then the mximum distance able to be traveled in any 1 direction is
-            # the number of frames multiplied by the max travel distance.
-            # The reason that 1 is added to missed_frames, is that if we haven't missed the
-            # last frame, we still need to account for one frame of travel.
-            max_reachable_dist = (self.missed_frames + 1) * int(max_scaled_pixels_per_step)
-
-            # multiply by 2 to get the width of the search space
-            max_reachable_dist *= 2
-
-            # Add a buffer around the edge so that there is at least 1/2 the minimap around the edge
-            max_reachable_dist += self.minimap_iter.size
-
-            context_coords, context_size = find_path_bounds(
-                self.gray_map.shape[0],
-                [self.last_scaled_position],
-                crop_border=0,
-                min_size=max_reachable_dist)
-            context_slice = create_slice(context_coords, context_size)
-
-        return context_coords, context_slice
-
-    @staticmethod
-    def _match_was_successful(color_diff, template_match_result):
-        # Determining whether a particular minimap should actually be reported as a match
-        # is determined by the following:
-        # 1. How closely correlated was the match?
-        #     Because we are using normalized matching, this will report a 0-1 value, with 1
-        #     being a perfect match.  The higher the better.
-        # 2. The difference in color between the the player indicator and the area around it.
-        #     When the player indicator is on the screen, we expect to see a large difference in
-        #     the colors.  When the inventory is open for example, there should be very little
-        #     difference in the colors.
-        #
-        # There are three different regions used that correspond to experimentally determined
-        # regions, found during testing to effectively differentiate the areas.
-        # As long as this iteration's combination of color difference and match_value fall above
-        # both thresholds for each pair of thresholds, we consider that a match.
-        match_found = False
-        for color_diff_thresh, template_match_thresh in zip(COLOR_DIFF_THRESHS,
-                                                            TEMPLATE_MATCH_THRESHS):
-            if color_diff > color_diff_thresh and template_match_result > template_match_thresh:
-                match_found = True
-                break
-
-        return match_found
-
-    def find_scaled_player_position(self, minimap):
-        """
-        Attempt to match the supplied minimap to a section of the larger full map.
-
-        The actual template matching is done by opencv, but there is additional checking that is
-        done to ensure that the supplied minimap is actually.
-
-        This method contains several sets of coordinates.  Everything done inside this method is
-        done on the scaled coordinate system, which uses the scaled map, based on the input
-        resolution.
-
-        The context refers to the reduced area that matching will take place in.  Reducing the
-        search area significantly reduces the amount of time that matching takes.
-
-        context_coords are the coordinates of the top-left corner of the context area.
-        match_coords are the coordinates of the matched minimap within the context.
-        scaled_position is just the coordinates for the center of the matched minimap, relative to
-            the scaled map.
-
-        To obtain the coordinates relative to the full map, the coordinates are unscaled later.
-        """
-
-        scaled_position, template_match_result = self._perform_template_matching(minimap)
-        color_diff = Color.calculate_color_diff(minimap, *self.masks)
-
-        match_found = self.is_match_valid(color_diff, scaled_position, template_match_result)
-
-        if match_found:
-            self.missed_frames = 0
-        else:
-            scaled_position = None
-            self.missed_frames += 1
-
-        if self.debug:
-            annotated_minimap = self.__annotate_minimap(minimap, match_found, color_diff,
-                                                        template_match_result)
-            self.__debug_minimap(annotated_minimap, scaled_position)
-
-        return scaled_position
-
-    def is_match_valid(self, color_diff, scaled_position, template_match_result):
-        match_valid = False
-
-        if self._match_was_successful(color_diff, template_match_result):
-            if self.initial_match_found:
-                match_valid = True
-            else:
-                if self.__coords_on_land(scaled_position):
-                    self.initial_match_found = True
-                    match_valid = True
-
-        return match_valid
-
-    def _perform_template_matching(self, minimap):
-        # First, get the context and perform the match on that part of the grayscale scaled map.
-        context_coords, context_slice = self.get_scaled_context()
-        template_match = cv2.matchTemplate(self.gray_map[context_slice],
-                                           cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
-                                           cv2.TM_CCOEFF_NORMED)
-        # match is an array, the same shape as the context.  Next, we must find the minimum value
-        # in the array because we're using the TM_CCOEFF_NORMED matching method.
-        _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
-        scaled_position = coordinate_sum(match_position, context_coords)
-        scaled_position = coordinate_offset(scaled_position, self.minimap_iter.size // 2)
-
-        if self.debug:
-            self.__debug_context(match_position, context_slice)
-            self.__debug_land(scaled_position)
-
-        return scaled_position, template_match_value
-
-    def _update_last_scaled_position(self, scaled_position):
-        if scaled_position:
-            self.last_scaled_position = scaled_position
-
-    def _unscale_coords(self, scaled_position):
-        return unscale_coords(scaled_position, self.scale)
-
-    def process_match(self):
-        """
-        Process the match by calling find_scaled_player_position on each minimap that is generated.
-
-        last_scaled_position is stored, but the unscaled full map coordinates the ones that are
-        yielded.  This means that the same game played on different resolutions should provide
-        comparable results.
-        """
-        for percent, timestamp, minimap in self.minimap_iter:
-            scaled_position = self.find_scaled_player_position(minimap)
-            self._update_last_scaled_position(scaled_position)
-            unscaled_position = self._unscale_coords(scaled_position)
-            yield percent, timestamp, unscaled_position

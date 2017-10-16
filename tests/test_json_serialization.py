@@ -4,7 +4,7 @@ from os.path import join, dirname
 
 import pytest
 
-from pubgis.output.json import output_json, input_json, valididate_pubgis_schema, \
+from pubgis.output.pubgis_json import output_json, input_json, valididate_pubgis_schema, \
     parse_input_json_data, create_json_data
 
 JSON_TEST_DIR = join(dirname(__file__), "json")

@@ -22,4 +22,4 @@ def test_different_resolutions(test_resolution_folder):
     match.initial_match_found = True
 
     for _, _, img in mini_iter:
-        assert match.find_scaled_player_position(img) is not None
+        assert match._find_scaled_player_position(img) is not None

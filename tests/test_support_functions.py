@@ -86,13 +86,27 @@ def test_coordinate_offset(coords_a, offset, expected_coords):
     assert coordinate_offset(coords_a, offset) == expected_coords
 
 
-CREATE_SLICE_CASES = [
+GET_COORDS_TEST_CASES = [
     ((0, 0), 100, (slice(0, 100), slice(0, 100))),
     ((240, 600), 200, (slice(600, 800), slice(240, 440))),
     ((300, 0), 150, (slice(0, 150), slice(300, 450))),
 ]
 
 
-@pytest.mark.parametrize("coords, size, expected_slice", CREATE_SLICE_CASES)
+@pytest.mark.parametrize("coords, size, expected_slice", GET_COORDS_TEST_CASES)
 def test_create_slice(coords, size, expected_slice):
     assert create_slice(coords, size) == expected_slice
+
+
+GET_COORDS_TEST_CASES = [
+    ((0, 0), (slice(0, 100), slice(0, 100))),
+    ((240, 600), (slice(600, 800), slice(240, 440))),
+    ((300, 0), (slice(0, 150), slice(300, 450))),
+    ((300, 0), (slice(None, 150), slice(300, 450))),
+    ((0, 0), slice(None, None, None)),
+]
+
+
+@pytest.mark.parametrize("expected_coords, slice_tuple", GET_COORDS_TEST_CASES)
+def test_get_coords_from_slices(expected_coords, slice_tuple):
+    assert get_coords_from_slices(slice_tuple) == expected_coords

@@ -32,7 +32,7 @@ def generate_test_minimaps(video_file):
         elif key == L:
             cv2.imwrite(os.path.join('water_test', f"{video_name}_{i:0>4}_{found_x}_{found_y}.jpg"),
                         raw_minimap)
-            match.last_scaled_position = scaled_map_pos
+            match.last_known_unscaled_position = scaled_map_pos
         else:
             pass
 

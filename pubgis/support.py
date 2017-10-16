@@ -110,3 +110,18 @@ def blend_transparent(base_map, path_overlay):
 
     # And finally just add them together, and rescale it back to an 8bit integer image
     return np.uint8(cv2.addWeighted(face_part, 255.0, overlay_part, 255.0, 0.0))
+
+
+def get_coords_from_slices(slices):
+    assert isinstance(slices, (tuple, slice))
+
+    output_coords = (0, 0)
+
+    if isinstance(slices, tuple) and len(slices) == 2:
+        output_coords = tuple()
+        for current_slice in reversed(slices):
+            coord = current_slice.start
+            coord = coord if coord else 0
+            output_coords += (coord,)
+
+    return output_coords
