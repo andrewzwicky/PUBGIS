@@ -76,7 +76,7 @@ This project is licensed under the GPLv3 License - see the `LICENSE.md`_
 file for details
 
 .. _PUBG: https://www.playbattlegrounds.com/main.pu
-.. _Implementation: https://github.com/andrewzwicky/PUBGIS/wiki/Implementation
+.. _Implementation: https://github.com/andrewzwicky/PUBGIS/wiki/Theory-of-Operation
 .. _here: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Issue#41: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Development: https://github.com/andrewzwicky/PUBGIS/wiki/Development
