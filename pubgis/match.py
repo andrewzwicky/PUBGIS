@@ -97,10 +97,7 @@ class PUBGISMatch:
         scaled_position_valid = self._is_scaled_position_valid(color_diff, template_match_result)
 
         if self.debug:
-            ann_map = self.__annotate_minimap(minimap,
-                                              scaled_position_valid,
-                                              color_diff,
-                                              template_match_result)
+            ann_map = self.__annotate_minimap(minimap, color_diff, template_match_result)
             self.__debug_minimap(ann_map, scaled_position)
 
         if not scaled_position_valid:
@@ -282,23 +279,21 @@ class PUBGISMatch:
         cv2.imshow("land", land_debug)
         cv2.waitKey(10)
 
-    def __annotate_minimap(self, minimap, scaled_position_valid, color_diff, match_val):
-        match_ind_thickness = 4
+    def __annotate_minimap(self, minimap, color_diff, match_val):
+        ind_mask_minimap = np.copy(minimap)
+        res1 = cv2.bitwise_and(ind_mask_minimap, ind_mask_minimap, mask=self.masks[0])
+        ind_area_mask_minimap = np.copy(minimap)
+        res2 = cv2.bitwise_and(ind_area_mask_minimap, ind_area_mask_minimap, mask=self.masks[1])
 
         cv2.putText(minimap, f"{int(color_diff)}", (25, 25), FONT, FONT_SIZE, WHITE())
         cv2.putText(minimap, f"{match_val:.2f}", (25, 60), FONT, FONT_SIZE, WHITE())
         cv2.putText(minimap, f"{self.missed_frames:.2f}", (25, 95), FONT, FONT_SIZE, WHITE())
 
-        cv2.rectangle(minimap,
-                      (match_ind_thickness // 2, match_ind_thickness // 2),
-                      (self.minimap_iter.size - match_ind_thickness,
-                       self.minimap_iter.size - match_ind_thickness),
-                      MATCH_COLOR() if scaled_position_valid else NO_MATCH_COLOR(),
-                      thickness=match_ind_thickness)
-
         minimap = cv2.cvtColor(minimap, cv2.COLOR_BGRA2BGR)
+        res1 = cv2.cvtColor(res1, cv2.COLOR_BGRA2BGR)
+        res2 = cv2.cvtColor(res2, cv2.COLOR_BGRA2BGR)
 
-        return minimap
+        return np.concatenate((res1, res2, minimap), axis=1)
 
     def __debug_minimap(self, annotated_minimap, scaled_position):
         offset_coords = coordinate_offset(scaled_position, -self.minimap_iter.size // 2)
