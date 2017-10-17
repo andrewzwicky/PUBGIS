@@ -37,6 +37,7 @@ FULL_SCALE_MINIMAP = 407
 IND_OUTER_CIRCLE_RATIO = 0.05555
 IND_INNER_CIRCLE_RATIO = 0.01587
 AREA_MASK_AREA_RATIO = 0.145
+AREA_OUTER_CIRCLE_RATIO = IND_OUTER_CIRCLE_RATIO * 1.1
 
 
 class PUBGISMatch:
@@ -238,8 +239,7 @@ class PUBGISMatch:
 
         area_base = np.copy(mask_base)
         cv2.circle(area_base, center, int(size * AREA_MASK_AREA_RATIO), 255, thickness=cv2.FILLED)
-        cv2.circle(area_base, center, int(size * IND_OUTER_CIRCLE_RATIO), 0, thickness=2)
-        cv2.circle(area_base, center, int(size * IND_INNER_CIRCLE_RATIO), 0, thickness=1)
+        cv2.circle(area_base, center, int(size * AREA_OUTER_CIRCLE_RATIO), 0, thickness=cv2.FILLED)
         _, area_mask = cv2.threshold(area_base, 10, 255, cv2.THRESH_BINARY)
 
         return indicator_mask, area_mask

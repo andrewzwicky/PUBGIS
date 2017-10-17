@@ -47,3 +47,4 @@ tests/map_coverage.png
 tests/summary_plot.png
 *.autosave
 tests/json/actual*
+tests/generate_test_minimaps.py

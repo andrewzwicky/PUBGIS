@@ -55,7 +55,7 @@ class PUBGISWorkerThread(QThread): # pylint: disable=too-many-instance-attribute
         self.percent_max_update.emit(0)
         self.percent_update.emit(0)
 
-        match = PUBGISMatch(self.minimap_iterator, debug=False)
+        match = PUBGISMatch(self.minimap_iterator)
 
         self.minimap_update.emit(self.preview_map)
 
