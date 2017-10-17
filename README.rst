@@ -9,7 +9,7 @@ game.
 PUBGIS works by continuously scanning the minimap in the corner of the
 game (seen below) and matching that to a location on the world map. If
 you want more details about how PUBGIS works, check out the
-`Theory_of_Operation`_ wiki page
+`Theory of Operation`_ wiki page
 
 Installation
 ------------
@@ -76,7 +76,7 @@ This project is licensed under the GPLv3 License - see the `LICENSE.md`_
 file for details
 
 .. _PUBG: https://www.playbattlegrounds.com/main.pu
-.. _Theory_of_Operation: https://github.com/andrewzwicky/PUBGIS/wiki/Theory-of-Operation
+.. _`Theory of Operation`: https://github.com/andrewzwicky/PUBGIS/wiki/Theory-of-Operation
 .. _here: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Issue#41: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Development: https://github.com/andrewzwicky/PUBGIS/wiki/Development
