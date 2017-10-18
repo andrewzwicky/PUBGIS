@@ -92,9 +92,15 @@ class PUBGISMatch:
         return unscaled_position
 
     def _find_scaled_player_position(self, minimap):
-        scaled_position, template_match_result = self._perform_template_matching(minimap)
         color_diff = Color.calculate_color_diff(minimap, *self.masks)
-        scaled_position_valid = self._is_scaled_position_valid(color_diff, template_match_result)
+        if color_diff < min(COLOR_DIFF_THRESHS):
+            scaled_position = None
+            template_match_result = 0
+            scaled_position_valid = False
+        else:
+            scaled_position, template_match_result = self._perform_template_matching(minimap)
+            scaled_position_valid = self._is_scaled_position_valid(color_diff,
+                                                                   template_match_result)
 
         if self.debug:
             ann_map = self.__annotate_minimap(minimap, color_diff, template_match_result)
@@ -296,7 +302,10 @@ class PUBGISMatch:
         return np.concatenate((res1, res2, minimap), axis=1)
 
     def __debug_minimap(self, annotated_minimap, scaled_position):
-        offset_coords = coordinate_offset(scaled_position, -self.minimap_iter.size // 2)
+        if scaled_position is None:
+            offset_coords = (0, 0)
+        else:
+            offset_coords = coordinate_offset(scaled_position, -self.minimap_iter.size // 2)
         matched_minimap = self.gray_map[create_slice(offset_coords, self.minimap_iter.size)]
         matched_minimap = cv2.cvtColor(matched_minimap, cv2.COLOR_GRAY2BGR)
 
