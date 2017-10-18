@@ -38,9 +38,6 @@ def test_bad_images(test_image, bad_match_fixture):
 @pytest.mark.parametrize("test_image", os.scandir(GOOD_IMAGES_FOLDER))
 def test_good_images(test_image, good_match_fixture):
     img = cv2.imread(test_image.path)
-    # TODO: handle state being stored in test fixtures possibly?
-    # good_match_fixture.last_known_unscaled_position = None
-    # good_match_fixture.missed_frames = 0
     scaled_position = good_match_fixture._find_scaled_player_position(img)
     coords_match = TEST_COORD_RE.match(test_image.name)
     expected_position = tuple(map(int, coords_match.groups()))
