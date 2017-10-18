@@ -17,7 +17,7 @@ def get_test_image_coords(filename):
     return coords
 
 
-def generate_list_of_approx_coords(test_image_dir):
+def generate_expected_positions(test_image_dir):
     coords = []
     for img in os.listdir(test_image_dir):
         coords.append(pytest.approx(get_test_image_coords(img), abs=ALLOWED_VARIATION))

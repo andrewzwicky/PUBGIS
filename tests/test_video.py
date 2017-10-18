@@ -8,7 +8,7 @@ from pubgis.minimap_iterators.video import VideoIterator
 ALLOWED_VARIATION = 2  # pixels
 MOCK_TIME_STEP = 1
 
-TEST_VIDEOS_FOLDER = join(dirname(__file__), "test_video")
+TEST_VIDEOS_FOLDER = join(dirname(__file__), "test_videos")
 
 VIDEO_CASES = [(join(TEST_VIDEOS_FOLDER, 'test_video.mp4'),
                 ((3079, 4034), (3095, 4061), (3108, 4082), (3123, 4108), (3140, 4138), (3160, 4170),
@@ -17,7 +17,7 @@ VIDEO_CASES = [(join(TEST_VIDEOS_FOLDER, 'test_video.mp4'),
                  (3387, 4551), (3400, 4574), (3413, 4598)))]
 
 
-@pytest.mark.parametrize("test_video, expected_positions", VIDEO_CASES)
+@pytest.mark.parametrize("test_videos, expected_positions", VIDEO_CASES)
 def test_video_file(test_video, expected_positions):
     video_iter = VideoIterator(test_video, time_step=0.25)
     match = PUBGISMatch(video_iter)
