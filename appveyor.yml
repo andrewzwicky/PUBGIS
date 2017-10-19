@@ -46,7 +46,7 @@ artifacts:
   - path: dist/PUBGIS*.tar.gz
     name: "pypi sdist"
 
-  - path: tests/prof
+  - path: tests/prof/*
     name: "profiling"
 
 deploy:
