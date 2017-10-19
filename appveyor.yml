@@ -9,6 +9,7 @@ environment:
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
       PIP: "C:\\Python36-x64\\Scripts\\pip"
+      PROFILE_FILE: = "tests/combined.prof"
 
 skip_commits:
   files:
@@ -36,6 +37,7 @@ build_script:
 test_script:
   - "pylint pubgis"
   - "pytest -n auto --profile"
+  - "if exist %PROFILE_FILE% type %PROFILE_FILE%"
 
 artifacts:
   - path: dist/PUBGIS.exe
