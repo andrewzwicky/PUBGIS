@@ -44,6 +44,9 @@ artifacts:
   - path: dist/PUBGIS*.tar.gz
     name: "pypi sdist"
 
+  - path: tests/prof
+    name: "profiling"
+
 deploy:
   description: PUBGIS-$(tag)
   provider: GitHub
