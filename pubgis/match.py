@@ -121,13 +121,13 @@ class PUBGISMatch:
         # in the array because we're using the TM_CCOEFF_NORMED matching method.
 
         if context_slice != slice(None, None, None):
-            scaled_last_known = scale_coords(self.last_known_position, self.scale)
-            context_last_known = coordinate_sum(scaled_last_known, [-x for x in context_coords])
-            xax = np.arange(template_match.shape[0]) - context_last_known[0]
-            yax = np.arange(template_match.shape[0]) - context_last_known[1]
-            xx, yy = np.meshgrid(xax, yax)
-            z = np.sqrt(np.sqrt(xx ** 2 + yy ** 2)) / 1000
-            template_match -= z
+            context_last_known = coordinate_sum(scale_coords(self.last_known_position, self.scale),
+                                                [-x for x in context_coords])
+            x_rows = np.arange(template_match.shape[0]) - context_last_known[0]
+            y_rows = np.arange(template_match.shape[0]) - context_last_known[1]
+            x_grid, y_grid = np.meshgrid(x_rows, y_rows)
+            match_adjustment = np.sqrt(np.sqrt(x_grid ** 2 + y_grid ** 2)) / 1000
+            template_match -= match_adjustment
 
         _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
         scaled_position = coordinate_sum(match_position, context_coords)
