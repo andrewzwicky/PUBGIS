@@ -37,7 +37,6 @@ build_script:
 test_script:
   - "pylint pubgis"
   - "pytest --profile"
-  - "if exist %PROFILE_FILE% type %PROFILE_FILE%"
 
 artifacts:
   - path: dist/PUBGIS.exe
@@ -46,7 +45,7 @@ artifacts:
   - path: dist/PUBGIS*.tar.gz
     name: "pypi sdist"
 
-  - path: tests/prof/*
+  - path: prof/*
     name: "profiling"
 
 deploy:
