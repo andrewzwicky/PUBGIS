@@ -36,7 +36,7 @@ build_script:
 
 test_script:
   - "pylint pubgis"
-  - "pytest -n auto --profile"
+  - "pytest --profile"
   - "if exist %PROFILE_FILE% type %PROFILE_FILE%"
 
 artifacts:
