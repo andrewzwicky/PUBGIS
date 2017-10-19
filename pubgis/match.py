@@ -113,13 +113,23 @@ class PUBGISMatch:
 
     def _perform_template_matching(self, minimap):
         context_slice = self._get_scaled_context()
+        context_coords = get_coords_from_slices(context_slice)
         template_match = cv2.matchTemplate(self.gray_map[context_slice],
                                            cv2.cvtColor(minimap, cv2.COLOR_RGB2GRAY),
                                            cv2.TM_CCOEFF_NORMED)
         # match is an array, the same shape as the context.  Next, we must find the minimum value
         # in the array because we're using the TM_CCOEFF_NORMED matching method.
+
+        if context_slice != slice(None, None, None):
+            scaled_last_known = scale_coords(self.last_known_position, self.scale)
+            context_last_known = coordinate_sum(scaled_last_known, [-x for x in context_coords])
+            xax = np.arange(template_match.shape[0]) - context_last_known[0]
+            yax = np.arange(template_match.shape[0]) - context_last_known[1]
+            xx, yy = np.meshgrid(xax, yax)
+            z = np.sqrt(np.sqrt(xx ** 2 + yy ** 2)) / 1000
+            template_match -= z
+
         _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
-        context_coords = get_coords_from_slices(context_slice)
         scaled_position = coordinate_sum(match_position, context_coords)
         scaled_position = coordinate_offset(scaled_position, self.minimap_iter.size // 2)
 
