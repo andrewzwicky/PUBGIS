@@ -38,7 +38,7 @@ build_script:
 
 test_script:
   - "pylint pubgis"
-  - "pytest tests\\test_video.py --profile-svg"
+  - "pytest tests\\test_video.py --profile"
   - "gprof2dot -f pstats prof\\combined.prof > prof\\tmp"
   - "dot -Tsvg -o prof\\combined.prof.svg prof\\tmp"
 
