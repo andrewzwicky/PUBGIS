@@ -28,7 +28,7 @@ install:
   - "%PIP% install twine pyinstaller wheel pylint gprof2dot"
   - "appveyor DownloadFile http://www.graphviz.org/pub/graphviz/stable/windows/graphviz-2.38.msi"
   - ps: "msiexec /i graphviz-2.38.msi /quiet /qn /norestart"
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\Program Files (x86)\Graphviz2.38\bin;%PATH%"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\\Program Files (x86)\\Graphviz2.38\\bin;%PATH%"
   - "%PIP% install -e .[test]"
 
 
@@ -38,9 +38,9 @@ build_script:
 
 test_script:
   - "pylint pubgis"
-  - "pytest tests\test_video.py --profile-svg"
-  - "gprof2dot -f pstats prof\combined.prof > prof\tmp"
-  - "dot -Tsvg -o prof\combined.prof.svg prof\tmp"
+  - "pytest tests\\test_video.py --profile-svg"
+  - "gprof2dot -f pstats prof\\combined.prof > prof\\tmp"
+  - "dot -Tsvg -o prof\\combined.prof.svg prof\\tmp"
 
 
 artifacts:
