@@ -27,11 +27,12 @@ def _good_match_fixture():
 @pytest.mark.parametrize("test_image", os.scandir(BAD_IMAGES_FOLDER))
 def test_bad_images(test_image, _bad_match_fixture):
     img = cv2.imread(test_image.path)
-    assert _bad_match_fixture._find_scaled_player_position(img) is None
+    scaled_pos = _bad_match_fixture._find_scaled_player_position(img)  # pylint: disable=protected-access
+    assert scaled_pos is None
 
 
 @pytest.mark.parametrize("test_image, expected_position", GOOD_IMAGES)
 def test_good_images(test_image, expected_position, _good_match_fixture):
     img = cv2.imread(test_image.path)
-    scaled_position = _good_match_fixture._find_scaled_player_position(img)
+    scaled_position = _good_match_fixture._find_scaled_player_position(img)  # pylint: disable=protected-access
     assert scaled_position == expected_position
