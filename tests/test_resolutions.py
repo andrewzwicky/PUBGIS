@@ -1,20 +1,14 @@
 import os
-import re
-from os.path import join, dirname
 
 import pytest
 
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
+from tests.common_test_functions import MOCK_TIME_STEP
 
-GOOD_TEST_COORDS_RE = re.compile(r".*_\d+_(\d+)_(\d+)\.jpg")
-ALLOWED_VARIATION = 2  # pixels
-MOCK_TIME_STEP = 1
-
-RESOLUTION_IMAGES_FOLDER = join(dirname(__file__), "resolution_tests")
+RESOLUTION_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), "resolution_tests")
 
 
-# noinspection PyShadowingNames
 @pytest.mark.parametrize("test_resolution_folder", os.scandir(RESOLUTION_IMAGES_FOLDER))
 def test_different_resolutions(test_resolution_folder):
     mini_iter = ImageIterator(test_resolution_folder.path, MOCK_TIME_STEP)

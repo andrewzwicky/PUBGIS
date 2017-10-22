@@ -1,6 +1,7 @@
 import pytest
 
-from pubgis.support import *
+from pubgis.support import find_path_bounds, coordinate_sum, unscale_coords, coordinate_offset, \
+    create_slice, get_coords_from_slices
 
 FIND_PATH_BOUND_CASES = [
     # no coordinates should return full map size

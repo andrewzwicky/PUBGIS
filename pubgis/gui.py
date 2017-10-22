@@ -35,7 +35,7 @@ class ButtonGroups(Flag):
     PROCESSING = auto()
 
 
-class PUBGISWorkerThread(QThread): # pylint: disable=too-many-instance-attributes
+class PUBGISWorkerThread(QThread):  # pylint: disable=too-many-instance-attributes
     percent_update = QtCore.pyqtSignal(int)
     percent_max_update = QtCore.pyqtSignal(int)
     minimap_update = QtCore.pyqtSignal(np.ndarray)
@@ -202,7 +202,6 @@ class PUBGISMainWindow(QMainWindow):
         bytes_per_line = 3 * width
         qimg = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
 
-        # noinspection PyCallByClass
         view.scene().items()[0].setPixmap(QPixmap.fromImage(qimg))
         PUBGISMainWindow._fit_in_view(view,
                                       view.scene().itemsBoundingRect(),

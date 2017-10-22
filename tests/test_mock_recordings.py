@@ -1,5 +1,5 @@
 import os
-from os.path import join, dirname
+
 
 import pytest
 from pytest import param
@@ -8,7 +8,7 @@ from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
 from tests.common_test_functions import MOCK_TIME_STEP, generate_expected_positions
 
-MOCK_FOLDER = join(dirname(__file__), "mock_matches")
+MOCK_FOLDER = os.path.join(os.path.dirname(__file__), "mock_matches")
 
 MOCK_VIDEO_CASES = [param(dir_entry.path,
                           generate_expected_positions(dir_entry.path),

@@ -1,17 +1,24 @@
+import os
+
 import cv2
 
 from pubgis.minimap_iterators.generic import GenericIterator
 
-DEFAULT_STEP_INTERVAL = 1
+DEFAULT_STEP = 1
 
 
 class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attributes
-    def __init__(self,
-                 video_file=None,
-                 landing_time=0,
-                 time_step=DEFAULT_STEP_INTERVAL,
-                 death_time=None, ):
+    def __init__(self, video_file=None, landing_time=0, time_step=DEFAULT_STEP, death_time=None):
         super().__init__()
+        if not os.path.isfile(video_file):
+            raise FileNotFoundError(video_file)
+
+        if landing_time < 0:
+            raise ValueError("landing time must be >= 0")
+
+        if death_time is not None and death_time < landing_time:
+            raise ValueError("death time must be greater than landing time")
+
         self.cap = cv2.VideoCapture(video_file)
         self.frame_index = self.get_minimap_slice(int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
                                                   int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -20,7 +27,6 @@ class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attri
         self.landing_frame = int(landing_time * self.fps)
         self.time_step = time_step
         self.step_frames = max(int(time_step * self.fps), 1) - 1
-        # TODO: assert death time > landing_time
         if death_time:
             death_frame = int(death_time * self.fps)
         else:

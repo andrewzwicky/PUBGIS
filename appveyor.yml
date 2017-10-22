@@ -37,8 +37,8 @@ build_script:
   - "%PYTHON%\\python setup.py sdist"
 
 test_script:
-  - "pylint pubgis"
-  - "pytest --profile"
+  - "pylint -j 0 pubgis tests"
+  - "pytest --profile --cov=pubgis"
   - "gprof2dot -f pstats prof\\combined.prof > prof\\tmp"
   - "dot -Tsvg -o prof\\combined.prof.svg prof\\tmp"
 
@@ -50,7 +50,7 @@ artifacts:
   - path: dist/PUBGIS*.tar.gz
     name: "pypi sdist"
 
-  - path: prof/*
+  - path: prof/combined*, prof/test_video_file*, prof/test_mock_video*
     name: "profiling"
 
 deploy:

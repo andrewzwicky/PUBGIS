@@ -1,13 +1,12 @@
 import json
 import os
-from os.path import join, dirname
 
 import pytest
 
 from pubgis.output.pubgis_json import output_json, input_json, valididate_pubgis_schema, \
     parse_input_json_data, create_json_data
 
-JSON_TEST_DIR = join(dirname(__file__), "json")
+JSON_TEST_DIR = os.path.join(os.path.dirname(__file__), "json")
 
 COORDS = [(3079, 4034), (3095, 4061), None, (3123, 4108), (3140, 4138), (3160, 4170),
           (3178, 4201), (3194, 4228), (3208, 4251), (3228, 4285), (3247, 4318), (3265, 4348),
@@ -20,13 +19,13 @@ GAME = None
 TEAM = "best_team"
 USER = "username"
 
-VALID_JSON_FOLDER = join(dirname(__file__), "json", "valid")
-INVALID_JSON_FOLDER = join(dirname(__file__), "json", "invalid")
+VALID_JSON_FOLDER = os.path.join(os.path.dirname(__file__), "json", "valid")
+INVALID_JSON_FOLDER = os.path.join(os.path.dirname(__file__), "json", "invalid")
 
 
 def test_json_write():
-    actual_file = join(JSON_TEST_DIR, 'actual_out.json')
-    expected_file = join(JSON_TEST_DIR, 'expected_out.json')
+    actual_file = os.path.join(JSON_TEST_DIR, 'actual_out.json')
+    expected_file = os.path.join(JSON_TEST_DIR, 'expected_out.json')
 
     output_json(actual_file, create_json_data(COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM))
 
@@ -37,12 +36,12 @@ def test_json_write():
 
 
 def test_json_read():
-    expected_file = join(JSON_TEST_DIR, 'expected_out.json')
+    expected_file = os.path.join(JSON_TEST_DIR, 'expected_out.json')
     assert input_json(expected_file) == (USER, COORDS, TIMESTAMPS, GAME, TEAM)
 
 
 def test_json_same():
-    actual_file = join(JSON_TEST_DIR, 'actual_out.json')
+    actual_file = os.path.join(JSON_TEST_DIR, 'actual_out.json')
     output_json(actual_file, create_json_data(COORDS, TIMESTAMPS, name=USER, game=GAME, team=TEAM))
     assert input_json(actual_file) == (USER, COORDS, TIMESTAMPS, GAME, TEAM)
 

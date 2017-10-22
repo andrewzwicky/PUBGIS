@@ -23,8 +23,6 @@ MAX_WATER_PIX_PER_SEC = 120  # boat
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SIZE = 0.6
 
-NO_MATCH_COLOR = Color((1, 0, 0))  # RED
-MATCH_COLOR = Color((0, 1, 0))  # LIME
 LAND = Color((0, 255, 0), scaling=Scaling.UINT8)  # HUNTER GREEN
 WATER = Color((0, 0, 255), scaling=Scaling.UINT8)  # BLUE
 WHITE = Color((1, 1, 1))  # WHITE

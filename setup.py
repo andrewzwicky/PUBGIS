@@ -30,7 +30,7 @@ setup(name='PUBGIS',
                         'jsonschema>=2.6.0',
                         ],
       extras_require={
-          'test': ['pytest>=3.2.2', 'pytest-profiling>=1.2.11']},
+          'test': ['pytest>=3.2.2', 'pytest-profiling>=1.2.11', 'pytest-cov>=2.5.1']},
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: X11 Applications :: Qt',
