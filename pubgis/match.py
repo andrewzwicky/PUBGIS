@@ -111,7 +111,8 @@ class PUBGISMatch:
 
         return scaled_position
 
-    def __debug_template_match(self, template_match, match_adjustment):
+    @staticmethod
+    def __debug_template_match(template_match, match_adjustment):
         temp_size = 400
         temp_match_size = template_match.shape[0]
         scaling = temp_size / temp_match_size
