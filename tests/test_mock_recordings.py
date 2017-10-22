@@ -12,8 +12,7 @@ MOCK_FOLDER = join(dirname(__file__), "mock_matches")
 
 MOCK_VIDEO_CASES = [param(dir_entry.path,
                           generate_expected_positions(dir_entry.path),
-                          id=dir_entry.name) for dir_entry in os.scandir(MOCK_FOLDER)
-                    if dir_entry.name != 'long_boat_test']
+                          id=dir_entry.name) for dir_entry in os.scandir(MOCK_FOLDER)]
 
 
 @pytest.mark.parametrize("input_minimap_folder, expected_positions", MOCK_VIDEO_CASES)

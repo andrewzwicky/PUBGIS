@@ -14,7 +14,7 @@ IMAGES = join(dirname(__file__), "images")
 #
 # These were discovered experimentally by running many sets of images through the algorithm and
 # examining the output.
-COLOR_DIFF_THRESHS = [30, 70, 150]
+COLOR_DIFF_THRESHS = [30, 70, 125]
 TEMPLATE_MATCH_THRESHS = [.75, .40, .30]
 
 MAX_PLANE_PIX_PER_SEC = 160  # plane
@@ -111,6 +111,19 @@ class PUBGISMatch:
 
         return scaled_position
 
+    def __debug_template_match(self, template_match, match_adjustment):
+        temp_size = 400
+        temp_match_size = template_match.shape[0]
+        scaling = temp_size / temp_match_size
+
+        if match_adjustment is not None:
+            out = np.concatenate((template_match, match_adjustment * 126), axis=1)
+        else:
+            out = template_match
+
+        cv2.imshow("template_match", cv2.resize(out, (0, 0), fx=scaling, fy=scaling))
+        cv2.waitKey(10)
+
     def _perform_template_matching(self, minimap):
         context_slice = self._get_scaled_context()
         context_coords = get_coords_from_slices(context_slice)
@@ -128,6 +141,8 @@ class PUBGISMatch:
             x_grid, y_grid = np.meshgrid(x_rows, y_rows)
             match_adjustment = np.sqrt(np.sqrt(x_grid ** 2 + y_grid ** 2)) / 1000
             template_match -= match_adjustment
+        else:
+            match_adjustment = None
 
         _, template_match_value, _, match_position = cv2.minMaxLoc(template_match)
         scaled_position = coordinate_sum(match_position, context_coords)
@@ -135,7 +150,8 @@ class PUBGISMatch:
 
         if self.debug:
             self.__debug_context(match_position, context_slice)
-            # self.__debug_land(scaled_position)
+            self.__debug_template_match(template_match, match_adjustment)
+            self.__debug_land(scaled_position)
 
         return scaled_position, template_match_value
 
