@@ -22,7 +22,7 @@ Examples
 
 .. image:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/composite_example.png
 
-Usage
+Quick-Start
 -----
 
 When PUBGIS is started, you'll see this:
