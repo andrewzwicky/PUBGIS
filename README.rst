@@ -1,4 +1,4 @@
-|icon| PUBGIS |Build status| |Github All Releases| |PyPI|
+|icon| PUBGIS |Build status| |PyPI|
 =========================================================
 
 PUBGIS (PUBG Geographic Information System) analyzes gameplay from
