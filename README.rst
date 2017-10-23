@@ -30,25 +30,15 @@ When PUBGIS is started, you'll see this:
 .. figure:: https://github.com/andrewzwicky/PUBGIS/raw/master/docs/example_setup.jpg
    :scale: 45 %
 
-1a. Select a video file (only tested with .mp4 currently)
-
-1b. Click the Live tab to record as you play.
+1. Select a video file (only tested with .mp4 currently)
 
 2. Adjust the output file if needed.
 
 3. Click Process!
 
+4. For more deatils about all the options, read the `Usage`_ wiki page.
+
 **NOTE:**  PUBGIS live recording does not currently work when running PUBG Fullscreen (Fullscreen (Windowed) is OK). I'm tracking `Issue#41`_. Sorry for the inconvenience.
-
-**Optional**:
-
-* If the video contains extra footage *before your parachute landing*, put that time in **landing time**
-
-* If the video contains extra footage *after you die*, such as spectating a teammate, input your **death time** (death time of 00:00 means it will process until the end of the video)
-
-* Adjust the time step. This is how often the map is checked. Larger values will process a game faster, but the path will not be as detailed.
-
-* Select a different color path
 
 Development
 -----------
@@ -77,6 +67,7 @@ file for details
 
 .. _PUBG: https://www.playbattlegrounds.com/main.pu
 .. _`Theory of Operation`: https://github.com/andrewzwicky/PUBGIS/wiki/Theory-of-Operation
+.. _Usage: https://github.com/andrewzwicky/PUBGIS/wiki/Usage
 .. _here: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Issue#41: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. _Development: https://github.com/andrewzwicky/PUBGIS/wiki/Development
