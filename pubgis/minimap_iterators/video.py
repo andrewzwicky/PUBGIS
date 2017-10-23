@@ -8,7 +8,7 @@ DEFAULT_STEP = 1
 
 
 class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, video_file=None, landing_time=0, time_step=DEFAULT_STEP, death_time=None):
+    def __init__(self, video_file=None, landing_time=0, time_step=DEFAULT_STEP, death_time=0):
         super().__init__()
         if not os.path.isfile(video_file):
             raise FileNotFoundError(video_file)
@@ -16,7 +16,7 @@ class VideoIterator(GenericIterator):  # pylint: disable=too-many-instance-attri
         if landing_time < 0:
             raise ValueError("landing time must be >= 0")
 
-        if death_time is not None and death_time < landing_time:
+        if death_time and death_time < landing_time:
             raise ValueError("death time must be greater than landing time")
 
         self.cap = cv2.VideoCapture(video_file)

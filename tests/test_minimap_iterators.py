@@ -20,3 +20,11 @@ def test_negative_landing_time():
 def test_death_before_landing():
     with pytest.raises(ValueError):
         VideoIterator(TEST_VIDEO, landing_time=15, death_time=10)
+
+
+def test_death_time_zero():
+    VideoIterator(TEST_VIDEO, landing_time=15, death_time=0)
+
+
+def test_death_time_none():
+    VideoIterator(TEST_VIDEO, landing_time=15, death_time=None)
