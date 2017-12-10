@@ -26,7 +26,7 @@ install:
   - "%PIP% --version"
   - "%PIP% install --disable-pip-version-check --user --upgrade pip"
   - "%PIP% install twine pyinstaller wheel pylint gprof2dot"
-  - "appveyor DownloadFile http://www.graphviz.org/pub/graphviz/stable/windows/graphviz-2.38.msi"
+  - "appveyor DownloadFile https://graphviz.gitlab.io/_pages/Download/windows/graphviz-2.38.msi"
   - ps: "msiexec /i graphviz-2.38.msi /quiet /qn /norestart"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\\Program Files (x86)\\Graphviz2.38\\bin;%PATH%"
   - "%PIP% install -e .[test]"
