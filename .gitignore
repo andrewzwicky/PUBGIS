@@ -37,7 +37,6 @@ coverage.xml
 .ipynb_checkpoints
 
 # PUBGIS specific files
-Erangel_Minimap.tga
 .idea/
 test_cases/failed/
 test_cases/unknown/
@@ -48,3 +47,4 @@ tests/summary_plot.png
 *.autosave
 tests/json/actual*
 tests/generate_test_minimaps.py
+*.tga
