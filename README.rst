@@ -11,7 +11,7 @@ game (seen below) and matching that to a location on the world map. If
 you want more details about how PUBGIS works, check out the
 `Theory of Operation`_ wiki page
 
-Note (1/10/18):  Since the 1.0 Update of PUBG, the UI has changed significantly.  Because PUBGIS uses the displayed UI map, this means that PUBGIS needs to be updated to properly detect & parse the new map.  I haven't had time to do this work yet, but I'm hoping to find time in the future.  In the meantime, contributions are welcome :)  [See `Issue#43`_ for the latest]
+**Note (1/10/18):**  Since the 1.0 Update of PUBG, the UI has changed significantly.  Because PUBGIS uses the displayed UI map, this means that PUBGIS needs to be updated to properly detect & parse the new map.  I haven't had time to do this work yet, but I'm hoping to find time in the future.  In the meantime, contributions are welcome :)  [See `Issue#43`_ for the latest]
 
 Installation
 ------------
