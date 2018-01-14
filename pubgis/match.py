@@ -46,8 +46,8 @@ class PUBGISMatch:
     The output positions are based on the full_map which is the highest resolution map.  This
     same map is used as the reference for output positions, regardless of input resolution.
     """
-    full_map = cv2.imread(join(IMAGES, "erangel_full_map.jpg"))
-    land_mask_image = cv2.imread(join(IMAGES, "erangel_land_mask.jpg"), cv2.IMREAD_GRAYSCALE)
+    full_map = cv2.imread(join(IMAGES, "miramar_full_map.jpg"))
+    land_mask_image = cv2.imread(join(IMAGES, "miramar_land_mask.jpg"), cv2.IMREAD_GRAYSCALE)
     _, land_mask = cv2.threshold(land_mask_image, 10, 255, cv2.THRESH_BINARY)
     land_mask_scale = len(land_mask) / len(full_map)
 
@@ -69,6 +69,11 @@ class PUBGISMatch:
         self.gray_map = cv2.cvtColor(scaled_map, cv2.COLOR_BGR2GRAY)
 
         self.masks = self._create_masks(self.minimap_iter.size)
+
+    @staticmethod
+    def __is_player_icon_present(minimap, masks):
+        color_diff = Color.calculate_color_diff(minimap, *masks)
+        return color_diff >= min(COLOR_DIFF_THRESHS)
 
     def process_match(self):
         for percent, timestamp, minimap in self.minimap_iter:
