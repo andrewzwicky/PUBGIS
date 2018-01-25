@@ -5,6 +5,7 @@ import pytest
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.video import VideoIterator
 
+# pylint: disable=invalid-name
 pytestmark = pytest.mark.skip()
 
 TEST_VIDEOS_FOLDER = os.path.join(os.path.dirname(__file__), "test_videos")

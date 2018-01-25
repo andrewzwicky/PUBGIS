@@ -8,6 +8,7 @@ from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.images import ImageIterator
 from tests.common_test_functions import MOCK_TIME_STEP, generate_expected_positions
 
+# pylint: disable=invalid-name
 pytestmark = pytest.mark.skip()
 
 try:
