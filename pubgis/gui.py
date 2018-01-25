@@ -145,6 +145,9 @@ class PUBGISMainWindow(QMainWindow):
         self.map_creation_view.setScene(QGraphicsScene())
         self.map_creation_view.scene().addPixmap(QPixmap())
 
+        # instantiate MSS now
+        self.sct = mss.mss()
+
         # set window name and icon
         self.setWindowTitle("PUBGIS (v{})".format(__version__))
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),
@@ -295,19 +298,19 @@ class PUBGISMainWindow(QMainWindow):
 
             sizes = []
 
-            with mss.mss() as sct:
-                for index, monitor in enumerate(sct.monitors[1:], start=1):
-                    sizes.append(f"{index}: {monitor['width']}x{monitor['height']}")
+            for index, monitor in enumerate(self.sct.monitors[1:], start=1):
+                sizes.append(f"{index}: {monitor['width']}x{monitor['height']}")
 
             self.monitor_combo.insertItems(0, sizes)
             self._update_monitor_preview()
 
     def _update_monitor_preview(self):
-        with mss.mss() as sct:
-            # Monitor 0 is all of the monitors glued together.  This was skipped when the monitors
-            # were added to the monitor_combo, so we must add 1 to the index when previewing
-            # to make sure the right monitor is displayed.
-            cap = np.array(sct.grab(sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+        # Monitor 0 is all of the monitors glued together.  This was skipped when the monitors
+        # were added to the monitor_combo, so we must add 1 to the index when previewing
+        # to make sure the right monitor is displayed.
+        cap = np.array(
+            self.sct.grab(
+                self.sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
         self._update_view_with_image(self.map_creation_view, cap)
 
     # UNIVERSAL, APPLIES TO ALL SECTIONS
