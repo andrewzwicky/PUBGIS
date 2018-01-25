@@ -5,6 +5,8 @@ import pytest
 from pubgis.match import PUBGISMatch
 from pubgis.minimap_iterators.video import VideoIterator
 
+pytestmark = pytest.mark.skip()
+
 TEST_VIDEOS_FOLDER = os.path.join(os.path.dirname(__file__), "test_videos")
 
 VIDEO_CASES = [(os.path.join(TEST_VIDEOS_FOLDER, 'test_video.mp4'),

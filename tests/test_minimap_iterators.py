@@ -4,6 +4,8 @@ import pytest
 
 from pubgis.minimap_iterators.video import VideoIterator
 
+pytestmark = pytest.mark.skip()
+
 TEST_VIDEO = os.path.join(os.path.dirname(__file__), "test_videos", 'test_video.mp4')
 
 
