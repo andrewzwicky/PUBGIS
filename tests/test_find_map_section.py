@@ -13,7 +13,8 @@ pytestmark = pytest.mark.skip()
 try:
     BAD_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), "bad")
     GOOD_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), "good")
-    GOOD_IMAGES = zip(os.scandir(GOOD_IMAGES_FOLDER), generate_expected_positions(GOOD_IMAGES_FOLDER))
+    GOOD_IMAGES = zip(os.scandir(GOOD_IMAGES_FOLDER),
+                      generate_expected_positions(GOOD_IMAGES_FOLDER))
 except FileNotFoundError:
     BAD_IMAGES_FOLDER = None
     GOOD_IMAGES_FOLDER = None
