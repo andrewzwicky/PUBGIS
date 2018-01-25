@@ -142,8 +142,8 @@ class PUBGISMatch:
                                                 [-x for x in context_coords])
             x_rows = np.arange(template_match.shape[0]) - context_last_known[0]
             y_rows = np.arange(template_match.shape[0]) - context_last_known[1]
-            x_grid, y_grid = np.meshgrid(x_rows, y_rows)
-            match_adjustment = np.sqrt(np.sqrt(x_grid ** 2 + y_grid ** 2)) / 1000
+            meshgrid = np.meshgrid(x_rows, y_rows)
+            match_adjustment = np.sqrt(np.sqrt(meshgrid[0] ** 2 + meshgrid[1] ** 2)) / 1000
             template_match -= match_adjustment
         else:
             match_adjustment = None

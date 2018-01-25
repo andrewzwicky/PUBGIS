@@ -90,6 +90,7 @@ def parse_input_json_data(data):
             positions.append(tuple(position) if position is not None else position)
 
         return name, positions, timestamps, game, team
+    return None, None, None, None, None
 
 
 def input_json(filename):
