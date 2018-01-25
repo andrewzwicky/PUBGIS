@@ -9,7 +9,10 @@ from tests.common_test_functions import MOCK_TIME_STEP
 # pylint: disable=invalid-name
 pytestmark = pytest.mark.skip()
 
-RESOLUTION_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), "resolution_tests")
+try:
+    RESOLUTION_IMAGES_FOLDER = os.path.join(os.path.dirname(__file__), "resolution_tests")
+except FileNotFoundError:
+    RESOLUTION_IMAGES_FOLDER = None
 
 
 @pytest.mark.parametrize("test_resolution_folder", os.scandir(RESOLUTION_IMAGES_FOLDER))
