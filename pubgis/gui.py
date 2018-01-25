@@ -308,7 +308,9 @@ class PUBGISMainWindow(QMainWindow):
         # Monitor 0 is all of the monitors glued together.  This was skipped when the monitors
         # were added to the monitor_combo, so we must add 1 to the index when previewing
         # to make sure the right monitor is displayed.
-        cap = np.array(self.sct.grab(self.sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
+        cap = np.array(
+            self.sct.grab(
+                self.sct.monitors[self.monitor_combo.currentIndex() + 1]))[:, :, :3]
         self._update_view_with_image(self.map_creation_view, cap)
 
     # UNIVERSAL, APPLIES TO ALL SECTIONS

@@ -15,8 +15,9 @@ class LiveFeed(GenericIterator):
         self.last_execution_time = None
         self.begin_time = None
 
-        y_offset, x_offset, size = self.get_minimap_bounds(self.sct.monitors[self.monitor]['width'],
-                                                           self.sct.monitors[self.monitor]['height'])
+        y_offset, x_offset, size = self.get_minimap_bounds(
+            self.sct.monitors[self.monitor]['width'],
+            self.sct.monitors[self.monitor]['height'])
 
         self.minimap_bounds = {'top': y_offset + self.sct.monitors[self.monitor]['top'],
                                'left': x_offset + self.sct.monitors[self.monitor]['left'],
