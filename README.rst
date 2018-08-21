@@ -1,4 +1,4 @@
-|icon| PUBGIS |Build status| |Github All Releases| |PyPI|
+|icon| PUBGIS |Build status| |Github All Releases| |PyPI| |Maint|
 =========================================================
 
 PUBGIS (PUBG Geographic Information System) analyzes gameplay from
@@ -83,3 +83,4 @@ file for details
    :target: https://github.com/andrewzwicky/PUBGIS/releases/latest
 .. |PyPI| image:: https://img.shields.io/pypi/v/PUBGIS.svg
    :target: https://pypi.python.org/pypi/PUBGIS
+.. |Maint| image:: https://img.shields.io/maintenance/no/2018.svg
